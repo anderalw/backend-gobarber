@@ -23,7 +23,7 @@
     "prettier"
   ],
   "rules": {
-    "prettier/prettier": "erro",
+    "prettier/prettier": "error",
     "import/extensions": [
       "error",
       "ignorePackages",
