@@ -1,5 +1,6 @@
 import { container } from 'tsyringe';
 
+import '@modules/users/providers';
 import IAppointmentsRepository from '@modules/appointments/repositories/IAppointmentsRepository';
 import AppoinmentsRepository from '@modules/appointments/infra/typeorm/repositories/AppointmentsRepository';
 
