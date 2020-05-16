@@ -1,8 +1,9 @@
 .idea/
 .vscode/
-node_modules
 build/
 temp/
 coverage
 tmp/*
 !tmp/.gitkeep
+coverage
+node_modules
