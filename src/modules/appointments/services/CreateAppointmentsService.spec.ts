@@ -29,7 +29,7 @@ describe('CreateAppointment', () => {
   });
 
   it('should not be albe to create two appointments on the same date', async () => {
-    const appointmentDate = new Date(2020, 4, 25, 11);
+    const appointmentDate = new Date(2020, 6, 25, 11);
 
     await createAppointment.execute({
       date: appointmentDate,
