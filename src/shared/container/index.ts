@@ -21,6 +21,12 @@ import ClientsRepository from '@modules/clients/infra/typeorm/repositories/Clien
 import IProviderSchedulesRepository from '@modules/users/repositories/IProviderSchedulesRepository';
 import ProviderSchedulesRepository from '@modules/users/infra/typeorm/repositories/ProviderSchedulesRepository';
 
+import IServicesRepository from '@modules/catalog/repositories/IServicesRepository';
+import ServicesRepository from '@modules/catalog/infra/typeorm/repositories/ServicesRepository';
+
+import ISettingsRepository from '@modules/catalog/repositories/ISettingsRepository';
+import SettingsRepository from '@modules/catalog/infra/typeorm/repositories/SettingsRepository';
+
 container.registerSingleton<IAppointmentsRepository>(
   'AppointmentsRepository',
   AppointmentsRepository,
@@ -49,4 +55,13 @@ container.registerSingleton<IClientsRepository>(
 container.registerSingleton<IProviderSchedulesRepository>(
   'ProviderSchedulesRepository',
   ProviderSchedulesRepository,
+);
+container.registerSingleton<IServicesRepository>(
+  'ServicesRepository',
+  ServicesRepository,
+);
+
+container.registerSingleton<ISettingsRepository>(
+  'SettingsRepository',
+  SettingsRepository,
 );
