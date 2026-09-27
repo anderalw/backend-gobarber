@@ -1,5 +1,6 @@
 import { getRepository, Repository } from 'typeorm';
 import IClientsRepository from '@modules/clients/repositories/IClientsRepository';
+import ICreateClientDTO from '@modules/clients/dtos/ICreateClientDTO';
 import Client from '../entities/Client';
 
 class ClientsRepository implements IClientsRepository {
@@ -14,8 +15,8 @@ class ClientsRepository implements IClientsRepository {
     return client;
   }
 
-  public async create(userData: any): Promise<Client> {
-    const client = this.ormRepository.create(userData);
+  public async create(clientData: ICreateClientDTO): Promise<Client> {
+    const client = this.ormRepository.create(clientData);
     await this.ormRepository.save(client);
     return client;
   }
