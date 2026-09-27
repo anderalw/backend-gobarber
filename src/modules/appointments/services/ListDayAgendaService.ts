@@ -23,6 +23,8 @@ interface IAgendaAppointment {
   date: Date;
   // Fim do atendimento (início + duração do serviço)
   end_date: Date;
+  // Fim do intervalo depois do atendimento (igual a end_date sem intervalo)
+  blocked_until: Date;
   provider_id: string;
   // null em agendamentos anteriores ao cadastro de serviços
   service: { id: string; name: string } | null;
@@ -83,6 +85,7 @@ class ListDayAgendaService {
         id: appointment.id,
         date: appointment.date,
         end_date: appointment.end_date,
+        blocked_until: appointment.blocked_until,
         provider_id: appointment.provider_id,
         service: appointment.service
           ? { id: appointment.service.id, name: appointment.service.name }

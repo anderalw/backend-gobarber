@@ -122,6 +122,7 @@ describe('ListDayAgenda', () => {
     // Fim do atendimento e valor, para o tamanho do card e os detalhes
     expect(appointments[1]).toMatchObject({
       end_date: appointmentA.end_date,
+      blocked_until: appointmentA.blocked_until,
       price_cents: 4500,
       // Serviço não carregado (ex: agendamento anterior aos serviços)
       service: null,
