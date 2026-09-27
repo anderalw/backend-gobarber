@@ -1,6 +1,6 @@
 import { classToClass } from 'class-transformer';
 
-import Client from './Client';
+import Client from '../Client';
 
 describe('Client entity', () => {
   it('should not expose the password when serialized', () => {
