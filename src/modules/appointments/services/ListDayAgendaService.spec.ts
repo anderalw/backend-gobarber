@@ -66,6 +66,7 @@ describe('ListDayAgenda', () => {
     Object.assign(client, {
       id: 'client-id',
       name: 'Maria',
+      email: 'maria@example.test',
       phone: '999',
       password: 'hashed-password',
     });
@@ -106,8 +107,11 @@ describe('ListDayAgenda', () => {
     expect(appointments[1].client).toEqual({
       id: 'client-id',
       name: 'Maria',
+      email: 'maria@example.test',
       phone: '999',
     });
+    // Data em que a marcação foi feita, para os detalhes do agendamento
+    expect(appointments[1].created_at).toBe(appointmentA.created_at);
     // Agendamento sem cliente carregado (ex: cliente removido)
     expect(appointments[0].client).toBeNull();
   });

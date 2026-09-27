@@ -22,7 +22,9 @@ interface IAgendaAppointment {
   id: string;
   date: Date;
   provider_id: string;
-  client: { id: string; name: string; phone: string } | null;
+  // Quando o cliente fez a marcação
+  created_at: Date;
+  client: { id: string; name: string; email: string; phone: string } | null;
 }
 
 interface IResponse {
@@ -75,10 +77,12 @@ class ListDayAgendaService {
         id: appointment.id,
         date: appointment.date,
         provider_id: appointment.provider_id,
+        created_at: appointment.created_at,
         client: appointment.client
           ? {
               id: appointment.client.id,
               name: appointment.client.name,
+              email: appointment.client.email,
               phone: appointment.client.phone,
             }
           : null,

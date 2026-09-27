@@ -80,7 +80,14 @@ class AppointmentsRepository implements IAppointmentsRepository {
   }: ICreateAppointmentDTO): Promise<Appointment> {
     const appointment = new Appointment();
 
-    Object.assign(appointment, { id: uuid(), date, provider_id, client_id });
+    Object.assign(appointment, {
+      id: uuid(),
+      date,
+      provider_id,
+      client_id,
+      // No banco, preenchido pelo @CreateDateColumn
+      created_at: new Date(),
+    });
 
     this.appointments.push(appointment);
 
