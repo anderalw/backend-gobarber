@@ -87,7 +87,7 @@ class AppointmentsRepository implements IAppointmentsRepository {
       // 23505 = unique_violation: outra requisição reservou este horário
       // entre a verificação do service e este insert
       if (err instanceof QueryFailedError && (err as any).code === '23505') {
-        throw new AppError('This appointment is alredy booked');
+        throw new AppError('Este horário já está reservado.');
       }
 
       throw err;

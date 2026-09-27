@@ -15,7 +15,7 @@ class CreateClientService {
     const checkClientExists = await this.clientsRepository.findByEmail(email);
 
     if (checkClientExists) {
-      throw new AppError('Email address already used.');
+      throw new AppError('Este e-mail já está em uso.');
     }
 
     const hashedPassword = await hash(password, 8);

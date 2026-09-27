@@ -20,7 +20,7 @@ export default function ensureAuthenticated(
   const authHeader = request.headers.authorization;
 
   if (!authHeader) {
-    throw new AppError('JWT Token is missing', 401);
+    throw new AppError('Sessão não encontrada, faça login novamente.', 401);
   }
 
   const [, token] = authHeader.split(' ');
@@ -30,7 +30,7 @@ export default function ensureAuthenticated(
   try {
     payload = verify(token, authConfig.jwt.secret) as ITokenPayLoad;
   } catch {
-    throw new AppError('Invalid JWT token', 401);
+    throw new AppError('Sessão inválida ou expirada, faça login novamente.', 401);
   }
 
   const { sub, role } = payload;
@@ -38,7 +38,7 @@ export default function ensureAuthenticated(
   // Tokens emitidos antes da separação cliente/barbeiro não têm role:
   // são recusados para obrigar um novo login
   if (role !== 'provider' && role !== 'client') {
-    throw new AppError('Invalid JWT token', 401);
+    throw new AppError('Sessão inválida ou expirada, faça login novamente.', 401);
   }
 
   request.user = {

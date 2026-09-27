@@ -39,11 +39,11 @@ class CreateAppointmentsServices {
     const appointmentDate = startOfHour(date);
 
     if (isBefore(appointmentDate, Date.now())) {
-      throw new AppError("You can't create an appointment on a past date");
+      throw new AppError('Não é possível agendar numa data passada.');
     }
 
     if (client_id === provider_id) {
-      throw new AppError("You can't create an appointmet with yourself");
+      throw new AppError('Não é possível agendar consigo mesmo.');
     }
 
     const schedules = await this.providerSchedulesRepository.findByProviderId(
@@ -55,7 +55,7 @@ class CreateAppointmentsServices {
     );
 
     if (!scheduleForDay) {
-      throw new AppError('This provider does not work on this day');
+      throw new AppError('O barbeiro não atende neste dia.');
     }
 
     // Mesma regra da disponibilidade do dia: de start_time até end_time - 1h
@@ -65,7 +65,7 @@ class CreateAppointmentsServices {
 
     if (appointmentHour < startHour || appointmentHour >= endHour) {
       throw new AppError(
-        `You can only create appointments between ${scheduleForDay.start_time} and ${scheduleForDay.end_time}`,
+        `Este barbeiro só atende entre ${scheduleForDay.start_time} e ${scheduleForDay.end_time}.`,
       );
     }
 
@@ -75,7 +75,7 @@ class CreateAppointmentsServices {
     );
 
     if (findAppointmentInSameDate) {
-      throw new AppError('This appointment is alredy booked');
+      throw new AppError('Este horário já está reservado.');
     }
 
     const appointment = await this.appointmentsRepository.create({

@@ -35,7 +35,7 @@ class AuthenticateClientService {
     const client = await this.clientsRepository.findByEmail(email);
 
     if (!client) {
-      throw new AppError('Incorrect email/password combination.', 401);
+      throw new AppError('E-mail ou senha incorretos.', 401);
     }
 
     // Compara a password em texto limpo com a password encriptada na base de dados
@@ -45,7 +45,7 @@ class AuthenticateClientService {
     );
 
     if (!passwordMatched) {
-      throw new AppError('Incorrect email/password combination.', 401);
+      throw new AppError('E-mail ou senha incorretos.', 401);
     }
 
     const { secret, expiresIn } = authConfig.jwt;
