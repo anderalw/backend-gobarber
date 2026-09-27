@@ -17,6 +17,14 @@ class FakeProviderSchedulesRepository implements IProviderSchedulesRepository {
     );
   }
 
+  public async findByDayOfWeek(
+    day_of_week: number,
+  ): Promise<ProviderSchedule[]> {
+    return this.schedules.filter(
+      schedule => schedule.day_of_week === day_of_week,
+    );
+  }
+
   public async replaceByProviderId(
     provider_id: string,
     schedules: IScheduleData[],

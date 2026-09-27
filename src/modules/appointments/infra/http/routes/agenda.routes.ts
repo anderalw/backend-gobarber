@@ -1,0 +1,27 @@
+import { Router } from 'express';
+import { celebrate, Segments, Joi } from 'celebrate';
+
+import ensureAuthenticated from '@modules/users/infra/http/middlewares/ensureAuthenticated';
+import ensureRole from '@shared/infra/http/middlewares/ensureRole';
+import AgendaController from '../controllers/AgendaController';
+
+const agendaRouter = Router();
+const agendaController = new AgendaController();
+
+// Agenda compartilhada: qualquer barbeiro vê os agendamentos de todos
+agendaRouter.use(ensureAuthenticated);
+agendaRouter.use(ensureRole('provider'));
+
+agendaRouter.get(
+  '/day',
+  celebrate({
+    [Segments.QUERY]: {
+      day: Joi.number().integer().min(1).max(31).required(),
+      month: Joi.number().integer().min(1).max(12).required(),
+      year: Joi.number().integer().min(2000).max(2100).required(),
+    },
+  }),
+  agendaController.index,
+);
+
+export default agendaRouter;

@@ -19,6 +19,10 @@ class ProviderSchedulesRepository implements IProviderSchedulesRepository {
     return schedules;
   }
 
+  public async findByDayOfWeek(day_of_week: number): Promise<ProviderSchedule[]> {
+    return this.ormRepository.find({ where: { day_of_week } });
+  }
+
   public async replaceByProviderId(
     provider_id: string,
     schedules: IScheduleData[],

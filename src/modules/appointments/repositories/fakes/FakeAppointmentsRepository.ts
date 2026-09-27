@@ -4,6 +4,7 @@ import IAppointmentsRepository from '@modules/appointments/repositories/IAppoint
 import ICreateAppointmentDTO from '@modules/appointments/dtos/ICreateAppointmentDTO';
 import IFindAllInMonthFromProviderDTO from '@modules/appointments/dtos/IFindAllInMonthFromProviderDTO';
 import IFindAllInDayFromProviderDTO from '@modules/appointments/dtos/IFindAllInDayFromProviderDTO';
+import IFindAllInDayDTO from '@modules/appointments/dtos/IFindAllInDayDTO';
 
 import Appointment from '../../infra/typeorm/entities/Appointment';
 
@@ -55,6 +56,21 @@ class AppointmentsRepository implements IAppointmentsRepository {
     });
 
     return appointments;
+  }
+
+  public async findAllInDay({
+    day,
+    month,
+    year,
+  }: IFindAllInDayDTO): Promise<Appointment[]> {
+    return this.appointments
+      .filter(
+        appointment =>
+          getDate(appointment.date) === day &&
+          getMonth(appointment.date) + 1 === month &&
+          getYear(appointment.date) === year,
+      )
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
   }
 
   public async create({
