@@ -73,6 +73,68 @@ describe('UpdateProviderSchedules', () => {
     expect(otherSchedules).toHaveLength(1);
   });
 
+  it('should not accept invalid schedules', async () => {
+    const provider = await fakeUsersRepository.create({
+      name: 'Jhon Doe',
+      email: 'jhondoe@email.com',
+      password: '123456',
+    });
+
+    const invalidSchedules = [
+      // minutos quebrados
+      [{ day_of_week: 1, start_time: '09:30', end_time: '18:00' }],
+      // formato inválido
+      [{ day_of_week: 1, start_time: '9h', end_time: '18:00' }],
+      [{ day_of_week: 1, start_time: '08:00', end_time: '25:00' }],
+      // início depois do fim ou igual
+      [{ day_of_week: 1, start_time: '18:00', end_time: '09:00' }],
+      [{ day_of_week: 1, start_time: '09:00', end_time: '09:00' }],
+      // dia repetido
+      [
+        { day_of_week: 1, start_time: '08:00', end_time: '12:00' },
+        { day_of_week: 1, start_time: '14:00', end_time: '18:00' },
+      ],
+    ];
+
+    await Promise.all(
+      invalidSchedules.map(schedules =>
+        expect(
+          updateProviderSchedules.execute({
+            provider_id: provider.id,
+            schedules,
+          }),
+        ).rejects.toBeInstanceOf(AppError),
+      ),
+    );
+  });
+
+  it('should keep the old schedules when the new ones are invalid', async () => {
+    const provider = await fakeUsersRepository.create({
+      name: 'Jhon Doe',
+      email: 'jhondoe@email.com',
+      password: '123456',
+    });
+
+    await updateProviderSchedules.execute({
+      provider_id: provider.id,
+      schedules: [{ day_of_week: 1, start_time: '08:00', end_time: '18:00' }],
+    });
+
+    await expect(
+      updateProviderSchedules.execute({
+        provider_id: provider.id,
+        schedules: [{ day_of_week: 2, start_time: '18:00', end_time: '08:00' }],
+      }),
+    ).rejects.toBeInstanceOf(AppError);
+
+    const schedules = await fakeProviderSchedulesRepository.findByProviderId(
+      provider.id,
+    );
+
+    expect(schedules).toHaveLength(1);
+    expect(schedules[0].day_of_week).toBe(1);
+  });
+
   it('should not update schedules of a non-existing provider', async () => {
     await expect(
       updateProviderSchedules.execute({
