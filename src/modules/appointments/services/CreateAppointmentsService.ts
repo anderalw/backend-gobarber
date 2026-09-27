@@ -1,12 +1,4 @@
-import {
-  addMinutes,
-  format,
-  getDay,
-  isAfter,
-  isBefore,
-  setMilliseconds,
-  setSeconds,
-} from 'date-fns';
+import { format, setMilliseconds, setSeconds } from 'date-fns';
 import { injectable, inject } from 'tsyringe';
 
 import AppError from '@shared/errors/AppError';
@@ -19,7 +11,7 @@ import IServicesRepository from '@modules/catalog/repositories/IServicesReposito
 import AgendaSettingsService from '@modules/catalog/services/AgendaSettingsService';
 import Appointment from '../infra/typeorm/entities/Appointment';
 import IAppointmentsRepaository from '../repositories/IAppointmentsRepository';
-import workWindow from '../utils/workWindow';
+import checkAvailableSlot from '../utils/checkAvailableSlot';
 
 interface IRequest {
   provider_id: string;
@@ -57,10 +49,6 @@ class CreateAppointmentsServices {
   }: IRequest): Promise<Appointment> {
     const appointmentDate = setMilliseconds(setSeconds(date, 0), 0);
 
-    if (isBefore(appointmentDate, Date.now())) {
-      throw new AppError('Não é possível agendar numa data passada.');
-    }
-
     if (client_id === provider_id) {
       throw new AppError('Não é possível agendar consigo mesmo.');
     }
@@ -71,40 +59,18 @@ class CreateAppointmentsServices {
       throw new AppError('Serviço não encontrado.');
     }
 
-    const schedules = await this.providerSchedulesRepository.findByProviderId(
-      provider_id,
+    const { end, blockedUntil } = await checkAvailableSlot(
+      {
+        appointmentsRepository: this.appointmentsRepository,
+        providerSchedulesRepository: this.providerSchedulesRepository,
+        agendaSettings: this.agendaSettings,
+      },
+      {
+        provider_id,
+        start: appointmentDate,
+        durationMinutes: service.duration_minutes,
+      },
     );
-
-    const scheduleForDay = schedules.find(
-      schedule => schedule.day_of_week === getDay(appointmentDate),
-    );
-
-    if (!scheduleForDay) {
-      throw new AppError('O barbeiro não atende neste dia.');
-    }
-
-    const endDate = addMinutes(appointmentDate, service.duration_minutes);
-    const { workStart, workEnd } = workWindow(appointmentDate, scheduleForDay);
-
-    // O atendimento inteiro precisa caber no expediente
-    if (isBefore(appointmentDate, workStart) || isAfter(endDate, workEnd)) {
-      throw new AppError(
-        `Este barbeiro só atende entre ${scheduleForDay.start_time} e ${scheduleForDay.end_time}.`,
-      );
-    }
-
-    const { buffer_minutes } = await this.agendaSettings.get();
-    const blockedUntil = addMinutes(endDate, buffer_minutes);
-
-    const overlapping = await this.appointmentsRepository.findOverlapping({
-      provider_id,
-      start: appointmentDate,
-      end: blockedUntil,
-    });
-
-    if (overlapping) {
-      throw new AppError('Este horário já está reservado.');
-    }
 
     const appointment = await this.appointmentsRepository.create({
       provider_id,
@@ -113,7 +79,7 @@ class CreateAppointmentsServices {
       // Guarda o valor do momento: mudar o preço depois não altera o histórico
       price_cents: service.price_cents,
       date: appointmentDate,
-      end_date: endDate,
+      end_date: end,
       blocked_until: blockedUntil,
     });
     const dateFormatted = format(appointmentDate, "dd/MM/yyyy 'às' HH:mm'h'");

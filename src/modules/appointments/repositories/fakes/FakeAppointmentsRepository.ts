@@ -23,13 +23,24 @@ function isSameDay(
 class AppointmentsRepository implements IAppointmentsRepository {
   private appointments: Appointment[] = [];
 
+  // Cancelados não ocupam horário nem aparecem na agenda
+  private get active(): Appointment[] {
+    return this.appointments.filter(appointment => !appointment.canceled_at);
+  }
+
+  public async findById(id: string): Promise<Appointment | undefined> {
+    return this.appointments.find(appointment => appointment.id === id);
+  }
+
   public async findOverlapping({
     provider_id,
     start,
     end,
+    except_appointment_id,
   }: IFindOverlappingDTO): Promise<Appointment | undefined> {
-    return this.appointments.find(
+    return this.active.find(
       appointment =>
+        appointment.id !== except_appointment_id &&
         appointment.provider_id === provider_id &&
         isBefore(appointment.date, end) &&
         isAfter(appointment.blocked_until, start),
@@ -41,7 +52,7 @@ class AppointmentsRepository implements IAppointmentsRepository {
     month,
     year,
   }: IFindAllInMonthFromProviderDTO): Promise<Appointment[]> {
-    return this.appointments.filter(
+    return this.active.filter(
       appointment =>
         appointment.provider_id === provider_id &&
         getMonth(appointment.date) + 1 === month &&
@@ -53,7 +64,7 @@ class AppointmentsRepository implements IAppointmentsRepository {
     provider_id,
     ...day
   }: IFindAllInDayFromProviderDTO): Promise<Appointment[]> {
-    return this.appointments.filter(
+    return this.active.filter(
       appointment =>
         appointment.provider_id === provider_id &&
         isSameDay(appointment.date, day),
@@ -61,8 +72,21 @@ class AppointmentsRepository implements IAppointmentsRepository {
   }
 
   public async findAllInDay(day: IFindAllInDayDTO): Promise<Appointment[]> {
-    return this.appointments
+    return this.active
       .filter(appointment => isSameDay(appointment.date, day))
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
+  }
+
+  public async findUpcomingFromClient(
+    client_id: string,
+    now: Date,
+  ): Promise<Appointment[]> {
+    return this.active
+      .filter(
+        appointment =>
+          appointment.client_id === client_id &&
+          isAfter(appointment.end_date, now),
+      )
       .sort((a, b) => a.date.getTime() - b.date.getTime());
   }
 
@@ -71,11 +95,23 @@ class AppointmentsRepository implements IAppointmentsRepository {
 
     Object.assign(appointment, data, {
       id: uuid(),
+      canceled_at: null,
+      canceled_by: null,
       // No banco, preenchido pelo @CreateDateColumn
       created_at: new Date(),
     });
 
     this.appointments.push(appointment);
+
+    return appointment;
+  }
+
+  public async save(appointment: Appointment): Promise<Appointment> {
+    const index = this.appointments.findIndex(
+      item => item.id === appointment.id,
+    );
+
+    this.appointments[index] = appointment;
 
     return appointment;
   }

@@ -55,6 +55,13 @@ class Appointment {
   @Column('timestamp with time zone')
   blocked_until: Date;
 
+  // Preenchido ao cancelar: o agendamento some da agenda e libera o horário
+  @Column({ type: 'timestamp with time zone', nullable: true })
+  canceled_at: Date | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  canceled_by: 'provider' | 'client' | null;
+
   @CreateDateColumn({ type: 'timestamp with time zone' })
   created_at: Date;
 

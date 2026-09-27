@@ -2,8 +2,10 @@ import {
   getRepository,
   Repository,
   Between,
+  IsNull,
   LessThan,
   MoreThan,
+  Not,
   QueryFailedError,
 } from 'typeorm';
 import { endOfDay, endOfMonth, startOfDay, startOfMonth } from 'date-fns';
@@ -28,6 +30,17 @@ function dayRange(year: number, month: number, day: number) {
   return Between(startOfDay(date), endOfDay(date));
 }
 
+// Cancelados não ocupam horário nem aparecem na agenda
+const ACTIVE = { canceled_at: IsNull() };
+
+// 23P01 = exclusion_violation (AppointmentsNoOverlap): outra requisição ocupou
+// o horário entre a verificação do service e a gravação
+function isOverlapError(err: unknown): boolean {
+  const code = err instanceof QueryFailedError && (err as any).code;
+
+  return code === '23P01' || code === '23505';
+}
+
 class AppointmentsRepository implements IAppointmentsRepository {
   private ormRepository: Repository<Appointment>;
 
@@ -35,14 +48,23 @@ class AppointmentsRepository implements IAppointmentsRepository {
     this.ormRepository = getRepository(Appointment);
   }
 
+  public async findById(id: string): Promise<Appointment | undefined> {
+    return this.ormRepository.findOne(id, {
+      relations: ['client', 'provider', 'service'],
+    });
+  }
+
   public async findOverlapping({
     provider_id,
     start,
     end,
+    except_appointment_id,
   }: IFindOverlappingDTO): Promise<Appointment | undefined> {
     // Sobrepõe se começa antes do fim do novo e termina depois do início
     return this.ormRepository.findOne({
       where: {
+        ...ACTIVE,
+        ...(except_appointment_id && { id: Not(except_appointment_id) }),
         provider_id,
         date: LessThan(end),
         blocked_until: MoreThan(start),
@@ -59,6 +81,7 @@ class AppointmentsRepository implements IAppointmentsRepository {
 
     return this.ormRepository.find({
       where: {
+        ...ACTIVE,
         provider_id,
         date: Between(startOfMonth(date), endOfMonth(date)),
       },
@@ -72,7 +95,7 @@ class AppointmentsRepository implements IAppointmentsRepository {
     year,
   }: IFindAllInDayFromProviderDTO): Promise<Appointment[]> {
     return this.ormRepository.find({
-      where: { provider_id, date: dayRange(year, month, day) },
+      where: { ...ACTIVE, provider_id, date: dayRange(year, month, day) },
       relations: ['client', 'service'],
       order: { date: 'ASC' },
     });
@@ -84,8 +107,19 @@ class AppointmentsRepository implements IAppointmentsRepository {
     year,
   }: IFindAllInDayDTO): Promise<Appointment[]> {
     return this.ormRepository.find({
-      where: { date: dayRange(year, month, day) },
+      where: { ...ACTIVE, date: dayRange(year, month, day) },
       relations: ['client', 'service'],
+      order: { date: 'ASC' },
+    });
+  }
+
+  public async findUpcomingFromClient(
+    client_id: string,
+    now: Date,
+  ): Promise<Appointment[]> {
+    return this.ormRepository.find({
+      where: { ...ACTIVE, client_id, end_date: MoreThan(now) },
+      relations: ['provider', 'service'],
       order: { date: 'ASC' },
     });
   }
@@ -96,11 +130,7 @@ class AppointmentsRepository implements IAppointmentsRepository {
     try {
       await this.ormRepository.save(appointment);
     } catch (err) {
-      // 23P01 = exclusion_violation (AppointmentsNoOverlap): outra requisição
-      // ocupou este horário entre a verificação do service e este insert
-      const code = err instanceof QueryFailedError && (err as any).code;
-
-      if (code === '23P01' || code === '23505') {
+      if (isOverlapError(err)) {
         throw new AppError('Este horário já está reservado.');
       }
 
@@ -108,6 +138,38 @@ class AppointmentsRepository implements IAppointmentsRepository {
     }
 
     return appointment;
+  }
+
+  public async save(appointment: Appointment): Promise<Appointment> {
+    // Grava só as colunas que remarcar/cancelar alteram. Com save(), a relação
+    // provider carregada teria prioridade sobre um provider_id novo
+    const {
+      provider_id,
+      date,
+      end_date,
+      blocked_until,
+      canceled_at,
+      canceled_by,
+    } = appointment;
+
+    try {
+      await this.ormRepository.update(appointment.id, {
+        provider_id,
+        date,
+        end_date,
+        blocked_until,
+        canceled_at,
+        canceled_by,
+      });
+    } catch (err) {
+      if (isOverlapError(err)) {
+        throw new AppError('Este horário já está reservado.');
+      }
+
+      throw err;
+    }
+
+    return (await this.findById(appointment.id)) as Appointment;
   }
 }
 export default AppointmentsRepository;
