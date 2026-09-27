@@ -16,9 +16,9 @@ describe('ListProviderMonthAvailability', () => {
     );
 
     // Segunda a sábado, das 08:00 às 18:00 (10 horários por dia)
-    await fakeProviderSchedulesRepository.createMany(
+    await fakeProviderSchedulesRepository.replaceByProviderId(
+      'user',
       [1, 2, 3, 4, 5, 6].map(day_of_week => ({
-        provider_id: 'user',
         day_of_week,
         start_time: '08:00',
         end_time: '18:00',

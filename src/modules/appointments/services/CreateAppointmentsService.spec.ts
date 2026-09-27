@@ -25,9 +25,9 @@ describe('CreateAppointment', () => {
     );
 
     // Segunda a sábado, das 08:00 às 18:00
-    await fakeProviderSchedulesRepository.createMany(
+    await fakeProviderSchedulesRepository.replaceByProviderId(
+      'provider-id',
       [1, 2, 3, 4, 5, 6].map(day_of_week => ({
-        provider_id: 'provider-id',
         day_of_week,
         start_time: '08:00',
         end_time: '18:00',
@@ -129,9 +129,8 @@ describe('CreateAppointment', () => {
   });
 
   it('Should respect a custom schedule of the provider', async () => {
-    await fakeProviderSchedulesRepository.createMany([
+    await fakeProviderSchedulesRepository.replaceByProviderId('night-provider', [
       {
-        provider_id: 'night-provider',
         day_of_week: 2,
         start_time: '18:00',
         end_time: '21:00',

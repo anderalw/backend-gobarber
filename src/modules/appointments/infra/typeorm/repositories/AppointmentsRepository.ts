@@ -1,4 +1,6 @@
-import { getRepository, Repository, Raw } from 'typeorm';
+import { getRepository, Repository, Raw, QueryFailedError } from 'typeorm';
+
+import AppError from '@shared/errors/AppError';
 
 import IAppointmentsRepository from '@modules/appointments/repositories/IAppointmentsRepository';
 import ICreateAppointmentDTO from '@modules/appointments/dtos/ICreateAppointmentDTO';
@@ -79,7 +81,17 @@ class AppointmentsRepository implements IAppointmentsRepository {
       client_id,
     });
 
-    await this.ormRepository.save(appointment);
+    try {
+      await this.ormRepository.save(appointment);
+    } catch (err) {
+      // 23505 = unique_violation: outra requisição reservou este horário
+      // entre a verificação do service e este insert
+      if (err instanceof QueryFailedError && (err as any).code === '23505') {
+        throw new AppError('This appointment is alredy booked');
+      }
+
+      throw err;
+    }
 
     return appointment;
   }

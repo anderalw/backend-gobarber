@@ -16,9 +16,8 @@ describe('ListProviderDayAvailability', () => {
     );
 
     // 20/05/2020 é quarta-feira
-    await fakeProviderSchedulesRepository.createMany([
+    await fakeProviderSchedulesRepository.replaceByProviderId('user', [
       {
-        provider_id: 'user',
         day_of_week: 3,
         start_time: '08:00',
         end_time: '18:00',

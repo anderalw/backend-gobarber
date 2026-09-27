@@ -1,7 +1,8 @@
-import { getRepository, Repository } from 'typeorm';
+import { getConnection, getRepository, Repository } from 'typeorm';
 
-import IProviderSchedulesRepository from '@modules/users/repositories/IProviderSchedulesRepository';
-import ICreateProviderScheduleDTO from '@modules/users/dtos/ICreateProviderScheduleDTO';
+import IProviderSchedulesRepository, {
+  IScheduleData,
+} from '@modules/users/repositories/IProviderSchedulesRepository';
 import ProviderSchedule from '../entities/ProviderSchedule';
 
 class ProviderSchedulesRepository implements IProviderSchedulesRepository {
@@ -11,12 +12,6 @@ class ProviderSchedulesRepository implements IProviderSchedulesRepository {
     this.ormRepository = getRepository(ProviderSchedule);
   }
 
-  public async createMany(data: ICreateProviderScheduleDTO[]): Promise<ProviderSchedule[]> {
-    const schedules = this.ormRepository.create(data);
-    await this.ormRepository.save(schedules);
-    return schedules;
-  }
-
   public async findByProviderId(provider_id: string): Promise<ProviderSchedule[]> {
     const schedules = await this.ormRepository.find({
       where: { provider_id },
@@ -24,8 +19,22 @@ class ProviderSchedulesRepository implements IProviderSchedulesRepository {
     return schedules;
   }
 
-  public async deleteByProviderId(provider_id: string): Promise<void> {
-    await this.ormRepository.delete({ provider_id });
+  public async replaceByProviderId(
+    provider_id: string,
+    schedules: IScheduleData[],
+  ): Promise<ProviderSchedule[]> {
+    // Se a gravação dos novos horários falhar, o delete é desfeito
+    // e o barbeiro mantém os horários antigos
+    return getConnection().transaction(async manager => {
+      await manager.delete(ProviderSchedule, { provider_id });
+
+      const newSchedules = manager.create(
+        ProviderSchedule,
+        schedules.map(schedule => ({ ...schedule, provider_id })),
+      );
+
+      return manager.save(newSchedules);
+    });
   }
 }
 

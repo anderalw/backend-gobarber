@@ -33,19 +33,17 @@ class UpdateProviderSchedulesService {
       throw new AppError('Barbeiro não encontrado.');
     }
 
-    // 1. Apaga todos os horários antigos deste barbeiro
-    await this.providerSchedulesRepository.deleteByProviderId(provider_id);
-
-    // 2. Prepara os novos dados
     const schedulesData = schedules.map(schedule => ({
-      provider_id,
       day_of_week: schedule.day_of_week,
       start_time: schedule.start_time,
       end_time: schedule.end_time,
     }));
 
-    // 3. Grava tudo de uma vez
-    const createdSchedules = await this.providerSchedulesRepository.createMany(schedulesData);
+    // Apaga os horários antigos e grava os novos numa única transação
+    const createdSchedules = await this.providerSchedulesRepository.replaceByProviderId(
+      provider_id,
+      schedulesData,
+    );
 
     return createdSchedules;
   }
