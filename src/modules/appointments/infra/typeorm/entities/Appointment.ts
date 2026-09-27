@@ -23,14 +23,14 @@ class Appointment {
   @JoinColumn({ name: 'provider_id' })
   provider: User;
 
-@Column()
+  @Column()
   client_id: string;
 
   @ManyToOne(() => Client)
   @JoinColumn({ name: 'client_id' })
   client: Client;
 
-  @Column('time with time zone')
+  @Column('timestamp with time zone')
   date: Date;
 
   @CreateDateColumn()
