@@ -1,4 +1,4 @@
-import { startOfHour, isBefore, getHours, format } from 'date-fns';
+import { startOfHour, isBefore, getHours, getDay, format } from 'date-fns';
 import { injectable, inject } from 'tsyringe';
 
 import AppError from '@shared/errors/AppError';
@@ -6,6 +6,7 @@ import AppError from '@shared/errors/AppError';
 import ICacheProvider from '@shared/container/providers/CacheProvider/models/ICacheProvider';
 
 import INotificationsRepository from '@modules/notifications/repositories/INotificationsRepository';
+import IProviderSchedulesRepository from '@modules/users/repositories/IProviderSchedulesRepository';
 import Appointment from '../infra/typeorm/entities/Appointment';
 import IAppointmentsRepaository from '../repositories/IAppointmentsRepository';
 
@@ -25,6 +26,9 @@ class CreateAppointmentsServices {
 
     @inject('CacheProvider')
     private cacheProvider: ICacheProvider,
+
+    @inject('ProviderSchedulesRepository')
+    private providerSchedulesRepository: IProviderSchedulesRepository,
   ) {}
 
   public async execute({
@@ -42,9 +46,26 @@ class CreateAppointmentsServices {
       throw new AppError("You can't create an appointmet with yourself");
     }
 
-    if (getHours(appointmentDate) < 8 || getHours(appointmentDate) > 17) {
+    const schedules = await this.providerSchedulesRepository.findByProviderId(
+      provider_id,
+    );
+
+    const scheduleForDay = schedules.find(
+      schedule => schedule.day_of_week === getDay(appointmentDate),
+    );
+
+    if (!scheduleForDay) {
+      throw new AppError('This provider does not work on this day');
+    }
+
+    // Mesma regra da disponibilidade do dia: de start_time até end_time - 1h
+    const startHour = Number(scheduleForDay.start_time.split(':')[0]);
+    const endHour = Number(scheduleForDay.end_time.split(':')[0]);
+    const appointmentHour = getHours(appointmentDate);
+
+    if (appointmentHour < startHour || appointmentHour >= endHour) {
       throw new AppError(
-        'You can only create appointments between 8am and 5pm',
+        `You can only create appointments between ${scheduleForDay.start_time} and ${scheduleForDay.end_time}`,
       );
     }
 

@@ -5,8 +5,9 @@ import CreateAppointmentsService from '@modules/appointments/services/CreateAppo
 
 export default class AppointmentsController {
   public async create(request: Request, response: Response): Promise<Response> {
-    const user_id = request.user.id;
-    const { provider_id, client_id, date } = request.body;
+    // O cliente vem sempre do token, nunca do body
+    const client_id = request.user.id;
+    const { provider_id, date } = request.body;
 
     const createAppointmets = container.resolve(CreateAppointmentsService);
 

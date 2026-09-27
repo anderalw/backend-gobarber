@@ -4,7 +4,7 @@ import {
   TableForeignKey,
 } from 'typeorm';
 
-export default class AlterAppointmentClientRelation1234567890123
+export default class AlterAppointmentClientRelation1790516238509
   implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     const table = await queryRunner.getTable('appointments');
