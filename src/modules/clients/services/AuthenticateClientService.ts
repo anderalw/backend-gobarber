@@ -22,11 +22,9 @@ interface IResponse {
 @injectable()
 class AuthenticateClientService {
   constructor(
-    // @ts-ignore
     @inject('ClientsRepository')
     private clientsRepository: IClientsRepository,
 
-    // @ts-ignore
     @inject('HashProvider')
     private hashProvider: IHashProvider,
   ) {}
