@@ -2,6 +2,7 @@ import FakeUsersRepository from '@modules/users/repositories/fakes/FakeUsersRepo
 import FakeProviderSchedulesRepository from '@modules/users/repositories/fakes/FakeProviderSchedulesRepository';
 import Client from '@modules/clients/infra/typeorm/entities/Client';
 import FakeAppointmentsRepository from '../repositories/fakes/FakeAppointmentsRepository';
+import makeAppointmentData from '../repositories/fakes/makeAppointmentData';
 import ListDayAgendaService from './ListDayAgendaService';
 
 let fakeUsersRepository: FakeUsersRepository;
@@ -71,25 +72,31 @@ describe('ListDayAgenda', () => {
       password: 'hashed-password',
     });
 
-    const appointmentA = await fakeAppointmentsRepository.create({
-      provider_id: 'provider-a',
-      client_id: client.id,
-      date: new Date(2020, 4, 20, 15),
-    });
+    const appointmentA = await fakeAppointmentsRepository.create(
+      makeAppointmentData({
+        provider_id: 'provider-a',
+        client_id: client.id,
+        date: new Date(2020, 4, 20, 15),
+      }),
+    );
     appointmentA.client = client;
 
-    await fakeAppointmentsRepository.create({
-      provider_id: 'provider-b',
-      client_id: client.id,
-      date: new Date(2020, 4, 20, 9),
-    });
+    await fakeAppointmentsRepository.create(
+      makeAppointmentData({
+        provider_id: 'provider-b',
+        client_id: client.id,
+        date: new Date(2020, 4, 20, 9),
+      }),
+    );
 
     // Outro dia: não deve aparecer
-    await fakeAppointmentsRepository.create({
-      provider_id: 'provider-a',
-      client_id: client.id,
-      date: new Date(2020, 4, 21, 9),
-    });
+    await fakeAppointmentsRepository.create(
+      makeAppointmentData({
+        provider_id: 'provider-a',
+        client_id: client.id,
+        date: new Date(2020, 4, 21, 9),
+      }),
+    );
 
     const { appointments } = await listDayAgenda.execute({
       day: 20,
@@ -112,6 +119,13 @@ describe('ListDayAgenda', () => {
     });
     // Data em que a marcação foi feita, para os detalhes do agendamento
     expect(appointments[1].created_at).toBe(appointmentA.created_at);
+    // Fim do atendimento e valor, para o tamanho do card e os detalhes
+    expect(appointments[1]).toMatchObject({
+      end_date: appointmentA.end_date,
+      price_cents: 4500,
+      // Serviço não carregado (ex: agendamento anterior aos serviços)
+      service: null,
+    });
     // Agendamento sem cliente carregado (ex: cliente removido)
     expect(appointments[0].client).toBeNull();
   });

@@ -1,78 +1,120 @@
+import { addMinutes } from 'date-fns';
+
+import AppError from '@shared/errors/AppError';
 import FakeProviderSchedulesRepository from '@modules/users/repositories/fakes/FakeProviderSchedulesRepository';
+import FakeServicesRepository from '@modules/catalog/repositories/fakes/FakeServicesRepository';
+import FakeSettingsRepository from '@modules/catalog/repositories/fakes/FakeSettingsRepository';
+import AgendaSettingsService from '@modules/catalog/services/AgendaSettingsService';
+import Service from '@modules/catalog/infra/typeorm/entities/Service';
 import FakeAppointmentsRepository from '../repositories/fakes/FakeAppointmentsRepository';
 import ListProviderDayAvailabilityService from './ListProviderDayAvailabilityService';
 
 let fakeAppointmentsRepository: FakeAppointmentsRepository;
-let fakeProviderSchedulesRepository: FakeProviderSchedulesRepository;
+let fakeServicesRepository: FakeServicesRepository;
+let agendaSettings: AgendaSettingsService;
 let listProviderDayAvailability: ListProviderDayAvailabilityService;
+let haircut: Service;
+
+// Agendamento já existente de 'minutes' minutos, sem intervalo
+async function book(date: Date, minutes: number): Promise<void> {
+  await fakeAppointmentsRepository.create({
+    provider_id: 'user',
+    client_id: 'client',
+    service_id: 'service',
+    price_cents: 0,
+    date,
+    end_date: addMinutes(date, minutes),
+    blocked_until: addMinutes(date, minutes),
+  });
+}
 
 describe('ListProviderDayAvailability', () => {
   beforeEach(async () => {
     fakeAppointmentsRepository = new FakeAppointmentsRepository();
-    fakeProviderSchedulesRepository = new FakeProviderSchedulesRepository();
+    fakeServicesRepository = new FakeServicesRepository();
+    const fakeProviderSchedulesRepository = new FakeProviderSchedulesRepository();
+    agendaSettings = new AgendaSettingsService(new FakeSettingsRepository());
+
     listProviderDayAvailability = new ListProviderDayAvailabilityService(
       fakeAppointmentsRepository,
       fakeProviderSchedulesRepository,
+      fakeServicesRepository,
+      agendaSettings,
     );
 
-    // 20/05/2020 é quarta-feira
+    haircut = await fakeServicesRepository.create({
+      name: 'Cabelo',
+      duration_minutes: 45,
+      price_cents: 4500,
+    });
+
+    // 20/05/2020 é quarta-feira: das 09:00 às 13:00
     await fakeProviderSchedulesRepository.replaceByProviderId('user', [
-      {
-        day_of_week: 3,
-        start_time: '08:00',
-        end_time: '18:00',
-      },
+      { day_of_week: 3, start_time: '09:00', end_time: '13:00' },
     ]);
+
+    jest.spyOn(Date, 'now').mockImplementation(() => {
+      return new Date(2020, 4, 20, 8).getTime();
+    });
   });
 
-  it('Should be able to list the day availability from provider', async () => {
-    await fakeAppointmentsRepository.create({
+  const request = () =>
+    listProviderDayAvailability.execute({
       provider_id: 'user',
-      client_id: 'client',
-      date: new Date(2020, 4, 20, 14, 0, 0),
-    });
-
-    await fakeAppointmentsRepository.create({
-      provider_id: 'user',
-      client_id: 'client',
-      date: new Date(2020, 4, 20, 15, 0, 0),
-    });
-
-    jest.spyOn(Date, 'now').mockImplementationOnce(() => {
-      return new Date(2020, 4, 20, 11).getTime();
-    });
-
-    const availability = await listProviderDayAvailability.execute({
-      provider_id: 'user',
+      service_id: haircut.id,
       year: 2020,
       month: 5,
       day: 20,
     });
 
-    expect(availability).toHaveLength(10);
-    expect(availability).toEqual(
-      expect.arrayContaining([
-        { hour: 8, available: false },
-        { hour: 9, available: false },
-        { hour: 10, available: false },
-        { hour: 13, available: true },
-        { hour: 14, available: false },
-        { hour: 15, available: false },
-        { hour: 16, available: true },
-        { hour: 17, available: true },
-      ]),
-    );
+  it('should list the start times that fit the service duration', async () => {
+    await agendaSettings.update({ buffer_minutes: 15 });
+
+    // 45 min + 15 de intervalo: um horário por hora
+    expect(await request()).toEqual([
+      { time: '09:00' },
+      { time: '10:00' },
+      { time: '11:00' },
+      { time: '12:00' },
+    ]);
   });
 
-  it('Should return no hours on a day the provider does not work', async () => {
+  it('should skip the time taken by existing appointments', async () => {
+    // Ocupado das 10:00 às 11:00
+    await book(new Date(2020, 4, 20, 10), 60);
+
+    expect(await request()).toEqual([
+      { time: '09:00' },
+      { time: '11:00' },
+      { time: '11:45' },
+    ]);
+  });
+
+  it('should not list times that already passed', async () => {
+    jest.spyOn(Date, 'now').mockImplementation(() => {
+      return new Date(2020, 4, 20, 10, 50).getTime();
+    });
+
+    expect(await request()).toEqual([{ time: '11:15' }, { time: '12:00' }]);
+  });
+
+  it('should return no times on a day the provider does not work', async () => {
     // 21/05/2020 é quinta-feira, sem horário configurado
     const availability = await listProviderDayAvailability.execute({
       provider_id: 'user',
+      service_id: haircut.id,
       year: 2020,
       month: 5,
       day: 21,
     });
 
     expect(availability).toEqual([]);
+  });
+
+  it('should not list times for an inactive service', async () => {
+    haircut.active = false;
+    await fakeServicesRepository.save(haircut);
+
+    await expect(request()).rejects.toBeInstanceOf(AppError);
   });
 });

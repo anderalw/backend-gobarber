@@ -1,4 +1,12 @@
-import { getRepository, Repository, Raw, QueryFailedError } from 'typeorm';
+import {
+  getRepository,
+  Repository,
+  Between,
+  LessThan,
+  MoreThan,
+  QueryFailedError,
+} from 'typeorm';
+import { endOfDay, endOfMonth, startOfDay, startOfMonth } from 'date-fns';
 
 import AppError from '@shared/errors/AppError';
 
@@ -7,8 +15,18 @@ import ICreateAppointmentDTO from '@modules/appointments/dtos/ICreateAppointment
 import IFindAllInMonthFromProviderDTO from '@modules/appointments/dtos/IFindAllInMonthFromProviderDTO';
 import IFindAllInDayFromProviderDTO from '@modules/appointments/dtos/IFindAllInDayFromProviderDTO';
 import IFindAllInDayDTO from '@modules/appointments/dtos/IFindAllInDayDTO';
+import IFindOverlappingDTO from '@modules/appointments/dtos/IFindOverlappingDTO';
 
 import Appointment from '../entities/Appointment';
+
+// Início e fim do dia no horário local do servidor. Antes o filtro usava
+// to_char(date) no fuso do banco (UTC): um agendamento às 21h de Brasília
+// (meia-noite UTC) caía no dia seguinte
+function dayRange(year: number, month: number, day: number) {
+  const date = new Date(year, month - 1, day);
+
+  return Between(startOfDay(date), endOfDay(date));
+}
 
 class AppointmentsRepository implements IAppointmentsRepository {
   private ormRepository: Repository<Appointment>;
@@ -17,15 +35,19 @@ class AppointmentsRepository implements IAppointmentsRepository {
     this.ormRepository = getRepository(Appointment);
   }
 
-  public async findByDate(
-    date: Date,
-    provider_id: string,
-  ): Promise<Appointment | undefined> {
-    const findAppointment = await this.ormRepository.findOne({
-      where: { date, provider_id },
+  public async findOverlapping({
+    provider_id,
+    start,
+    end,
+  }: IFindOverlappingDTO): Promise<Appointment | undefined> {
+    // Sobrepõe se começa antes do fim do novo e termina depois do início
+    return this.ormRepository.findOne({
+      where: {
+        provider_id,
+        date: LessThan(end),
+        blocked_until: MoreThan(start),
+      },
     });
-
-    return findAppointment;
   }
 
   public async findAllInMonthFromProvider({
@@ -33,19 +55,14 @@ class AppointmentsRepository implements IAppointmentsRepository {
     month,
     year,
   }: IFindAllInMonthFromProviderDTO): Promise<Appointment[]> {
-    const parsedMonth = String(month).padStart(2, '0');
+    const date = new Date(year, month - 1, 1);
 
-    const appointments = await this.ormRepository.find({
+    return this.ormRepository.find({
       where: {
         provider_id,
-        date: Raw(
-          dateFildName =>
-            `to_char(${dateFildName}, 'MM-YYYY') = '${parsedMonth}-${year}'`,
-        ),
+        date: Between(startOfMonth(date), endOfMonth(date)),
       },
     });
-
-    return appointments;
   }
 
   public async findAllInDayFromProvider({
@@ -54,21 +71,11 @@ class AppointmentsRepository implements IAppointmentsRepository {
     month,
     year,
   }: IFindAllInDayFromProviderDTO): Promise<Appointment[]> {
-    const parsedDay = String(day).padStart(2, '0');
-    const parsedMonth = String(month).padStart(2, '0');
-
-    const appointments = await this.ormRepository.find({
-      where: {
-        provider_id,
-        date: Raw(
-          dateFildName =>
-            `to_char(${dateFildName}, 'DD-MM-YYYY') = '${parsedDay}-${parsedMonth}-${year}'`,
-        ),
-      },
-      relations: ['client'],
+    return this.ormRepository.find({
+      where: { provider_id, date: dayRange(year, month, day) },
+      relations: ['client', 'service'],
+      order: { date: 'ASC' },
     });
-
-    return appointments;
   }
 
   public async findAllInDay({
@@ -76,40 +83,24 @@ class AppointmentsRepository implements IAppointmentsRepository {
     month,
     year,
   }: IFindAllInDayDTO): Promise<Appointment[]> {
-    const parsedDay = String(day).padStart(2, '0');
-    const parsedMonth = String(month).padStart(2, '0');
-
-    const appointments = await this.ormRepository.find({
-      where: {
-        date: Raw(
-          dateFieldName =>
-            `to_char(${dateFieldName}, 'DD-MM-YYYY') = '${parsedDay}-${parsedMonth}-${year}'`,
-        ),
-      },
-      relations: ['client'],
+    return this.ormRepository.find({
+      where: { date: dayRange(year, month, day) },
+      relations: ['client', 'service'],
       order: { date: 'ASC' },
     });
-
-    return appointments;
   }
 
-  public async create({
-    provider_id,
-    client_id,
-    date,
-  }: ICreateAppointmentDTO): Promise<Appointment> {
-    const appointment = this.ormRepository.create({
-      provider_id,
-      date,
-      client_id,
-    });
+  public async create(data: ICreateAppointmentDTO): Promise<Appointment> {
+    const appointment = this.ormRepository.create(data);
 
     try {
       await this.ormRepository.save(appointment);
     } catch (err) {
-      // 23505 = unique_violation: outra requisição reservou este horário
-      // entre a verificação do service e este insert
-      if (err instanceof QueryFailedError && (err as any).code === '23505') {
+      // 23P01 = exclusion_violation (AppointmentsNoOverlap): outra requisição
+      // ocupou este horário entre a verificação do service e este insert
+      const code = err instanceof QueryFailedError && (err as any).code;
+
+      if (code === '23P01' || code === '23505') {
         throw new AppError('Este horário já está reservado.');
       }
 

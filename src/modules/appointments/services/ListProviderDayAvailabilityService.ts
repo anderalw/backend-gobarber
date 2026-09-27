@@ -1,20 +1,24 @@
 import { injectable, inject } from 'tsyringe';
-import { getHours, isAfter } from 'date-fns';
+import { format } from 'date-fns';
 
-import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
+import AppError from '@shared/errors/AppError';
 import IProviderSchedulesRepository from '@modules/users/repositories/IProviderSchedulesRepository';
+import IServicesRepository from '@modules/catalog/repositories/IServicesRepository';
+import AgendaSettingsService from '@modules/catalog/services/AgendaSettingsService';
+import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
+import computeAvailableSlots from '../utils/computeAvailableSlots';
+import workWindow from '../utils/workWindow';
 
 interface IRequest {
   provider_id: string;
+  service_id: string;
   day: number;
   month: number;
   year: number;
 }
 
-type IResponse = Array<{
-  hour: number;
-  available: boolean;
-}>;
+// Só os horários livres, no formato 'HH:mm'
+type IResponse = Array<{ time: string }>;
 
 @injectable()
 class ListProviderDayAvailabilityService {
@@ -22,68 +26,63 @@ class ListProviderDayAvailabilityService {
     @inject('AppointmentsRepository')
     private appointmentsRepository: IAppointmentsRepository,
 
-    // 1. Injetamos o novo repositório de horários
     @inject('ProviderSchedulesRepository')
     private providerSchedulesRepository: IProviderSchedulesRepository,
+
+    @inject('ServicesRepository')
+    private servicesRepository: IServicesRepository,
+
+    @inject(AgendaSettingsService)
+    private agendaSettings: AgendaSettingsService,
   ) {}
 
   public async execute({
     provider_id,
+    service_id,
     year,
     month,
     day,
   }: IRequest): Promise<IResponse> {
-    const appointments = await this.appointmentsRepository.findAllInDayFromProvider(
-      {
+    const service = await this.servicesRepository.findById(service_id);
+
+    if (!service || !service.active) {
+      throw new AppError('Serviço não encontrado.', 404);
+    }
+
+    const date = new Date(year, month - 1, day);
+
+    const schedules = await this.providerSchedulesRepository.findByProviderId(
+      provider_id,
+    );
+    const schedule = schedules.find(item => item.day_of_week === date.getDay());
+
+    // Folga neste dia da semana
+    if (!schedule) {
+      return [];
+    }
+
+    const [appointments, { buffer_minutes }] = await Promise.all([
+      this.appointmentsRepository.findAllInDayFromProvider({
         provider_id,
         year,
         month,
         day,
-      },
-    );
+      }),
+      this.agendaSettings.get(),
+    ]);
 
-    // 2. Determinar o dia da semana (0 = Domingo, 1 = Segunda, ... 6 = Sábado)
-    const requestedDate = new Date(year, month - 1, day);
-    const dayOfWeek = requestedDate.getDay();
-
-    // 3. Procurar os horários de trabalho deste barbeiro
-    const schedules = await this.providerSchedulesRepository.findByProviderId(provider_id);
-    
-    // 4. Encontrar a regra para o dia da semana selecionado
-    const scheduleForDay = schedules.find(schedule => schedule.day_of_week === dayOfWeek);
-
-    // Se o barbeiro não tiver horário para este dia, devolvemos uma lista vazia
-    if (!scheduleForDay) {
-      return [];
-    }
-
-    // 5. Extrair a hora inicial e final (ex: de '09:00' retira o 9)
-    const startHour = Number(scheduleForDay.start_time.split(':')[0]);
-    const endHour = Number(scheduleForDay.end_time.split(':')[0]);
-
-    // 6. Criar as horas dinamicamente (ex: [9, 10, 11])
-    const eachHourArray = Array.from(
-      { length: endHour - startHour },
-      (_, index) => index + startHour,
-    );
-
-    const currentDate = new Date(Date.now());
-
-    // 7. Validar se a hora já passou ou se já existe agendamento
-    const availability = eachHourArray.map(hour => {
-      const hasAppointmentInHour = appointments.find(
-        appointment => getHours(appointment.date) === hour,
-      );
-
-      const compareDate = new Date(year, month - 1, day, hour);
-
-      return {
-        hour,
-        available: !hasAppointmentInHour && isAfter(compareDate, currentDate),
-      };
+    const slots = computeAvailableSlots({
+      ...workWindow(date, schedule),
+      durationMinutes: service.duration_minutes,
+      bufferMinutes: buffer_minutes,
+      busy: appointments.map(appointment => ({
+        start: appointment.date,
+        end: appointment.blocked_until,
+      })),
+      now: new Date(Date.now()),
     });
 
-    return availability;
+    return slots.map(slot => ({ time: format(slot, 'HH:mm') }));
   }
 }
 

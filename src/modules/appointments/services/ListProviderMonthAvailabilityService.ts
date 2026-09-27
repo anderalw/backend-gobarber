@@ -1,11 +1,18 @@
 import { injectable, inject } from 'tsyringe';
-import { getDaysInMonth, getDate, isAfter } from 'date-fns';
+import { getDaysInMonth, isSameDay } from 'date-fns';
 
-import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
+import AppError from '@shared/errors/AppError';
 import IProviderSchedulesRepository from '@modules/users/repositories/IProviderSchedulesRepository';
+import IServicesRepository from '@modules/catalog/repositories/IServicesRepository';
+import AgendaSettingsService from '@modules/catalog/services/AgendaSettingsService';
+import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
+import computeAvailableSlots from '../utils/computeAvailableSlots';
+import workWindow from '../utils/workWindow';
 
 interface IRequest {
   provider_id: string;
+  // Sem serviço, considera um atendimento de 1 hora
+  service_id?: string;
   month: number;
   year: number;
 }
@@ -15,6 +22,8 @@ type IResponse = Array<{
   available: boolean;
 }>;
 
+const DEFAULT_DURATION_MINUTES = 60;
+
 @injectable()
 class ListProviderMonthAvailabilityService {
   constructor(
@@ -23,63 +32,73 @@ class ListProviderMonthAvailabilityService {
 
     @inject('ProviderSchedulesRepository')
     private providerSchedulesRepository: IProviderSchedulesRepository,
+
+    @inject('ServicesRepository')
+    private servicesRepository: IServicesRepository,
+
+    @inject(AgendaSettingsService)
+    private agendaSettings: AgendaSettingsService,
   ) {}
 
   public async execute({
     provider_id,
+    service_id,
     year,
     month,
   }: IRequest): Promise<IResponse> {
-    const appointments = await this.appointmentsRepository.findAllInMonthFromProvider(
-      {
+    let durationMinutes = DEFAULT_DURATION_MINUTES;
+
+    if (service_id) {
+      const service = await this.servicesRepository.findById(service_id);
+
+      if (!service || !service.active) {
+        throw new AppError('Serviço não encontrado.', 404);
+      }
+
+      durationMinutes = service.duration_minutes;
+    }
+
+    const [appointments, schedules, { buffer_minutes }] = await Promise.all([
+      this.appointmentsRepository.findAllInMonthFromProvider({
         provider_id,
         year,
         month,
+      }),
+      this.providerSchedulesRepository.findByProviderId(provider_id),
+      this.agendaSettings.get(),
+    ]);
+
+    const now = new Date(Date.now());
+
+    return Array.from(
+      { length: getDaysInMonth(new Date(year, month - 1)) },
+      (_, index) => {
+        const day = index + 1;
+        const date = new Date(year, month - 1, day);
+        const schedule = schedules.find(
+          item => item.day_of_week === date.getDay(),
+        );
+
+        if (!schedule) {
+          return { day, available: false };
+        }
+
+        const slots = computeAvailableSlots({
+          ...workWindow(date, schedule),
+          durationMinutes,
+          bufferMinutes: buffer_minutes,
+          busy: appointments
+            .filter(appointment => isSameDay(appointment.date, date))
+            .map(appointment => ({
+              start: appointment.date,
+              end: appointment.blocked_until,
+            })),
+          now,
+        });
+
+        return { day, available: slots.length > 0 };
       },
     );
-
-    const numberOfDaysInMonth = getDaysInMonth(new Date(year, month - 1));
-
-    const eachDayArray = Array.from(
-      { length: numberOfDaysInMonth },
-      (_, index) => index + 1,
-    );
-
-    const schedules = await this.providerSchedulesRepository.findByProviderId(provider_id);
-
-    const currentDate = new Date(Date.now());
-
-    const availability = eachDayArray.map(day => {
-      const compareDate = new Date(year, month - 1, day, 23, 59, 59);
-      const dayOfWeek = new Date(year, month - 1, day).getDay();
-
-      const scheduleForDay = schedules.find(schedule => schedule.day_of_week === dayOfWeek);
-
-      if (!scheduleForDay) {
-        return {
-          day,
-          available: false,
-        };
-      }
-
-      const startHour = Number(scheduleForDay.start_time.split(':')[0]);
-      const endHour = Number(scheduleForDay.end_time.split(':')[0]);
-      
-      const totalWorkingHoursInDay = endHour - startHour;
-
-      const appointmentsInDay = appointments.filter(appointment => {
-        return getDate(appointment.date) === day;
-      });
-
-      return {
-        day,
-        available:
-          isAfter(compareDate, currentDate) &&
-          appointmentsInDay.length < totalWorkingHoursInDay,
-      };
-    });
-
-    return availability;
   }
 }
 

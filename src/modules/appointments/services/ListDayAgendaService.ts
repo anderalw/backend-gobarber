@@ -21,7 +21,13 @@ interface IAgendaProvider {
 interface IAgendaAppointment {
   id: string;
   date: Date;
+  // Fim do atendimento (início + duração do serviço)
+  end_date: Date;
   provider_id: string;
+  // null em agendamentos anteriores ao cadastro de serviços
+  service: { id: string; name: string } | null;
+  // Valor cobrado no momento da marcação, em centavos
+  price_cents: number | null;
   // Quando o cliente fez a marcação
   created_at: Date;
   client: { id: string; name: string; email: string; phone: string } | null;
@@ -76,7 +82,12 @@ class ListDayAgendaService {
       appointments: appointments.map(appointment => ({
         id: appointment.id,
         date: appointment.date,
+        end_date: appointment.end_date,
         provider_id: appointment.provider_id,
+        service: appointment.service
+          ? { id: appointment.service.id, name: appointment.service.name }
+          : null,
+        price_cents: appointment.price_cents,
         created_at: appointment.created_at,
         client: appointment.client
           ? {
