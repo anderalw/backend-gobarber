@@ -10,7 +10,12 @@ export default async function ensureAdmin(
   next: NextFunction,
 ): Promise<void> {
   // O request.user.id é injetado pelo middleware ensureAuthenticated
-  const user_id = request.user.id;
+  const { id: user_id, role } = request.user;
+
+  // Um token de cliente nunca é de administrador, mesmo que o id coincida
+  if (role !== 'provider') {
+    throw new AppError('Acesso negado. Apenas administradores podem realizar esta ação.', 403);
+  }
 
   const usersRepository = getRepository(User);
   const user = await usersRepository.findOne(user_id);

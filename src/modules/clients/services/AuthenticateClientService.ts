@@ -51,7 +51,7 @@ class AuthenticateClientService {
     const { secret, expiresIn } = authConfig.jwt;
 
     // Gera o Token JWT para o cliente
-    const token = sign({}, secret, {
+    const token = sign({ role: 'client' }, secret, {
       subject: client.id,
       expiresIn,
     });

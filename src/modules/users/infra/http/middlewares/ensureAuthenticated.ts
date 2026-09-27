@@ -9,6 +9,7 @@ interface ITokenPayLoad {
   iat: number;
   exp: number;
   sub: string;
+  role?: 'provider' | 'client';
 }
 
 export default function ensureAuthenticated(
@@ -24,17 +25,26 @@ export default function ensureAuthenticated(
 
   const [, token] = authHeader.split(' ');
 
+  let payload: ITokenPayLoad;
+
   try {
-    const decoded = verify(token, authConfig.jwt.secret);
-
-    const { sub } = decoded as ITokenPayLoad;
-
-    request.user = {
-      id: sub,
-    };
-
-    return next();
+    payload = verify(token, authConfig.jwt.secret) as ITokenPayLoad;
   } catch {
     throw new AppError('Invalid JWT token', 401);
   }
+
+  const { sub, role } = payload;
+
+  // Tokens emitidos antes da separação cliente/barbeiro não têm role:
+  // são recusados para obrigar um novo login
+  if (role !== 'provider' && role !== 'client') {
+    throw new AppError('Invalid JWT token', 401);
+  }
+
+  request.user = {
+    id: sub,
+    role,
+  };
+
+  return next();
 }

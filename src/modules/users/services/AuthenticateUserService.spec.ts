@@ -1,3 +1,4 @@
+import { decode } from 'jsonwebtoken';
 import AppError from '@shared/errors/AppError';
 import FakeUsersRepository from '../repositories/fakes/FakeUsersRepository';
 
@@ -32,6 +33,10 @@ describe('AuthenticateUser', () => {
     });
     expect(response).toHaveProperty('token');
     expect(response.user).toBe(user);
+    expect(decode(response.token)).toMatchObject({
+      sub: user.id,
+      role: 'provider',
+    });
   });
   it('Should no be able to authenticate with non existing user', async () => {
     await expect(
