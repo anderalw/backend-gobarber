@@ -2,6 +2,9 @@ import { Response, Request } from 'express';
 import { container } from 'tsyringe';
 
 import CreateAppointmentsService from '@modules/appointments/services/CreateAppointmentsService';
+import CancelAppointmentService from '@modules/appointments/services/CancelAppointmentService';
+import RescheduleAppointmentService from '@modules/appointments/services/RescheduleAppointmentService';
+import ListClientAppointmentsService from '@modules/appointments/services/ListClientAppointmentsService';
 
 export default class AppointmentsController {
   public async create(request: Request, response: Response): Promise<Response> {
@@ -19,5 +22,45 @@ export default class AppointmentsController {
     });
 
     return response.json(appointment);
+  }
+
+  // Próximos agendamentos do cliente logado
+  public async mine(request: Request, response: Response): Promise<Response> {
+    const listClientAppointments = container.resolve(
+      ListClientAppointmentsService,
+    );
+
+    return response.json(await listClientAppointments.execute(request.user.id));
+  }
+
+  public async cancel(request: Request, response: Response): Promise<Response> {
+    const cancelAppointment = container.resolve(CancelAppointmentService);
+
+    await cancelAppointment.execute({
+      appointment_id: request.params.id,
+      requester: request.user,
+    });
+
+    return response.status(204).send();
+  }
+
+  public async reschedule(
+    request: Request,
+    response: Response,
+  ): Promise<Response> {
+    const { provider_id, date } = request.body;
+
+    const rescheduleAppointment = container.resolve(
+      RescheduleAppointmentService,
+    );
+
+    await rescheduleAppointment.execute({
+      appointment_id: request.params.id,
+      requester: request.user,
+      provider_id,
+      date,
+    });
+
+    return response.status(204).send();
   }
 }

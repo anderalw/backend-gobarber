@@ -10,6 +10,10 @@ const appointmentsRouter = Router();
 const appointmentsController = new AppointmentsController();
 const providerAppointmentsController = new ProviderAppointmentsController();
 
+const appointmentId = {
+  [Segments.PARAMS]: { id: Joi.string().uuid().required() },
+};
+
 appointmentsRouter.use(ensureAuthenticated);
 
 appointmentsRouter.post(
@@ -28,6 +32,30 @@ appointmentsRouter.get(
   '/me',
   ensureRole('provider'),
   providerAppointmentsController.index,
+);
+appointmentsRouter.get(
+  '/mine',
+  ensureRole('client'),
+  appointmentsController.mine,
+);
+
+// Barbeiros alteram qualquer agendamento; clientes só os próprios, com
+// antecedência (regras em ensureCanChangeAppointment)
+appointmentsRouter.patch(
+  '/:id/cancel',
+  celebrate(appointmentId),
+  appointmentsController.cancel,
+);
+appointmentsRouter.patch(
+  '/:id/reschedule',
+  celebrate({
+    ...appointmentId,
+    [Segments.BODY]: {
+      provider_id: Joi.string().uuid().required(),
+      date: Joi.date().required(),
+    },
+  }),
+  appointmentsController.reschedule,
 );
 
 export default appointmentsRouter;

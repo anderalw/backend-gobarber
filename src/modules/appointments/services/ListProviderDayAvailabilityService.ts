@@ -1,5 +1,5 @@
 import { injectable, inject } from 'tsyringe';
-import { format } from 'date-fns';
+import { differenceInMinutes, format } from 'date-fns';
 
 import AppError from '@shared/errors/AppError';
 import IProviderSchedulesRepository from '@modules/users/repositories/IProviderSchedulesRepository';
@@ -8,10 +8,16 @@ import AgendaSettingsService from '@modules/catalog/services/AgendaSettingsServi
 import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
 import computeAvailableSlots from '../utils/computeAvailableSlots';
 import workWindow from '../utils/workWindow';
+import { IRequester } from '../utils/ensureCanChangeAppointment';
 
 interface IRequest {
   provider_id: string;
-  service_id: string;
+  // Para agendar: a duração vem do serviço
+  service_id?: string;
+  // Para remarcar: a duração vem do agendamento, que não conta como ocupado
+  appointment_id?: string;
+  // Quem pede (o cliente só pode remarcar os próprios agendamentos)
+  requester?: IRequester;
   day: number;
   month: number;
   year: number;
@@ -39,15 +45,17 @@ class ListProviderDayAvailabilityService {
   public async execute({
     provider_id,
     service_id,
+    appointment_id,
+    requester,
     year,
     month,
     day,
   }: IRequest): Promise<IResponse> {
-    const service = await this.servicesRepository.findById(service_id);
-
-    if (!service || !service.active) {
-      throw new AppError('Serviço não encontrado.', 404);
-    }
+    const durationMinutes = await this.durationFor(
+      service_id,
+      appointment_id,
+      requester,
+    );
 
     const date = new Date(year, month - 1, day);
 
@@ -73,16 +81,50 @@ class ListProviderDayAvailabilityService {
 
     const slots = computeAvailableSlots({
       ...workWindow(date, schedule),
-      durationMinutes: service.duration_minutes,
+      durationMinutes,
       bufferMinutes: buffer_minutes,
-      busy: appointments.map(appointment => ({
-        start: appointment.date,
-        end: appointment.blocked_until,
-      })),
+      busy: appointments
+        .filter(appointment => appointment.id !== appointment_id)
+        .map(appointment => ({
+          start: appointment.date,
+          end: appointment.blocked_until,
+        })),
       now: new Date(Date.now()),
     });
 
     return slots.map(slot => ({ time: format(slot, 'HH:mm') }));
+  }
+
+  private async durationFor(
+    service_id?: string,
+    appointment_id?: string,
+    requester?: IRequester,
+  ): Promise<number> {
+    if (appointment_id) {
+      const appointment = await this.appointmentsRepository.findById(
+        appointment_id,
+      );
+
+      if (
+        !appointment ||
+        appointment.canceled_at ||
+        (requester?.role === 'client' && appointment.client_id !== requester.id)
+      ) {
+        throw new AppError('Agendamento não encontrado.', 404);
+      }
+
+      return differenceInMinutes(appointment.end_date, appointment.date);
+    }
+
+    const service = service_id
+      ? await this.servicesRepository.findById(service_id)
+      : undefined;
+
+    if (!service || !service.active) {
+      throw new AppError('Serviço não encontrado.', 404);
+    }
+
+    return service.duration_minutes;
   }
 }
 

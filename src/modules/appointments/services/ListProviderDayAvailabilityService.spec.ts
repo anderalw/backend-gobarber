@@ -111,6 +111,48 @@ describe('ListProviderDayAvailability', () => {
     expect(availability).toEqual([]);
   });
 
+  it('should list times to reschedule an appointment, ignoring its own time', async () => {
+    // Agendamento de 60 min às 10:00
+    const appointment = await fakeAppointmentsRepository.create({
+      provider_id: 'user',
+      client_id: 'client',
+      service_id: 'service',
+      price_cents: 0,
+      date: new Date(2020, 4, 20, 10),
+      end_date: new Date(2020, 4, 20, 11),
+      blocked_until: new Date(2020, 4, 20, 11),
+    });
+
+    const availability = await listProviderDayAvailability.execute({
+      provider_id: 'user',
+      appointment_id: appointment.id,
+      requester: { id: 'client', role: 'client' },
+      year: 2020,
+      month: 5,
+      day: 20,
+    });
+
+    // Usa a duração do agendamento (60 min) e o 10:00 dele continua livre
+    expect(availability).toEqual([
+      { time: '09:00' },
+      { time: '10:00' },
+      { time: '11:00' },
+      { time: '12:00' },
+    ]);
+
+    // Outro cliente não pode consultar para remarcar este agendamento
+    await expect(
+      listProviderDayAvailability.execute({
+        provider_id: 'user',
+        appointment_id: appointment.id,
+        requester: { id: 'other-client', role: 'client' },
+        year: 2020,
+        month: 5,
+        day: 20,
+      }),
+    ).rejects.toBeInstanceOf(AppError);
+  });
+
   it('should not list times for an inactive service', async () => {
     haircut.active = false;
     await fakeServicesRepository.save(haircut);

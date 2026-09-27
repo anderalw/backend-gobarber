@@ -34,13 +34,14 @@ providersRouter.get(
     [Segments.PARAMS]: {
       provider_id: Joi.string().uuid().required(),
     },
-    [Segments.QUERY]: {
+    // A duração vem do serviço (agendar) ou do agendamento (remarcar)
+    [Segments.QUERY]: Joi.object({
       day: Joi.number().integer().min(1).max(31).required(),
       month: Joi.number().integer().min(1).max(12).required(),
       year: Joi.number().integer().min(2000).max(2100).required(),
-      // Os horários livres dependem da duração do serviço
-      service_id: Joi.string().uuid().required(),
-    },
+      service_id: Joi.string().uuid(),
+      appointment_id: Joi.string().uuid(),
+    }).xor('service_id', 'appointment_id'),
   }),
   providerDayAvailabilityController.index,
 );
