@@ -7,12 +7,10 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
+import User from './User';
 
-import User from '@modules/users/infra/typeorm/entities/User';
-import Client from '../../../../clients/infra/typeorm/entities/Client';
-
-@Entity('appointments')
-class Appointment {
+@Entity('provider_schedules')
+class ProviderSchedule {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -23,15 +21,14 @@ class Appointment {
   @JoinColumn({ name: 'provider_id' })
   provider: User;
 
-@Column()
-  client_id: string;
+  @Column('int')
+  day_of_week: number;
 
-  @ManyToOne(() => Client)
-  @JoinColumn({ name: 'client_id' })
-  client: Client;
+  @Column()
+  start_time: string;
 
-  @Column('time with time zone')
-  date: Date;
+  @Column()
+  end_time: string;
 
   @CreateDateColumn()
   created_at: Date;
@@ -40,4 +37,4 @@ class Appointment {
   updated_at: Date;
 }
 
-export default Appointment;
+export default ProviderSchedule;

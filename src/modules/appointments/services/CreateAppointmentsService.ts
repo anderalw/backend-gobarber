@@ -11,7 +11,7 @@ import IAppointmentsRepaository from '../repositories/IAppointmentsRepository';
 
 interface IRequest {
   provider_id: string;
-  user_id: string;
+  client_id: string;
   date: Date;
 }
 @injectable()
@@ -30,7 +30,7 @@ class CreateAppointmentsServices {
   public async execute({
     date,
     provider_id,
-    user_id,
+    client_id,
   }: IRequest): Promise<Appointment> {
     const appointmentDate = startOfHour(date);
 
@@ -38,7 +38,7 @@ class CreateAppointmentsServices {
       throw new AppError("You can't create an appointment on a past date");
     }
 
-    if (user_id === provider_id) {
+    if (client_id === provider_id) {
       throw new AppError("You can't create an appointmet with yourself");
     }
 
@@ -59,7 +59,7 @@ class CreateAppointmentsServices {
 
     const appointment = await this.appointmentsRepository.create({
       provider_id,
-      user_id,
+      client_id,
       date: appointmentDate,
     });
     const dateFormatted = format(appointmentDate, "dd/MM/yyyy 'às' HH:mm'h'");

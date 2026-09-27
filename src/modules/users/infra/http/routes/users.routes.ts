@@ -7,7 +7,10 @@ import UserAvatarController from '../controllers/UserAvatarController';
 
 import UsersController from '../controllers/UsersController';
 
+import ensureAuthenticated from '@modules/users/infra/http/middlewares/ensureAuthenticated';
+
 import ensureAuthencicated from '../middlewares/ensureAuthenticated';
+import ensureAdmin from '@shared/infra/http/middlewares/ensureAdmin';
 
 const usersRouter = Router();
 const usersController = new UsersController();
@@ -16,6 +19,8 @@ const upload = multer(uploadConfig.multer);
 
 usersRouter.post(
   '/',
+  ensureAuthenticated,
+  ensureAdmin,
   celebrate({
     [Segments.BODY]: {
       name: Joi.string().required(),
