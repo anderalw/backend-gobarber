@@ -13,7 +13,8 @@ import {
 // A restrição de exclusão impede, no próprio banco, que dois agendamentos do
 // mesmo barbeiro se sobreponham (inclusive com requisições simultâneas)
 export default class AddServiceAndDurationToAppointments1790549082482
-  implements MigrationInterface {
+  implements MigrationInterface
+{
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.addColumns('appointments', [
       new TableColumn({ name: 'service_id', type: 'uuid', isNullable: true }),
@@ -52,7 +53,10 @@ export default class AddServiceAndDurationToAppointments1790549082482
 
     // O índice único só impedia horários de início iguais; a exclusão cobre
     // qualquer sobreposição
-    await queryRunner.dropIndex('appointments', 'AppointmentsProviderDateUnique');
+    await queryRunner.dropIndex(
+      'appointments',
+      'AppointmentsProviderDateUnique',
+    );
     await queryRunner.query('CREATE EXTENSION IF NOT EXISTS btree_gist');
     await queryRunner.query(
       'ALTER TABLE appointments ADD CONSTRAINT "AppointmentsNoOverlap" EXCLUDE USING gist (provider_id WITH =, tstzrange(date, blocked_until) WITH &&)',

@@ -32,7 +32,10 @@ export default function ensureAuthenticated(
       algorithms: [authConfig.jwt.algorithm],
     }) as ITokenPayLoad;
   } catch {
-    throw new AppError('Sessão inválida ou expirada, faça login novamente.', 401);
+    throw new AppError(
+      'Sessão inválida ou expirada, faça login novamente.',
+      401,
+    );
   }
 
   const { sub, role } = payload;
@@ -40,7 +43,10 @@ export default function ensureAuthenticated(
   // Tokens emitidos antes da separação cliente/barbeiro não têm role:
   // são recusados para obrigar um novo login
   if (role !== 'provider' && role !== 'client') {
-    throw new AppError('Sessão inválida ou expirada, faça login novamente.', 401);
+    throw new AppError(
+      'Sessão inválida ou expirada, faça login novamente.',
+      401,
+    );
   }
 
   request.user = {

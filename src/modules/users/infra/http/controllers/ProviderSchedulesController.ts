@@ -7,7 +7,9 @@ export default class ProviderSchedulesController {
     const { provider_id } = request.params;
     const { schedules } = request.body;
 
-    const updateProviderSchedules = container.resolve(UpdateProviderSchedulesService);
+    const updateProviderSchedules = container.resolve(
+      UpdateProviderSchedulesService,
+    );
 
     const providerSchedules = await updateProviderSchedules.execute({
       provider_id,

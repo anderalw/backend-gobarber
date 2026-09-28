@@ -14,14 +14,18 @@ class ProviderSchedulesRepository implements IProviderSchedulesRepository {
     this.ormRepository = dataSource.getRepository(ProviderSchedule);
   }
 
-  public async findByProviderId(provider_id: string): Promise<ProviderSchedule[]> {
+  public async findByProviderId(
+    provider_id: string,
+  ): Promise<ProviderSchedule[]> {
     const schedules = await this.ormRepository.find({
       where: { provider_id },
     });
     return schedules;
   }
 
-  public async findByDayOfWeek(day_of_week: number): Promise<ProviderSchedule[]> {
+  public async findByDayOfWeek(
+    day_of_week: number,
+  ): Promise<ProviderSchedule[]> {
     return this.ormRepository.find({ where: { day_of_week } });
   }
 

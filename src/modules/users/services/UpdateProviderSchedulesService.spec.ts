@@ -66,9 +66,8 @@ describe('UpdateProviderSchedules', () => {
       schedules: [],
     });
 
-    const otherSchedules = await fakeProviderSchedulesRepository.findByProviderId(
-      'other',
-    );
+    const otherSchedules =
+      await fakeProviderSchedulesRepository.findByProviderId('other');
 
     expect(otherSchedules).toHaveLength(1);
   });

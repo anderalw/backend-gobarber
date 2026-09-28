@@ -3,7 +3,8 @@ import { MigrationInterface, QueryRunner, TableIndex } from 'typeorm';
 // Impede dois agendamentos no mesmo horário para o mesmo barbeiro,
 // mesmo quando duas requisições chegam ao mesmo tempo
 export default class AddUniqueProviderDateToAppointments1790545687373
-  implements MigrationInterface {
+  implements MigrationInterface
+{
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.createIndex(
       'appointments',

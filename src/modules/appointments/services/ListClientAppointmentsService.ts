@@ -25,10 +25,8 @@ class ListClientAppointmentsService {
   public async execute(client_id: string): Promise<IClientAppointment[]> {
     const now = new Date(Date.now());
 
-    const appointments = await this.appointmentsRepository.findUpcomingFromClient(
-      client_id,
-      now,
-    );
+    const appointments =
+      await this.appointmentsRepository.findUpcomingFromClient(client_id, now);
 
     return appointments.map(appointment => ({
       id: appointment.id,

@@ -4,7 +4,8 @@ import { MigrationInterface, QueryRunner, TableColumn } from 'typeorm';
 // cliente). Agendamentos cancelados liberam o horário, então a restrição de
 // sobreposição passa a valer só para os ativos
 export default class AddCancellationToAppointments1790550477893
-  implements MigrationInterface {
+  implements MigrationInterface
+{
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.addColumns('appointments', [
       new TableColumn({

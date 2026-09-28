@@ -19,7 +19,8 @@ const COLUMNS: Array<[string, string]> = [
 ];
 
 export default class ConvertTimestampsToTimestamptz1790548379113
-  implements MigrationInterface {
+  implements MigrationInterface
+{
   public async up(queryRunner: QueryRunner): Promise<void> {
     for (const [table, column] of COLUMNS) {
       // eslint-disable-next-line no-await-in-loop

@@ -36,9 +36,7 @@ describe('UpdateService', () => {
       active: false,
     });
 
-    expect(await listServices.execute({ include_inactive: false })).toEqual(
-      [],
-    );
+    expect(await listServices.execute({ include_inactive: false })).toEqual([]);
     expect(await listServices.execute({ include_inactive: true })).toHaveLength(
       1,
     );

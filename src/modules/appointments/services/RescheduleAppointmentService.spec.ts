@@ -27,7 +27,8 @@ describe('RescheduleAppointment', () => {
     fakeAppointmentsRepository = new FakeAppointmentsRepository();
     fakeNotificationsRepository = new FakeNotificationsRepository();
     const fakeUsersRepository = new FakeUsersRepository();
-    const fakeProviderSchedulesRepository = new FakeProviderSchedulesRepository();
+    const fakeProviderSchedulesRepository =
+      new FakeProviderSchedulesRepository();
     agendaSettings = new AgendaSettingsService(new FakeSettingsRepository());
 
     rescheduleAppointment = new RescheduleAppointmentService(

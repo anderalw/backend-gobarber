@@ -11,7 +11,18 @@ const dataSource = new DataSource({
   type: 'postgres',
   ...databaseConfig.postgres,
   entities: [
-    path.resolve(__dirname, '..', '..', '..', 'modules', '**', 'infra', 'typeorm', 'entities', '*.{ts,js}'),
+    path.resolve(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'modules',
+      '**',
+      'infra',
+      'typeorm',
+      'entities',
+      '*.{ts,js}',
+    ),
   ],
   migrations: [path.resolve(__dirname, 'migrations', '*.{ts,js}')],
 });

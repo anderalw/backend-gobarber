@@ -9,8 +9,8 @@ import {
 } from 'typeorm';
 
 import User from '@modules/users/infra/typeorm/entities/User';
-import Client from '../../../../clients/infra/typeorm/entities/Client';
 import Service from '@modules/catalog/infra/typeorm/entities/Service';
+import Client from '../../../../clients/infra/typeorm/entities/Client';
 
 @Entity('appointments')
 class Appointment {

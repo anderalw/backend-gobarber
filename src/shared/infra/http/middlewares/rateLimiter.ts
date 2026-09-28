@@ -27,6 +27,9 @@ export default async function rateLimiter(
 
     return next();
   } catch {
-    throw new AppError('Muitas requisições, tente novamente em instantes.', 429);
+    throw new AppError(
+      'Muitas requisições, tente novamente em instantes.',
+      429,
+    );
   }
 }

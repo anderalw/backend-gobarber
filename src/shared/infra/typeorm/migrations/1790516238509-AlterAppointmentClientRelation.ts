@@ -1,11 +1,8 @@
-import {
-  MigrationInterface,
-  QueryRunner,
-  TableForeignKey,
-} from 'typeorm';
+import { MigrationInterface, QueryRunner, TableForeignKey } from 'typeorm';
 
 export default class AlterAppointmentClientRelation1790516238509
-  implements MigrationInterface {
+  implements MigrationInterface
+{
   public async up(queryRunner: QueryRunner): Promise<void> {
     const table = await queryRunner.getTable('appointments');
     const foreignKey = table?.foreignKeys.find(
@@ -38,7 +35,7 @@ export default class AlterAppointmentClientRelation1790516238509
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.dropForeignKey('appointments', 'AppointmentClient');
     await queryRunner.renameColumn('appointments', 'client_id', 'user_id');
-    
+
     await queryRunner.createForeignKey(
       'appointments',
       new TableForeignKey({

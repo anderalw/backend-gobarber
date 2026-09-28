@@ -21,13 +21,15 @@ providerSchedulesRouter.post(
       provider_id: Joi.string().uuid().required(),
     },
     [Segments.BODY]: {
-      schedules: Joi.array().items(
-        Joi.object({
-          day_of_week: Joi.number().min(0).max(6).required(),
-          start_time: Joi.string().required(),
-          end_time: Joi.string().required(),
-        })
-      ).required(),
+      schedules: Joi.array()
+        .items(
+          Joi.object({
+            day_of_week: Joi.number().min(0).max(6).required(),
+            start_time: Joi.string().required(),
+            end_time: Joi.string().required(),
+          }),
+        )
+        .required(),
     },
   }),
   providerSchedulesController.update,

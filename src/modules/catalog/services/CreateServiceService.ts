@@ -21,8 +21,7 @@ class CreateServiceService {
     });
 
     const nameInUse = services.some(
-      service =>
-        service.name.toLowerCase() === serviceData.name.toLowerCase(),
+      service => service.name.toLowerCase() === serviceData.name.toLowerCase(),
     );
 
     if (nameInUse) {

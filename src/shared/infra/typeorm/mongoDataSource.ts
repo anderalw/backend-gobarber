@@ -8,7 +8,18 @@ const mongoDataSource = new DataSource({
   type: 'mongodb',
   url: databaseConfig.mongo.url,
   entities: [
-    path.resolve(__dirname, '..', '..', '..', 'modules', '**', 'infra', 'typeorm', 'schemas', '*.{ts,js}'),
+    path.resolve(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'modules',
+      '**',
+      'infra',
+      'typeorm',
+      'schemas',
+      '*.{ts,js}',
+    ),
   ],
 });
 

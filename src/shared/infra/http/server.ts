@@ -8,9 +8,9 @@ import 'express-async-errors';
 
 import uploadConfig from '@config/upload';
 import AppError from '@shared/errors/AppError';
+import connectDatabases from '@shared/infra/typeorm';
 import rateLimiter from './middlewares/rateLimiter';
 import routes from './routes';
-import connectDatabases from '@shared/infra/typeorm';
 import '@shared/container';
 
 const app = express();

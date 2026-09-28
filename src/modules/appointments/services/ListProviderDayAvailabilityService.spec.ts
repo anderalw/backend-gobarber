@@ -32,7 +32,8 @@ describe('ListProviderDayAvailability', () => {
   beforeEach(async () => {
     fakeAppointmentsRepository = new FakeAppointmentsRepository();
     fakeServicesRepository = new FakeServicesRepository();
-    const fakeProviderSchedulesRepository = new FakeProviderSchedulesRepository();
+    const fakeProviderSchedulesRepository =
+      new FakeProviderSchedulesRepository();
     agendaSettings = new AgendaSettingsService(new FakeSettingsRepository());
 
     listProviderDayAvailability = new ListProviderDayAvailabilityService(

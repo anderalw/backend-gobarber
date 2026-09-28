@@ -23,9 +23,9 @@ describe('AgendaSettings', () => {
   it('should not accept an invalid buffer', async () => {
     await Promise.all(
       [-5, 7, 125].map(buffer_minutes =>
-        expect(agendaSettings.update({ buffer_minutes })).rejects.toBeInstanceOf(
-          AppError,
-        ),
+        expect(
+          agendaSettings.update({ buffer_minutes }),
+        ).rejects.toBeInstanceOf(AppError),
       ),
     );
   });

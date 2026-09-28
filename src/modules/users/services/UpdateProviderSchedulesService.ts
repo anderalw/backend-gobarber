@@ -34,12 +34,15 @@ class UpdateProviderSchedulesService {
   constructor(
     @inject('ProviderSchedulesRepository')
     private providerSchedulesRepository: IProviderSchedulesRepository,
-    
+
     @inject('UsersRepository')
     private usersRepository: IUsersRepository,
   ) {}
 
-  public async execute({ provider_id, schedules }: IRequest): Promise<ProviderSchedule[]> {
+  public async execute({
+    provider_id,
+    schedules,
+  }: IRequest): Promise<ProviderSchedule[]> {
     const providerExists = await this.usersRepository.findById(provider_id);
 
     if (!providerExists) {
@@ -77,10 +80,11 @@ class UpdateProviderSchedulesService {
     }));
 
     // Apaga os horários antigos e grava os novos numa única transação
-    const createdSchedules = await this.providerSchedulesRepository.replaceByProviderId(
-      provider_id,
-      schedulesData,
-    );
+    const createdSchedules =
+      await this.providerSchedulesRepository.replaceByProviderId(
+        provider_id,
+        schedulesData,
+      );
 
     return createdSchedules;
   }

@@ -15,7 +15,8 @@ describe('ListProviderMonthAvailability', () => {
   beforeEach(async () => {
     fakeAppointmentsRepository = new FakeAppointmentsRepository();
     fakeServicesRepository = new FakeServicesRepository();
-    const fakeProviderSchedulesRepository = new FakeProviderSchedulesRepository();
+    const fakeProviderSchedulesRepository =
+      new FakeProviderSchedulesRepository();
 
     listProviderMonthAvailability = new ListProviderMonthAvailabilityService(
       fakeAppointmentsRepository,
