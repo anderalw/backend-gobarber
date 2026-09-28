@@ -28,7 +28,9 @@ export default function ensureAuthenticated(
   let payload: ITokenPayLoad;
 
   try {
-    payload = verify(token, authConfig.jwt.secret) as ITokenPayLoad;
+    payload = verify(token, authConfig.jwt.secret, {
+      algorithms: [authConfig.jwt.algorithm],
+    }) as ITokenPayLoad;
   } catch {
     throw new AppError('Sessão inválida ou expirada, faça login novamente.', 401);
   }
