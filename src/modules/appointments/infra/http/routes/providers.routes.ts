@@ -6,6 +6,7 @@ import ProvidersController from '../controllers/ProvidersController';
 import ProviderMonthAvailabilityController from '../controllers/ProviderMonthAvailabilityController';
 import ProviderDayAvailabilityController from '../controllers/ProviderDayAvailabilityController';
 import ProviderSlotController from '../controllers/ProviderSlotController';
+import ProviderSuggestionsController from '../controllers/ProviderSuggestionsController';
 import AnyProviderDayAvailabilityController from '../controllers/AnyProviderDayAvailabilityController';
 
 const providersRouter = Router();
@@ -15,6 +16,7 @@ const providerMonthAvailabilityController =
 const providerDayAvailabilityController =
   new ProviderDayAvailabilityController();
 const providerSlotController = new ProviderSlotController();
+const providerSuggestionsController = new ProviderSuggestionsController();
 const anyProviderDayAvailabilityController =
   new AnyProviderDayAvailabilityController();
 
@@ -78,6 +80,21 @@ providersRouter.get(
     },
   }),
   providerSlotController.show,
+);
+// O serviço não coube no horário: horários livres mais próximos com o mesmo
+// barbeiro e outros barbeiros livres no mesmo horário
+providersRouter.get(
+  '/:provider_id/suggestions',
+  celebrate({
+    [Segments.PARAMS]: {
+      provider_id: Joi.string().uuid().required(),
+    },
+    [Segments.QUERY]: {
+      service_id: Joi.string().uuid().required(),
+      date: Joi.date().iso().required(),
+    },
+  }),
+  providerSuggestionsController.index,
 );
 
 export default providersRouter;
