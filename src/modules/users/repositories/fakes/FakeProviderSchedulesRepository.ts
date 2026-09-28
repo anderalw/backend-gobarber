@@ -1,4 +1,4 @@
-import { uuid } from 'uuidv4';
+import { randomUUID } from 'crypto';
 
 import IProviderSchedulesRepository, {
   IScheduleData,
@@ -32,7 +32,7 @@ class FakeProviderSchedulesRepository implements IProviderSchedulesRepository {
     const created = schedules.map(scheduleData => {
       const schedule = new ProviderSchedule();
 
-      Object.assign(schedule, { id: uuid(), provider_id }, scheduleData);
+      Object.assign(schedule, { id: randomUUID(), provider_id }, scheduleData);
 
       return schedule;
     });

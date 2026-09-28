@@ -1,11 +1,17 @@
 import { Response, Request } from 'express';
 import { container } from 'tsyringe';
-import { classToClass } from 'class-transformer';
+import { instanceToInstance } from 'class-transformer';
 
+import AppError from '@shared/errors/AppError';
 import UpdateUserAvatarService from '@modules/users/services/UpdateUserAvatarService';
 
 export default class UserAvatarController {
   public async update(request: Request, response: Response): Promise<Response> {
+    // Sem o campo "avatar" no formulário o multer não gera arquivo
+    if (!request.file) {
+      throw new AppError('Envie uma imagem no campo "avatar".');
+    }
+
     const updateUserAvatar = container.resolve(UpdateUserAvatarService);
 
     const user = await updateUserAvatar.execute({
@@ -13,6 +19,6 @@ export default class UserAvatarController {
       avatarFilename: request.file.filename,
     });
 
-    return response.json(classToClass(user));
+    return response.json(instanceToInstance(user));
   }
 }

@@ -1,5 +1,5 @@
 import nodemailer, { Transporter } from 'nodemailer';
-import aws from 'aws-sdk';
+import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
 import mailConfig from '@config/mail';
 import { inject, injectable } from 'tsyringe';
 import IMailTemplateProvider from '@shared/container/providers/MailTemplateProvider/models/IMailTemplateProvider';
@@ -14,11 +14,12 @@ export default class SESMailProvider implements IMailProvider {
     @inject('MailTemplateProvider')
     private mailTemplateProvider: IMailTemplateProvider,
   ) {
+    // O nodemailer 7+ só fala com a API SESv2 (AWS SDK v3)
     this.client = nodemailer.createTransport({
-      SES: new aws.SES({
-        apiVersion: '2010-12-01',
-        region: 'sa-east-1',
-      }),
+      SES: {
+        sesClient: new SESv2Client({ region: 'sa-east-1' }),
+        SendEmailCommand,
+      },
     });
   }
 

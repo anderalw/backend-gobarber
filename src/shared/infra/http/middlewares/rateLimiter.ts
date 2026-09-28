@@ -22,7 +22,8 @@ export default async function rateLimiter(
   next: NextFunction,
 ): Promise<void> {
   try {
-    await Limiter.consume(request.ip);
+    // request.ip só falta se a conexão já caiu; todos esses caem numa chave só
+    await Limiter.consume(request.ip || 'desconhecido');
 
     return next();
   } catch (err) {

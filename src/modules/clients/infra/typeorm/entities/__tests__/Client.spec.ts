@@ -1,4 +1,4 @@
-import { classToClass } from 'class-transformer';
+import { instanceToInstance } from 'class-transformer';
 
 import Client from '../Client';
 
@@ -14,7 +14,7 @@ describe('Client entity', () => {
       phone: '999',
     });
 
-    const serialized = JSON.parse(JSON.stringify(classToClass(client)));
+    const serialized = JSON.parse(JSON.stringify(instanceToInstance(client)));
 
     expect(serialized).not.toHaveProperty('password');
     expect(serialized).toMatchObject({ id: 'client-id', name: 'Maria' });

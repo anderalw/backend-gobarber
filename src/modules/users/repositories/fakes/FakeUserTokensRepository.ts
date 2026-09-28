@@ -1,4 +1,4 @@
-import { uuid } from 'uuidv4';
+import { randomUUID } from 'crypto';
 
 import IUserTokensRepository from '@modules/users/repositories/IUserTokensRepository';
 
@@ -11,8 +11,8 @@ class FakeUserTokensRepository implements IUserTokensRepository {
     const userToken = new UserToken();
 
     Object.assign(userToken, {
-      id: uuid(),
-      token: uuid(),
+      id: randomUUID(),
+      token: randomUUID(),
       user_id,
       created_at: new Date(),
       updated_at: new Date(),

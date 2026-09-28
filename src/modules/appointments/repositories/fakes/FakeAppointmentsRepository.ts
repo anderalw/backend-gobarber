@@ -1,4 +1,4 @@
-import { uuid } from 'uuidv4';
+import { randomUUID } from 'crypto';
 import { getMonth, getYear, getDate, isBefore, isAfter } from 'date-fns';
 import IAppointmentsRepository from '@modules/appointments/repositories/IAppointmentsRepository';
 import ICreateAppointmentDTO from '@modules/appointments/dtos/ICreateAppointmentDTO';
@@ -94,7 +94,7 @@ class AppointmentsRepository implements IAppointmentsRepository {
     const appointment = new Appointment();
 
     Object.assign(appointment, data, {
-      id: uuid(),
+      id: randomUUID(),
       canceled_at: null,
       canceled_by: null,
       // No banco, preenchido pelo @CreateDateColumn

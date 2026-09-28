@@ -1,4 +1,4 @@
-import { uuid } from 'uuidv4';
+import { randomUUID } from 'crypto';
 
 import IServicesRepository from '@modules/catalog/repositories/IServicesRepository';
 import ICreateServiceDTO from '@modules/catalog/dtos/ICreateServiceDTO';
@@ -10,7 +10,7 @@ class FakeServicesRepository implements IServicesRepository {
   public async create(data: ICreateServiceDTO): Promise<Service> {
     const service = new Service();
 
-    Object.assign(service, { id: uuid(), active: true }, data);
+    Object.assign(service, { id: randomUUID(), active: true }, data);
 
     this.services.push(service);
 
