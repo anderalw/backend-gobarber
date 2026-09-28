@@ -12,16 +12,16 @@ const agendaController = new AgendaController();
 agendaRouter.use(ensureAuthenticated);
 agendaRouter.use(ensureRole('provider'));
 
-agendaRouter.get(
-  '/day',
-  celebrate({
-    [Segments.QUERY]: {
-      day: Joi.number().integer().min(1).max(31).required(),
-      month: Joi.number().integer().min(1).max(12).required(),
-      year: Joi.number().integer().min(2000).max(2100).required(),
-    },
-  }),
-  agendaController.index,
-);
+const dateQuery = celebrate({
+  [Segments.QUERY]: {
+    day: Joi.number().integer().min(1).max(31).required(),
+    month: Joi.number().integer().min(1).max(12).required(),
+    year: Joi.number().integer().min(2000).max(2100).required(),
+  },
+});
+
+agendaRouter.get('/day', dateQuery, agendaController.index);
+// Visão semanal: sete dias a partir da data (o domingo da semana)
+agendaRouter.get('/week', dateQuery, agendaController.week);
 
 export default agendaRouter;
