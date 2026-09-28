@@ -22,7 +22,7 @@ export default async function ensureAdmin(
 
   const user = await dataSource.getRepository(User).findOneBy({ id: user_id });
 
-  // Verifica se o utilizador existe e se é administrador
+  // Verifica se o usuário existe e se é administrador
   if (!user || !user.is_admin) {
     throw new AppError(
       'Acesso negado. Apenas administradores podem realizar esta ação.',

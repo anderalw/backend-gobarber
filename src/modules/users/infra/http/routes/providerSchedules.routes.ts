@@ -9,7 +9,7 @@ import ProviderSchedulesController from '../controllers/ProviderSchedulesControl
 const providerSchedulesRouter = Router();
 const providerSchedulesController = new ProviderSchedulesController();
 
-// Todas as rotas deste ficheiro vão exigir autenticação e perfil de administrador
+// Todas as rotas deste arquivo vão exigir autenticação e perfil de administrador
 providerSchedulesRouter.use(ensureAuthenticated);
 providerSchedulesRouter.use(ensureRole('provider'));
 providerSchedulesRouter.use(ensureAdmin);
