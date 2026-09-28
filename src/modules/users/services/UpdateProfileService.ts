@@ -2,6 +2,7 @@ import { injectable, inject } from 'tsyringe';
 
 // import AppError from '@shared/errors/AppError';
 import AppError from '@shared/errors/AppError';
+import ICacheProvider from '@shared/container/providers/CacheProvider/models/ICacheProvider';
 import IHashProvider from '../providers/HashProvider/models/IHashProvider';
 import IUsersRepository from '../repositories/IUsersRepository';
 import User from '../infra/typeorm/entities/User';
@@ -21,6 +22,9 @@ class UpdateProfileService {
 
     @inject('HashProvider')
     private hashProvider: IHashProvider,
+
+    @inject('CacheProvider')
+    private cacheProvider: ICacheProvider,
   ) {}
 
   public async execute({
@@ -60,7 +64,12 @@ class UpdateProfileService {
       user.password = await this.hashProvider.generateHash(password);
     }
 
-    return this.usersRepository.save(user);
+    const saved = await this.usersRepository.save(user);
+
+    // Nome e foto aparecem na lista de barbeiros, que fica em cache
+    await this.cacheProvider.invalidatePrefix('providers-list');
+
+    return saved;
   }
 }
 

@@ -1,3 +1,4 @@
+import FakeCacheProvider from '@shared/container/providers/CacheProvider/fakes/FakeCacheProvider';
 import AppError from '@shared/errors/AppError';
 import FakeUserProvider from '@shared/container/providers/StorageProvider/fakes/FakeStorageProvider';
 import FakeUsersRepository from '../repositories/fakes/FakeUsersRepository';
@@ -15,6 +16,7 @@ describe('UpdateUserAvatar', () => {
     updateUserAvatar = new UpdateUserAvatarService(
       fakeUsersRepository,
       fakeUserProvider,
+      new FakeCacheProvider(),
     );
   });
   it('Should be able to update avatar user', async () => {

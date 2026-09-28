@@ -1,3 +1,4 @@
+import FakeCacheProvider from '@shared/container/providers/CacheProvider/fakes/FakeCacheProvider';
 import AppError from '@shared/errors/AppError';
 import FakeHashProvider from '../providers/HashProvider/fakes/FakeHashProvider';
 import FakeUsersRepository from '../repositories/fakes/FakeUsersRepository';
@@ -5,17 +6,37 @@ import UpdateProfileService from './UpdateProfileService';
 
 let fakeUsersRepository: FakeUsersRepository;
 let fakeHashProvider: FakeHashProvider;
+let fakeCacheProvider: FakeCacheProvider;
 let updateProfile: UpdateProfileService;
 
 describe('UpdateProfile', () => {
   beforeEach(() => {
     fakeUsersRepository = new FakeUsersRepository();
     fakeHashProvider = new FakeHashProvider();
+    fakeCacheProvider = new FakeCacheProvider();
 
     updateProfile = new UpdateProfileService(
       fakeUsersRepository,
       fakeHashProvider,
+      fakeCacheProvider,
     );
+  });
+
+  it('should refresh the cached providers list when the name changes', async () => {
+    const invalidate = jest.spyOn(fakeCacheProvider, 'invalidatePrefix');
+    const user = await fakeUsersRepository.create({
+      name: 'Ander',
+      email: 'ander@email.com',
+      password: '123456',
+    });
+
+    await updateProfile.execute({
+      user_id: user.id,
+      name: 'Luis',
+      email: 'ander@email.com',
+    });
+
+    expect(invalidate).toHaveBeenCalledWith('providers-list');
   });
   it('Should be able to update profile user', async () => {
     const user = await fakeUsersRepository.create({
