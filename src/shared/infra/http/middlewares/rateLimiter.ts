@@ -26,7 +26,7 @@ export default async function rateLimiter(
     await Limiter.consume(request.ip || 'desconhecido');
 
     return next();
-  } catch (err) {
+  } catch {
     throw new AppError('Muitas requisições, tente novamente em instantes.', 429);
   }
 }

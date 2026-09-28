@@ -34,11 +34,12 @@ export default function computeAvailableSlots({
   let start = workStart;
 
   while (!isAfter(addMinutes(start, durationMinutes), workEnd)) {
-    const blockedUntil = addMinutes(start, durationMinutes + bufferMinutes);
+    const slotStart = start;
+    const blockedUntil = addMinutes(slotStart, durationMinutes + bufferMinutes);
 
     const conflicts = busy.filter(
       period =>
-        isBefore(period.start, blockedUntil) && isAfter(period.end, start),
+        isBefore(period.start, blockedUntil) && isAfter(period.end, slotStart),
     );
 
     if (conflicts.length > 0) {

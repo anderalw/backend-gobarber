@@ -15,7 +15,7 @@ interface IUploadConfig {
   };
 
   config: {
-    disk: {};
+    disk: Record<string, never>;
     aws: {
       bucket: string;
     };
