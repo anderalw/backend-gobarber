@@ -5,6 +5,9 @@ import IStorageProvider from '../models/IStorageProvider';
 
 class DiskStorageProvider implements IStorageProvider {
   public async saveFile(file: string): Promise<string> {
+    // tmp/ não vai para o Git, então a pasta pode não existir numa cópia nova
+    await fs.promises.mkdir(uploadConfig.uploadsFolder, { recursive: true });
+
     await fs.promises.rename(
       path.resolve(uploadConfig.tmpFolder, file),
       path.resolve(uploadConfig.uploadsFolder, file),
