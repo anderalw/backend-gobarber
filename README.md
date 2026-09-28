@@ -70,6 +70,6 @@
 
 # Configuração local
 
-- Copie `.env.example` para `.env` e preencha as variáveis;
-- Copie `ormconfig.example.json` para `ormconfig.json` e ajuste as credenciais do Postgres e do MongoDB (o `ormconfig.json` não é versionado);
+- Use Node 20 ou mais novo;
+- Copie `.env.example` para `.env` e preencha as variáveis (`APP_SECRET` é obrigatório; as conexões com o Postgres e o MongoDB ficam em `DB_*` e `MONGO_URL`, com padrões para os contêineres Docker de desenvolvimento);
 - Rode as migrations com `yarn typeorm migration:run` e suba a API com `yarn dev:server`.

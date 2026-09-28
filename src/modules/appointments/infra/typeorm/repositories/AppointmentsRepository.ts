@@ -1,5 +1,4 @@
 import {
-  getRepository,
   Repository,
   Between,
   IsNull,
@@ -11,6 +10,7 @@ import {
 import { endOfDay, endOfMonth, startOfDay, startOfMonth } from 'date-fns';
 
 import AppError from '@shared/errors/AppError';
+import dataSource from '@shared/infra/typeorm/dataSource';
 
 import IAppointmentsRepository from '@modules/appointments/repositories/IAppointmentsRepository';
 import ICreateAppointmentDTO from '@modules/appointments/dtos/ICreateAppointmentDTO';
@@ -36,7 +36,8 @@ const ACTIVE = { canceled_at: IsNull() };
 // 23P01 = exclusion_violation (AppointmentsNoOverlap): outra requisição ocupou
 // o horário entre a verificação do service e a gravação
 function isOverlapError(err: unknown): boolean {
-  const code = err instanceof QueryFailedError && (err as any).code;
+  const code =
+    err instanceof QueryFailedError && (err as { code?: string }).code;
 
   return code === '23P01' || code === '23505';
 }
@@ -45,13 +46,20 @@ class AppointmentsRepository implements IAppointmentsRepository {
   private ormRepository: Repository<Appointment>;
 
   constructor() {
-    this.ormRepository = getRepository(Appointment);
+    this.ormRepository = dataSource.getRepository(Appointment);
   }
 
   public async findById(id: string): Promise<Appointment | undefined> {
-    return this.ormRepository.findOne(id, {
+    // No TypeORM 0.3 um where com id undefined é ignorado e traria o
+    // primeiro registro; sem id não há o que buscar
+    if (!id) return undefined;
+
+    const appointment = await this.ormRepository.findOne({
+      where: { id },
       relations: ['client', 'provider', 'service'],
     });
+
+    return appointment ?? undefined;
   }
 
   public async findOverlapping({
@@ -61,7 +69,7 @@ class AppointmentsRepository implements IAppointmentsRepository {
     except_appointment_id,
   }: IFindOverlappingDTO): Promise<Appointment | undefined> {
     // Sobrepõe se começa antes do fim do novo e termina depois do início
-    return this.ormRepository.findOne({
+    const appointment = await this.ormRepository.findOne({
       where: {
         ...ACTIVE,
         ...(except_appointment_id && { id: Not(except_appointment_id) }),
@@ -70,6 +78,8 @@ class AppointmentsRepository implements IAppointmentsRepository {
         blocked_until: MoreThan(start),
       },
     });
+
+    return appointment ?? undefined;
   }
 
   public async findAllInMonthFromProvider({

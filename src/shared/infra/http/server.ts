@@ -10,7 +10,7 @@ import uploadConfig from '@config/upload';
 import AppError from '@shared/errors/AppError';
 import rateLimiter from './middlewares/rateLimiter';
 import routes from './routes';
-import '@shared/infra/typeorm';
+import connectDatabases from '@shared/infra/typeorm';
 import '@shared/container';
 
 const app = express();
@@ -39,6 +39,14 @@ app.use((err: Error, request: Request, response: Response, _: NextFunction) => {
   });
 });
 
-app.listen(3333, () => {
-  console.log(' Server Started on port 3333!');
-});
+// Só aceita requisições depois de conectar aos bancos
+connectDatabases()
+  .then(() => {
+    app.listen(3333, () => {
+      console.log(' Server Started on port 3333!');
+    });
+  })
+  .catch(err => {
+    console.error('Não foi possível conectar aos bancos de dados:', err);
+    process.exit(1);
+  });

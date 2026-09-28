@@ -1,4 +1,6 @@
-import { getRepository, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
+
+import dataSource from '@shared/infra/typeorm/dataSource';
 
 import IServicesRepository from '@modules/catalog/repositories/IServicesRepository';
 import ICreateServiceDTO from '@modules/catalog/dtos/ICreateServiceDTO';
@@ -8,7 +10,7 @@ class ServicesRepository implements IServicesRepository {
   private ormRepository: Repository<Service>;
 
   constructor() {
-    this.ormRepository = getRepository(Service);
+    this.ormRepository = dataSource.getRepository(Service);
   }
 
   public async create(data: ICreateServiceDTO): Promise<Service> {
@@ -24,7 +26,9 @@ class ServicesRepository implements IServicesRepository {
   }
 
   public async findById(id: string): Promise<Service | undefined> {
-    return this.ormRepository.findOne(id);
+    if (!id) return undefined;
+
+    return (await this.ormRepository.findOneBy({ id })) ?? undefined;
   }
 
   public async findAll({

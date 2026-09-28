@@ -1,4 +1,6 @@
-import { getRepository, Repository, Not } from 'typeorm';
+import { Repository, Not } from 'typeorm';
+
+import dataSource from '@shared/infra/typeorm/dataSource';
 
 import IUsersRepository from '@modules/users/repositories/IUsersRepository';
 import ICreateUserDTO from '@modules/users/dtos/ICreateUserDTO';
@@ -10,21 +12,21 @@ class UsersRepository implements IUsersRepository {
   private ormRepository: Repository<User>;
 
   constructor() {
-    this.ormRepository = getRepository(User);
+    this.ormRepository = dataSource.getRepository(User);
   }
 
   public async findById(id: string): Promise<User | undefined> {
-    const user = await this.ormRepository.findOne(id);
+    if (!id) return undefined;
 
-    return user;
+    const user = await this.ormRepository.findOneBy({ id });
+
+    return user ?? undefined;
   }
 
   public async findByEmail(email: string): Promise<User | undefined> {
-    const user = await this.ormRepository.findOne({
-      where: { email },
-    });
+    const user = await this.ormRepository.findOneBy({ email });
 
-    return user;
+    return user ?? undefined;
   }
 
   public async findAllProviders({

@@ -1,17 +1,20 @@
 import fs from 'fs';
 import path from 'path';
 import mime from 'mime';
-import aws, { S3 } from 'aws-sdk';
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+} from '@aws-sdk/client-s3';
 import uploadConfig from '@config/upload';
 import IStorageProvider from '../models/IStorageProvider';
 
-class DiskStorageProvider implements IStorageProvider {
-  private client: S3;
+class S3StorageProvider implements IStorageProvider {
+  private client: S3Client;
 
   constructor() {
-    this.client = new aws.S3({
-      region: 'us-east-1',
-    });
+    // AWS SDK v3 (o v2 foi descontinuado pela AWS)
+    this.client = new S3Client({ region: 'us-east-1' });
   }
 
   public async saveFile(file: string): Promise<string> {
@@ -24,15 +27,15 @@ class DiskStorageProvider implements IStorageProvider {
     }
 
     const fileContent = await fs.promises.readFile(originalPath);
-    await this.client
-      .putObject({
+    await this.client.send(
+      new PutObjectCommand({
         Bucket: uploadConfig.config.aws.bucket,
         Key: file,
         ACL: 'public-read',
         Body: fileContent,
         ContentType,
-      })
-      .promise();
+      }),
+    );
 
     await fs.promises.unlink(originalPath);
 
@@ -40,12 +43,12 @@ class DiskStorageProvider implements IStorageProvider {
   }
 
   public async deleteFile(file: string): Promise<void> {
-    await this.client
-      .deleteObject({
+    await this.client.send(
+      new DeleteObjectCommand({
         Bucket: uploadConfig.config.aws.bucket,
         Key: file,
-      })
-      .promise();
+      }),
+    );
   }
 }
-export default DiskStorageProvider;
+export default S3StorageProvider;

@@ -1,4 +1,6 @@
-import { getConnection, getRepository, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
+
+import dataSource from '@shared/infra/typeorm/dataSource';
 
 import IProviderSchedulesRepository, {
   IScheduleData,
@@ -9,7 +11,7 @@ class ProviderSchedulesRepository implements IProviderSchedulesRepository {
   private ormRepository: Repository<ProviderSchedule>;
 
   constructor() {
-    this.ormRepository = getRepository(ProviderSchedule);
+    this.ormRepository = dataSource.getRepository(ProviderSchedule);
   }
 
   public async findByProviderId(provider_id: string): Promise<ProviderSchedule[]> {
@@ -29,7 +31,7 @@ class ProviderSchedulesRepository implements IProviderSchedulesRepository {
   ): Promise<ProviderSchedule[]> {
     // Se a gravação dos novos horários falhar, o delete é desfeito
     // e o barbeiro mantém os horários antigos
-    return getConnection().transaction(async manager => {
+    return dataSource.transaction(async manager => {
       await manager.delete(ProviderSchedule, { provider_id });
 
       const newSchedules = manager.create(
