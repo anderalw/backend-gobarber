@@ -6,6 +6,7 @@ import ProvidersController from '../controllers/ProvidersController';
 import ProviderMonthAvailabilityController from '../controllers/ProviderMonthAvailabilityController';
 import ProviderDayAvailabilityController from '../controllers/ProviderDayAvailabilityController';
 import ProviderSlotController from '../controllers/ProviderSlotController';
+import AnyProviderDayAvailabilityController from '../controllers/AnyProviderDayAvailabilityController';
 
 const providersRouter = Router();
 const providersController = new ProvidersController();
@@ -14,10 +15,25 @@ const providerMonthAvailabilityController =
 const providerDayAvailabilityController =
   new ProviderDayAvailabilityController();
 const providerSlotController = new ProviderSlotController();
+const anyProviderDayAvailabilityController =
+  new AnyProviderDayAvailabilityController();
 
 providersRouter.use(ensureAuthenticated);
 
 providersRouter.get('/', providersController.index);
+// "Qualquer barbeiro": horários em que pelo menos um barbeiro está livre
+providersRouter.get(
+  '/any/day-availability',
+  celebrate({
+    [Segments.QUERY]: {
+      day: Joi.number().integer().min(1).max(31).required(),
+      month: Joi.number().integer().min(1).max(12).required(),
+      year: Joi.number().integer().min(2000).max(2100).required(),
+      service_id: Joi.string().uuid().required(),
+    },
+  }),
+  anyProviderDayAvailabilityController.index,
+);
 providersRouter.get(
   '/:provider_id/month-availability',
   celebrate({

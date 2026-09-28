@@ -28,6 +28,18 @@ appointmentsRouter.post(
   }),
   appointmentsController.create,
 );
+// Cliente sem preferência de barbeiro: o sistema escolhe quem está livre
+appointmentsRouter.post(
+  '/any',
+  ensureRole('client'),
+  celebrate({
+    [Segments.BODY]: {
+      service_id: Joi.string().uuid().required(),
+      date: Joi.date().required(),
+    },
+  }),
+  appointmentsController.createWithAnyProvider,
+);
 // Barbeiro marcando pela agenda para um cliente (cadastrado antes, se
 // preciso, por POST /clients/by-provider)
 appointmentsRouter.post(

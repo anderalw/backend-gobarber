@@ -3,6 +3,7 @@ import { container } from 'tsyringe';
 
 import CreateAppointmentsService from '@modules/appointments/services/CreateAppointmentsService';
 import CreateProviderAppointmentService from '@modules/appointments/services/CreateProviderAppointmentService';
+import CreateAnyProviderAppointmentService from '@modules/appointments/services/CreateAnyProviderAppointmentService';
 import CancelAppointmentService from '@modules/appointments/services/CancelAppointmentService';
 import RescheduleAppointmentService from '@modules/appointments/services/RescheduleAppointmentService';
 import ListClientAppointmentsService from '@modules/appointments/services/ListClientAppointmentsService';
@@ -20,6 +21,26 @@ export default class AppointmentsController {
       provider_id,
       client_id,
       service_id,
+    });
+
+    return response.json(appointment);
+  }
+
+  // Cliente sem preferência de barbeiro
+  public async createWithAnyProvider(
+    request: Request,
+    response: Response,
+  ): Promise<Response> {
+    const { service_id, date } = request.body;
+
+    const createAppointment = container.resolve(
+      CreateAnyProviderAppointmentService,
+    );
+
+    const appointment = await createAppointment.execute({
+      client_id: request.user.id,
+      service_id,
+      date: new Date(date),
     });
 
     return response.json(appointment);
