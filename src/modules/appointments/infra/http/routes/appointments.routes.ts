@@ -28,6 +28,21 @@ appointmentsRouter.post(
   }),
   appointmentsController.create,
 );
+// Barbeiro marcando pela agenda para um cliente (cadastrado antes, se
+// preciso, por POST /clients/by-provider)
+appointmentsRouter.post(
+  '/by-provider',
+  ensureRole('provider'),
+  celebrate({
+    [Segments.BODY]: {
+      provider_id: Joi.string().uuid().required(),
+      service_id: Joi.string().uuid().required(),
+      date: Joi.date().required(),
+      client_id: Joi.string().uuid().required(),
+    },
+  }),
+  appointmentsController.createByProvider,
+);
 appointmentsRouter.get(
   '/me',
   ensureRole('provider'),

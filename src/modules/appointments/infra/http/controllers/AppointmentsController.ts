@@ -2,6 +2,7 @@ import { Response, Request } from 'express';
 import { container } from 'tsyringe';
 
 import CreateAppointmentsService from '@modules/appointments/services/CreateAppointmentsService';
+import CreateProviderAppointmentService from '@modules/appointments/services/CreateProviderAppointmentService';
 import CancelAppointmentService from '@modules/appointments/services/CancelAppointmentService';
 import RescheduleAppointmentService from '@modules/appointments/services/RescheduleAppointmentService';
 import ListClientAppointmentsService from '@modules/appointments/services/ListClientAppointmentsService';
@@ -19,6 +20,28 @@ export default class AppointmentsController {
       provider_id,
       client_id,
       service_id,
+    });
+
+    return response.json(appointment);
+  }
+
+  // Barbeiro marcando direto na agenda
+  public async createByProvider(
+    request: Request,
+    response: Response,
+  ): Promise<Response> {
+    const { provider_id, service_id, date, client_id } = request.body;
+
+    const createAppointment = container.resolve(
+      CreateProviderAppointmentService,
+    );
+
+    const appointment = await createAppointment.execute({
+      requester_id: request.user.id,
+      provider_id,
+      service_id,
+      date,
+      client_id,
     });
 
     return response.json(appointment);

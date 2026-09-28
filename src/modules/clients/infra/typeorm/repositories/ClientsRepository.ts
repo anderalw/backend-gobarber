@@ -1,4 +1,4 @@
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import dataSource from '@shared/infra/typeorm/dataSource';
 import IClientsRepository from '@modules/clients/repositories/IClientsRepository';
 import ICreateClientDTO from '@modules/clients/dtos/ICreateClientDTO';
@@ -14,6 +14,31 @@ class ClientsRepository implements IClientsRepository {
   public async findByEmail(email: string): Promise<Client | undefined> {
     const client = await this.ormRepository.findOneBy({ email });
     return client ?? undefined;
+  }
+
+  public async findById(id: string): Promise<Client | undefined> {
+    if (!id) return undefined;
+
+    return (await this.ormRepository.findOneBy({ id })) ?? undefined;
+  }
+
+  public async search(term: string, limit: number): Promise<Client[]> {
+    // Os curingas do LIKE digitados pelo usuário valem como texto
+    const pattern = `%${term.replace(/[\\%_]/g, char => `\\${char}`)}%`;
+
+    return this.ormRepository.find({
+      where: [
+        { name: ILike(pattern) },
+        { email: ILike(pattern) },
+        { phone: ILike(pattern) },
+      ],
+      order: { name: 'ASC' },
+      take: limit,
+    });
+  }
+
+  public async save(client: Client): Promise<Client> {
+    return this.ormRepository.save(client);
   }
 
   public async create(clientData: ICreateClientDTO): Promise<Client> {

@@ -5,6 +5,7 @@ import ensureAuthenticated from '@modules/users/infra/http/middlewares/ensureAut
 import ProvidersController from '../controllers/ProvidersController';
 import ProviderMonthAvailabilityController from '../controllers/ProviderMonthAvailabilityController';
 import ProviderDayAvailabilityController from '../controllers/ProviderDayAvailabilityController';
+import ProviderSlotController from '../controllers/ProviderSlotController';
 
 const providersRouter = Router();
 const providersController = new ProvidersController();
@@ -12,6 +13,7 @@ const providerMonthAvailabilityController =
   new ProviderMonthAvailabilityController();
 const providerDayAvailabilityController =
   new ProviderDayAvailabilityController();
+const providerSlotController = new ProviderSlotController();
 
 providersRouter.use(ensureAuthenticated);
 
@@ -46,6 +48,20 @@ providersRouter.get(
     }).xor('service_id', 'appointment_id'),
   }),
   providerDayAvailabilityController.index,
+);
+// Um serviço cabe exatamente neste horário? (ex.: horário clicado na agenda)
+providersRouter.get(
+  '/:provider_id/slot',
+  celebrate({
+    [Segments.PARAMS]: {
+      provider_id: Joi.string().uuid().required(),
+    },
+    [Segments.QUERY]: {
+      service_id: Joi.string().uuid().required(),
+      date: Joi.date().iso().required(),
+    },
+  }),
+  providerSlotController.show,
 );
 
 export default providersRouter;

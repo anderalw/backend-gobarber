@@ -24,12 +24,13 @@ class Appointment {
   @JoinColumn({ name: 'provider_id' })
   provider: User;
 
-  @Column()
-  client_id: string;
+  // null só em agendamentos antigos, anteriores ao cadastro de clientes
+  @Column({ type: 'uuid', nullable: true })
+  client_id: string | null;
 
   @ManyToOne(() => Client)
   @JoinColumn({ name: 'client_id' })
-  client: Client;
+  client: Client | null;
 
   // null em agendamentos anteriores ao cadastro de serviços
   @Column({ type: 'uuid', nullable: true })

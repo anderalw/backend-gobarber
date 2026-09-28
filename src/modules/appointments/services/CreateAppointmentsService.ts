@@ -15,9 +15,11 @@ import checkAvailableSlot from '../utils/checkAvailableSlot';
 
 interface IRequest {
   provider_id: string;
-  client_id: string;
   service_id: string;
   date: Date;
+  client_id: string;
+  // false quando o próprio barbeiro marcou na agenda dele
+  notifyProvider?: boolean;
 }
 @injectable()
 class CreateAppointmentsServices {
@@ -46,6 +48,7 @@ class CreateAppointmentsServices {
     provider_id,
     client_id,
     service_id,
+    notifyProvider = true,
   }: IRequest): Promise<Appointment> {
     const appointmentDate = setMilliseconds(setSeconds(date, 0), 0);
 
@@ -84,10 +87,12 @@ class CreateAppointmentsServices {
     });
     const dateFormatted = format(appointmentDate, "dd/MM/yyyy 'às' HH:mm'h'");
 
-    await this.notificationsRepository.create({
-      recipient_id: provider_id,
-      content: `Novo agendamento de ${service.name} para dia ${dateFormatted}`,
-    });
+    if (notifyProvider) {
+      await this.notificationsRepository.create({
+        recipient_id: provider_id,
+        content: `Novo agendamento de ${service.name} para dia ${dateFormatted}`,
+      });
+    }
 
     await this.cacheProvider.invalidate(
       `provider-appointments:${provider_id}:${format(

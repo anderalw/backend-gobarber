@@ -15,12 +15,14 @@ class Client {
   @Column()
   name: string;
 
-  @Column()
-  email: string;
+  // null quando o barbeiro cadastrou sem e-mail
+  @Column({ type: 'varchar', nullable: true })
+  email: string | null;
 
-  @Column()
+  // null até o cliente criar a conta no site (cadastro feito pelo barbeiro)
+  @Column({ type: 'varchar', nullable: true })
   @Exclude()
-  password: string;
+  password: string | null;
 
   @Column()
   phone: string;

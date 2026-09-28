@@ -3,7 +3,13 @@ import { injectable, inject } from 'tsyringe';
 import AppError from '@shared/errors/AppError';
 import Client from '../infra/typeorm/entities/Client';
 import IClientsRepository from '../repositories/IClientsRepository';
-import ICreateClientDTO from '../dtos/ICreateClientDTO';
+
+interface IRequest {
+  name: string;
+  email: string;
+  password: string;
+  phone: string;
+}
 
 @injectable()
 class CreateClientService {
@@ -17,14 +23,21 @@ class CreateClientService {
     email,
     password,
     phone,
-  }: ICreateClientDTO): Promise<Client> {
-    const checkClientExists = await this.clientsRepository.findByEmail(email);
+  }: IRequest): Promise<Client> {
+    const existing = await this.clientsRepository.findByEmail(email);
+    const hashedPassword = await hash(password, 8);
 
-    if (checkClientExists) {
-      throw new AppError('Este e-mail já está em uso.');
+    // Cadastrado antes pelo barbeiro (sem senha): criar a conta completa o
+    // cadastro e mantém o histórico de agendamentos
+    if (existing && !existing.password) {
+      Object.assign(existing, { name, phone, password: hashedPassword });
+
+      return this.clientsRepository.save(existing);
     }
 
-    const hashedPassword = await hash(password, 8);
+    if (existing) {
+      throw new AppError('Este e-mail já está em uso.');
+    }
 
     const client = await this.clientsRepository.create({
       name,

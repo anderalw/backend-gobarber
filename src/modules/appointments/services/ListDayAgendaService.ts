@@ -32,7 +32,13 @@ interface IAgendaAppointment {
   price_cents: number | null;
   // Quando o cliente fez a marcação
   created_at: Date;
-  client: { id: string; name: string; email: string; phone: string } | null;
+  // email null: cliente cadastrado pelo barbeiro sem e-mail
+  client: {
+    id: string;
+    name: string;
+    email: string | null;
+    phone: string;
+  } | null;
 }
 
 interface IResponse {

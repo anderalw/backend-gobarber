@@ -32,7 +32,8 @@ class AuthenticateClientService {
   public async execute({ email, password }: IRequest): Promise<IResponse> {
     const client = await this.clientsRepository.findByEmail(email);
 
-    if (!client) {
+    // Sem senha: cadastrado pelo barbeiro e ainda sem conta no site
+    if (!client || !client.password) {
       throw new AppError('E-mail ou senha incorretos.', 401);
     }
 
