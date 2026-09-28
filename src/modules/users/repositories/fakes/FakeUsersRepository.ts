@@ -22,19 +22,17 @@ class FakeUsersRepository implements IUsersRepository {
 
   public async findAllProviders({
     except_user_id,
+    include_inactive = false,
   }: IFindAllProvidersDTO): Promise<User[]> {
-    let { users } = this;
-
-    if (except_user_id) {
-      users = this.users.filter(user => user.id !== except_user_id);
-    }
-    return users;
+    return this.users.filter(
+      user => user.id !== except_user_id && (include_inactive || user.active),
+    );
   }
 
   public async create(userData: ICreateUserDTO): Promise<User> {
     const user = new User();
 
-    Object.assign(user, { id: randomUUID() }, userData);
+    Object.assign(user, { id: randomUUID(), active: true }, userData);
 
     this.users.push(user);
 

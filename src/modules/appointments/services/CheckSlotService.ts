@@ -2,6 +2,7 @@ import { injectable, inject } from 'tsyringe';
 
 import AppError from '@shared/errors/AppError';
 import IProviderSchedulesRepository from '@modules/users/repositories/IProviderSchedulesRepository';
+import IUsersRepository from '@modules/users/repositories/IUsersRepository';
 import IServicesRepository from '@modules/catalog/repositories/IServicesRepository';
 import AgendaSettingsService from '@modules/catalog/services/AgendaSettingsService';
 import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
@@ -35,6 +36,9 @@ class CheckSlotService {
 
     @inject(AgendaSettingsService)
     private agendaSettings: AgendaSettingsService,
+
+    @inject('UsersRepository')
+    private usersRepository: IUsersRepository,
   ) {}
 
   public async execute({
@@ -51,6 +55,7 @@ class CheckSlotService {
     try {
       const { end } = await checkAvailableSlot(
         {
+          usersRepository: this.usersRepository,
           appointmentsRepository: this.appointmentsRepository,
           providerSchedulesRepository: this.providerSchedulesRepository,
           agendaSettings: this.agendaSettings,

@@ -24,4 +24,6 @@ export default interface IAppointmentsRepository {
   // Agendamentos do cliente que ainda não terminaram, do mais próximo ao
   // mais distante, com o barbeiro e o serviço
   findUpcomingFromClient(client_id: string, now: Date): Promise<Appointment[]>;
+  // Quantos agendamentos do barbeiro ainda não terminaram
+  countUpcomingFromProvider(provider_id: string, now: Date): Promise<number>;
 }

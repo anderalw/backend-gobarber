@@ -1,4 +1,5 @@
 import AppError from '@shared/errors/AppError';
+import FakeUsersRepository from '@modules/users/repositories/fakes/FakeUsersRepository';
 import FakeNotificationsRepository from '@modules/notifications/repositories/fakes/FakeNotificationsRepository';
 import FakeProviderSchedulesRepository from '@modules/users/repositories/fakes/FakeProviderSchedulesRepository';
 import FakeServicesRepository from '@modules/catalog/repositories/fakes/FakeServicesRepository';
@@ -15,6 +16,7 @@ let fakeProviderSchedulesRepository: FakeProviderSchedulesRepository;
 let fakeServicesRepository: FakeServicesRepository;
 let agendaSettings: AgendaSettingsService;
 let createAppointment: CreateAppointmentsService;
+let fakeUsersRepository: FakeUsersRepository;
 let haircut: Service;
 
 describe('CreateAppointment', () => {
@@ -24,6 +26,7 @@ describe('CreateAppointment', () => {
     fakeProviderSchedulesRepository = new FakeProviderSchedulesRepository();
     fakeServicesRepository = new FakeServicesRepository();
     agendaSettings = new AgendaSettingsService(new FakeSettingsRepository());
+    fakeUsersRepository = new FakeUsersRepository();
     createAppointment = new CreateAppointmentsService(
       fakeAppointmentsRepository,
       fakeNotificationsRepository,
@@ -31,7 +34,16 @@ describe('CreateAppointment', () => {
       fakeProviderSchedulesRepository,
       fakeServicesRepository,
       agendaSettings,
+      fakeUsersRepository,
     );
+
+    // Barbeiro dos testes, com o id fixo usado nos agendamentos
+    const provider = await fakeUsersRepository.create({
+      name: 'Barbeiro',
+      email: 'barbeiro@example.test',
+      password: '123456',
+    });
+    provider.id = 'provider-id';
 
     haircut = await fakeServicesRepository.create({
       name: 'Cabelo',
@@ -238,5 +250,21 @@ describe('CreateAppointment', () => {
         service_id: 'unknown',
       }),
     ).rejects.toBeInstanceOf(AppError);
+  });
+
+  it('should not create an appointment with a deactivated provider', async () => {
+    const provider = await fakeUsersRepository.findById('provider-id');
+    if (provider) provider.active = false;
+
+    await expect(
+      createAppointment.execute({
+        date: new Date(2020, 7, 10, 13),
+        provider_id: 'provider-id',
+        client_id: 'client-id',
+        service_id: haircut.id,
+      }),
+    ).rejects.toMatchObject({
+      message: 'Este barbeiro não está atendendo no momento.',
+    });
   });
 });

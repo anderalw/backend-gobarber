@@ -1,4 +1,5 @@
 import AppError from '@shared/errors/AppError';
+import FakeUsersRepository from '@modules/users/repositories/fakes/FakeUsersRepository';
 import FakeProviderSchedulesRepository from '@modules/users/repositories/fakes/FakeProviderSchedulesRepository';
 import FakeServicesRepository from '@modules/catalog/repositories/fakes/FakeServicesRepository';
 import FakeSettingsRepository from '@modules/catalog/repositories/fakes/FakeSettingsRepository';
@@ -18,13 +19,23 @@ describe('CheckSlot', () => {
     const fakeProviderSchedulesRepository =
       new FakeProviderSchedulesRepository();
     const fakeServicesRepository = new FakeServicesRepository();
+    const fakeUsersRepository = new FakeUsersRepository();
 
     checkSlot = new CheckSlotService(
       fakeAppointmentsRepository,
       fakeProviderSchedulesRepository,
       fakeServicesRepository,
       new AgendaSettingsService(new FakeSettingsRepository()),
+      fakeUsersRepository,
     );
+
+    // Barbeiro dos testes, com o id fixo usado nos agendamentos
+    const provider = await fakeUsersRepository.create({
+      name: 'Barbeiro',
+      email: 'barbeiro@example.test',
+      password: '123456',
+    });
+    provider.id = 'provider-id';
 
     haircut = await fakeServicesRepository.create({
       name: 'Cabelo',

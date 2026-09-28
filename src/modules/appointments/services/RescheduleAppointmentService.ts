@@ -89,6 +89,7 @@ class RescheduleAppointmentService {
 
     const { end, blockedUntil } = await checkAvailableSlot(
       {
+        usersRepository: this.usersRepository,
         appointmentsRepository: this.appointmentsRepository,
         providerSchedulesRepository: this.providerSchedulesRepository,
         agendaSettings: this.agendaSettings,

@@ -30,6 +30,10 @@ class User {
   @Column()
   is_admin: boolean;
 
+  // false = desativado pelo administrador (ver AddActiveToUsers)
+  @Column({ default: true })
+  active: boolean;
+
   @CreateDateColumn({ type: 'timestamp with time zone' })
   created_at: Date;
 

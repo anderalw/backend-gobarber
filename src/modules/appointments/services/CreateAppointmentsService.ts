@@ -7,6 +7,7 @@ import ICacheProvider from '@shared/container/providers/CacheProvider/models/ICa
 
 import INotificationsRepository from '@modules/notifications/repositories/INotificationsRepository';
 import IProviderSchedulesRepository from '@modules/users/repositories/IProviderSchedulesRepository';
+import IUsersRepository from '@modules/users/repositories/IUsersRepository';
 import IServicesRepository from '@modules/catalog/repositories/IServicesRepository';
 import AgendaSettingsService from '@modules/catalog/services/AgendaSettingsService';
 import Appointment from '../infra/typeorm/entities/Appointment';
@@ -41,6 +42,9 @@ class CreateAppointmentsServices {
 
     @inject(AgendaSettingsService)
     private agendaSettings: AgendaSettingsService,
+
+    @inject('UsersRepository')
+    private usersRepository: IUsersRepository,
   ) {}
 
   public async execute({
@@ -64,6 +68,7 @@ class CreateAppointmentsServices {
 
     const { end, blockedUntil } = await checkAvailableSlot(
       {
+        usersRepository: this.usersRepository,
         appointmentsRepository: this.appointmentsRepository,
         providerSchedulesRepository: this.providerSchedulesRepository,
         agendaSettings: this.agendaSettings,

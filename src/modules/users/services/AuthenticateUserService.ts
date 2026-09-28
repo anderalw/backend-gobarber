@@ -43,6 +43,14 @@ class AuthenticateUserService {
       throw new AppError('E-mail ou senha incorretos.', 401);
     }
 
+    // Conferido depois da senha, para não revelar quais contas existem
+    if (!user.active) {
+      throw new AppError(
+        'Esta conta está desativada. Fale com o administrador da barbearia.',
+        401,
+      );
+    }
+
     const { secret, expiresIn } = authConfig.jwt;
 
     const token = sign({ role: 'provider' }, secret, {

@@ -14,6 +14,8 @@ interface IAgendaProvider {
   id: string;
   name: string;
   avatar_url: string | null;
+  // false: desativado, aparece só porque tem atendimentos neste dia
+  active: boolean;
   // null = o barbeiro não trabalha neste dia da semana
   schedule: { start_time: string; end_time: string } | null;
 }
@@ -65,12 +67,17 @@ class ListDayAgendaService {
     const dayOfWeek = new Date(year, month - 1, day).getDay();
 
     const [users, schedules, appointments] = await Promise.all([
-      this.usersRepository.findAllProviders({}),
+      this.usersRepository.findAllProviders({ include_inactive: true }),
       this.providerSchedulesRepository.findByDayOfWeek(dayOfWeek),
       this.appointmentsRepository.findAllInDay({ day, month, year }),
     ]);
 
     const providers = users
+      .filter(
+        user =>
+          user.active ||
+          appointments.some(appointment => appointment.provider_id === user.id),
+      )
       .map(user => {
         const schedule = schedules.find(item => item.provider_id === user.id);
 
@@ -78,6 +85,7 @@ class ListDayAgendaService {
           id: user.id,
           name: user.name,
           avatar_url: user.getAvatarUrl(),
+          active: user.active,
           schedule: schedule
             ? { start_time: schedule.start_time, end_time: schedule.end_time }
             : null,

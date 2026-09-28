@@ -134,6 +134,15 @@ class AppointmentsRepository implements IAppointmentsRepository {
     });
   }
 
+  public async countUpcomingFromProvider(
+    provider_id: string,
+    now: Date,
+  ): Promise<number> {
+    return this.ormRepository.count({
+      where: { ...ACTIVE, provider_id, end_date: MoreThan(now) },
+    });
+  }
+
   public async create(data: ICreateAppointmentDTO): Promise<Appointment> {
     const appointment = this.ormRepository.create(data);
 

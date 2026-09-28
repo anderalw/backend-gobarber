@@ -60,4 +60,20 @@ describe('AuthenticateUser', () => {
       }),
     ).rejects.toBeInstanceOf(AppError);
   });
+
+  it('should not authenticate a deactivated provider', async () => {
+    const user = await fakeUsersRepository.create({
+      name: 'Jhon Doe',
+      email: 'jhondoe@email.com',
+      password: '123456',
+    });
+    user.active = false;
+
+    await expect(
+      authenticateUser.execute({
+        email: 'jhondoe@email.com',
+        password: '123456',
+      }),
+    ).rejects.toMatchObject({ statusCode: 401 });
+  });
 });

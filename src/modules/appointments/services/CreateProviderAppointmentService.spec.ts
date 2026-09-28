@@ -43,6 +43,7 @@ describe('CreateProviderAppointment', () => {
         fakeProviderSchedulesRepository,
         fakeServicesRepository,
         new AgendaSettingsService(new FakeSettingsRepository()),
+        fakeUsersRepository,
       ),
     );
 

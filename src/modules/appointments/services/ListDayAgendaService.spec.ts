@@ -130,4 +130,37 @@ describe('ListDayAgenda', () => {
     // Agendamento sem cliente carregado (ex: cliente removido)
     expect(appointments[0].client).toBeNull();
   });
+
+  it('should hide deactivated providers unless they have appointments that day', async () => {
+    const ana = await fakeUsersRepository.create({
+      name: 'Ana',
+      email: 'ana@example.test',
+      password: '123456',
+    });
+    ana.active = false;
+    const bia = await fakeUsersRepository.create({
+      name: 'Bia',
+      email: 'bia@example.test',
+      password: '123456',
+    });
+    bia.active = false;
+
+    await fakeAppointmentsRepository.create(
+      makeAppointmentData({
+        provider_id: bia.id,
+        client_id: 'client-id',
+        date: new Date(2020, 4, 20, 10),
+      }),
+    );
+
+    const { providers } = await listDayAgenda.execute({
+      day: 20,
+      month: 5,
+      year: 2020,
+    });
+
+    expect(providers.map(provider => [provider.name, provider.active])).toEqual(
+      [['Bia', false]],
+    );
+  });
 });

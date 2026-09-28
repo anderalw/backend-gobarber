@@ -2,11 +2,13 @@ import { addMinutes, getDay, isAfter, isBefore } from 'date-fns';
 
 import AppError from '@shared/errors/AppError';
 import IProviderSchedulesRepository from '@modules/users/repositories/IProviderSchedulesRepository';
+import IUsersRepository from '@modules/users/repositories/IUsersRepository';
 import AgendaSettingsService from '@modules/catalog/services/AgendaSettingsService';
 import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
 import workWindow from './workWindow';
 
 interface IDependencies {
+  usersRepository: IUsersRepository;
   appointmentsRepository: IAppointmentsRepository;
   providerSchedulesRepository: IProviderSchedulesRepository;
   agendaSettings: AgendaSettingsService;
@@ -31,6 +33,7 @@ interface ISlot {
 // sobrepor outro agendamento (incluindo os intervalos)
 export default async function checkAvailableSlot(
   {
+    usersRepository,
     appointmentsRepository,
     providerSchedulesRepository,
     agendaSettings,
@@ -44,6 +47,16 @@ export default async function checkAvailableSlot(
 ): Promise<ISlot> {
   if (isBefore(start, Date.now())) {
     throw new AppError('Não é possível agendar numa data passada.');
+  }
+
+  const provider = await usersRepository.findById(provider_id);
+
+  if (!provider) {
+    throw new AppError('Barbeiro não encontrado.');
+  }
+
+  if (!provider.active) {
+    throw new AppError('Este barbeiro não está atendendo no momento.');
   }
 
   const schedules = await providerSchedulesRepository.findByProviderId(
