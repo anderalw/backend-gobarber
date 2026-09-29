@@ -12,6 +12,9 @@ import TimeBlocksRepository from '@modules/appointments/infra/typeorm/repositori
 import IBlockReasonsRepository from '@modules/appointments/repositories/IBlockReasonsRepository';
 import BlockReasonsRepository from '@modules/appointments/infra/typeorm/repositories/BlockReasonsRepository';
 
+import IClientNotifier from '@modules/appointments/notifier/IClientNotifier';
+import EmailClientNotifier from '@modules/appointments/notifier/EmailClientNotifier';
+
 import IUsersRepository from '@modules/users/repositories/IUsersRepository';
 import UsersRepository from '@modules/users/infra/typeorm/repositories/UsersRepository';
 
@@ -46,6 +49,11 @@ container.registerSingleton<ITimeBlocksRepository>(
 container.registerSingleton<IBlockReasonsRepository>(
   'BlockReasonsRepository',
   BlockReasonsRepository,
+);
+
+container.registerSingleton<IClientNotifier>(
+  'ClientNotifier',
+  EmailClientNotifier,
 );
 
 container.registerSingleton<IUsersRepository>(

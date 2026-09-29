@@ -1,0 +1,32 @@
+<style>
+.message-content {
+  font-family: Arial, Helvetica, sans-serif;
+  max-width: 600px;
+  font-size: 16px;
+  line-height: 22px;
+  color: #232129;
+}
+.details {
+  padding: 12px 16px;
+  border-left: 4px solid #ff9000;
+  background: #f4ede8;
+}
+</style>
+
+<div class="message-content">
+  <p>Olá, {{name}}!</p>
+  <p>Seu horário na barbearia está marcado:</p>
+  <p class="details">
+    <strong>{{service}}</strong> com {{provider}}<br/>
+    {{when}}
+  </p>
+  <p>Um dia antes vamos te enviar um e-mail para confirmar a presença.</p>
+  <p>
+    Precisa mudar? Remarque ou cancele em
+    <a href="{{myAppointmentsLink}}">Meus agendamentos</a>.
+  </p>
+  <p>
+    Até lá! <br/>
+    <strong>Equipe GoBarber</strong>
+  </p>
+</div>

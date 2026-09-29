@@ -182,6 +182,52 @@ class AppointmentsRepository implements IAppointmentsRepository {
     });
   }
 
+  public async findAwaitingConfirmationRequest(
+    start: Date,
+    end: Date,
+  ): Promise<Appointment[]> {
+    return this.ormRepository.find({
+      where: {
+        ...ACTIVE,
+        confirmation_requested_at: IsNull(),
+        date: Between(start, end),
+      },
+      relations: ['client', 'provider', 'service'],
+      order: { date: 'ASC' },
+    });
+  }
+
+  public async markConfirmationRequested(
+    id: string,
+    token: string,
+    requested_at: Date,
+  ): Promise<boolean> {
+    const result = await this.ormRepository.update(
+      { id, confirmation_requested_at: IsNull() },
+      { confirmation_token: token, confirmation_requested_at: requested_at },
+    );
+
+    return (result.affected || 0) > 0;
+  }
+
+  public async findByConfirmationToken(
+    token: string,
+  ): Promise<Appointment | undefined> {
+    // Sem token o TypeORM 0.3 ignoraria o filtro e traria o primeiro registro
+    if (!token) return undefined;
+
+    const appointment = await this.ormRepository.findOne({
+      where: { confirmation_token: token },
+      relations: ['client', 'provider', 'service'],
+    });
+
+    return appointment ?? undefined;
+  }
+
+  public async markConfirmed(id: string, confirmed_at: Date): Promise<void> {
+    await this.ormRepository.update(id, { confirmed_at });
+  }
+
   public async countUpcomingFromProvider(
     provider_id: string,
     now: Date,
@@ -217,6 +263,9 @@ class AppointmentsRepository implements IAppointmentsRepository {
       blocked_until,
       canceled_at,
       canceled_by,
+      confirmation_token,
+      confirmation_requested_at,
+      confirmed_at,
     } = appointment;
 
     try {
@@ -227,6 +276,10 @@ class AppointmentsRepository implements IAppointmentsRepository {
         blocked_until,
         canceled_at,
         canceled_by,
+        // Remarcar zera a confirmação (o novo horário é confirmado de novo)
+        confirmation_token,
+        confirmation_requested_at,
+        confirmed_at,
       });
     } catch (err) {
       if (isOverlapError(err)) {

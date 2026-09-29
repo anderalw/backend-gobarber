@@ -124,6 +124,49 @@ class AppointmentsRepository implements IAppointmentsRepository {
       .sort((a, b) => a.date.getTime() - b.date.getTime());
   }
 
+  public async findAwaitingConfirmationRequest(
+    start: Date,
+    end: Date,
+  ): Promise<Appointment[]> {
+    return this.active
+      .filter(
+        appointment =>
+          !appointment.confirmation_requested_at &&
+          !isBefore(appointment.date, start) &&
+          !isAfter(appointment.date, end),
+      )
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
+  }
+
+  public async markConfirmationRequested(
+    id: string,
+    token: string,
+    requested_at: Date,
+  ): Promise<boolean> {
+    const appointment = this.appointments.find(item => item.id === id);
+
+    if (!appointment || appointment.confirmation_requested_at) return false;
+
+    appointment.confirmation_token = token;
+    appointment.confirmation_requested_at = requested_at;
+
+    return true;
+  }
+
+  public async findByConfirmationToken(
+    token: string,
+  ): Promise<Appointment | undefined> {
+    return this.appointments.find(
+      appointment => !!token && appointment.confirmation_token === token,
+    );
+  }
+
+  public async markConfirmed(id: string, confirmed_at: Date): Promise<void> {
+    const appointment = this.appointments.find(item => item.id === id);
+
+    if (appointment) appointment.confirmed_at = confirmed_at;
+  }
+
   public async countUpcomingFromProvider(
     provider_id: string,
     now: Date,
@@ -158,6 +201,9 @@ class AppointmentsRepository implements IAppointmentsRepository {
       attendance: null,
       attendance_at: null,
       attendance_by: null,
+      confirmation_token: null,
+      confirmation_requested_at: null,
+      confirmed_at: null,
       // No banco, preenchido pelo @CreateDateColumn
       created_at: new Date(),
     });

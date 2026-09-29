@@ -19,7 +19,7 @@ const FIELD_LABELS: Record<string, string> = {
   old_password: 'Senha atual',
   password_confirmation: 'Confirmação da senha',
   phone: 'Telefone',
-  token: 'Link de recuperação',
+  token: 'Link',
   provider_id: 'Barbeiro',
   client_id: 'Cliente',
   service_id: 'Serviço',

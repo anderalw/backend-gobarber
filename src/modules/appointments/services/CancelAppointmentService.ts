@@ -5,6 +5,7 @@ import ICacheProvider from '@shared/container/providers/CacheProvider/models/ICa
 import INotificationsRepository from '@modules/notifications/repositories/INotificationsRepository';
 import Appointment from '../infra/typeorm/entities/Appointment';
 import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
+import IClientNotifier from '../notifier/IClientNotifier';
 import ensureCanChangeAppointment, {
   IRequester,
 } from '../utils/ensureCanChangeAppointment';
@@ -26,6 +27,8 @@ class CancelAppointmentService {
 
     @inject('CacheProvider')
     private cacheProvider: ICacheProvider,
+    @inject('ClientNotifier')
+    private clientNotifier: IClientNotifier,
   ) {}
 
   public async execute({
@@ -63,6 +66,8 @@ class CancelAppointmentService {
         'yyyy-M-d',
       )}`,
     );
+
+    await this.clientNotifier.appointmentCanceled(canceled);
 
     return canceled;
   }

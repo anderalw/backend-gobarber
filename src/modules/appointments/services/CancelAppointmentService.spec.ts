@@ -3,6 +3,7 @@ import FakeNotificationsRepository from '@modules/notifications/repositories/fak
 import FakeCacheProvider from '@shared/container/providers/CacheProvider/fakes/FakeCacheProvider';
 import Appointment from '../infra/typeorm/entities/Appointment';
 import FakeAppointmentsRepository from '../repositories/fakes/FakeAppointmentsRepository';
+import FakeClientNotifier from '../notifier/FakeClientNotifier';
 import makeAppointmentData from '../repositories/fakes/makeAppointmentData';
 import CancelAppointmentService from './CancelAppointmentService';
 
@@ -22,6 +23,7 @@ describe('CancelAppointment', () => {
       fakeAppointmentsRepository,
       fakeNotificationsRepository,
       new FakeCacheProvider(),
+      new FakeClientNotifier(),
     );
 
     // Agendamento às 15h; "agora" é 10h do mesmo dia

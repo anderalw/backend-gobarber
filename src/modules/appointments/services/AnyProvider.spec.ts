@@ -9,6 +9,7 @@ import FakeNotificationsRepository from '@modules/notifications/repositories/fak
 import Service from '@modules/catalog/infra/typeorm/entities/Service';
 import User from '@modules/users/infra/typeorm/entities/User';
 import FakeAppointmentsRepository from '../repositories/fakes/FakeAppointmentsRepository';
+import FakeClientNotifier from '../notifier/FakeClientNotifier';
 import FakeTimeBlocksRepository from '../repositories/fakes/FakeTimeBlocksRepository';
 import makeAppointmentData from '../repositories/fakes/makeAppointmentData';
 import ListProviderDayAvailabilityService from './ListProviderDayAvailabilityService';
@@ -62,6 +63,7 @@ describe('Qualquer barbeiro', () => {
         agendaSettings,
         fakeUsersRepository,
         new FakeTimeBlocksRepository(),
+        new FakeClientNotifier(),
       ),
     );
 

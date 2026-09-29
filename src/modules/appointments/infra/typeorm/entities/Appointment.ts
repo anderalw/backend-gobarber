@@ -77,6 +77,17 @@ class Appointment {
   @Column({ type: 'uuid', nullable: true })
   attendance_by: string | null;
 
+  // Link de confirmação enviado ao cliente na véspera
+  @Column({ type: 'varchar', nullable: true })
+  confirmation_token: string | null;
+
+  @Column({ type: 'timestamp with time zone', nullable: true })
+  confirmation_requested_at: Date | null;
+
+  // Preenchido quando o cliente confirma pelo link
+  @Column({ type: 'timestamp with time zone', nullable: true })
+  confirmed_at: Date | null;
+
   @CreateDateColumn({ type: 'timestamp with time zone' })
   created_at: Date;
 

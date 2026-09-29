@@ -35,6 +35,22 @@ export default interface IAppointmentsRepository {
   // Todos os agendamentos que começam no período, inclusive os cancelados,
   // com o barbeiro e o serviço (para o faturamento)
   findAllInPeriod(start: Date, end: Date): Promise<Appointment[]>;
+  // Ativos que começam no intervalo e ainda não tiveram a confirmação
+  // pedida, com cliente, barbeiro e serviço
+  findAwaitingConfirmationRequest(
+    start: Date,
+    end: Date,
+  ): Promise<Appointment[]>;
+  // Guarda o link enviado; false se o pedido já tinha sido feito (evita
+  // mandar dois e-mails quando a tarefa roda em paralelo)
+  markConfirmationRequested(
+    id: string,
+    token: string,
+    requested_at: Date,
+  ): Promise<boolean>;
+  // Com cliente, barbeiro e serviço
+  findByConfirmationToken(token: string): Promise<Appointment | undefined>;
+  markConfirmed(id: string, confirmed_at: Date): Promise<void>;
   // Agendamentos do barbeiro que ainda não terminaram, em ordem
   findUpcomingFromProvider(
     provider_id: string,

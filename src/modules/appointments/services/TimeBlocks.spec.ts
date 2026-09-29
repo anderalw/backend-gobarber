@@ -8,6 +8,7 @@ import AgendaSettingsService from '@modules/catalog/services/AgendaSettingsServi
 import Service from '@modules/catalog/infra/typeorm/entities/Service';
 import FakeCacheProvider from '@shared/container/providers/CacheProvider/fakes/FakeCacheProvider';
 import FakeAppointmentsRepository from '../repositories/fakes/FakeAppointmentsRepository';
+import FakeClientNotifier from '../notifier/FakeClientNotifier';
 import FakeTimeBlocksRepository from '../repositories/fakes/FakeTimeBlocksRepository';
 import FakeBlockReasonsRepository from '../repositories/fakes/FakeBlockReasonsRepository';
 import makeAppointmentData from '../repositories/fakes/makeAppointmentData';
@@ -66,6 +67,7 @@ describe('Bloqueios de horário', () => {
       agendaSettings,
       fakeUsersRepository,
       fakeTimeBlocksRepository,
+      new FakeClientNotifier(),
     );
     listDayAvailability = new ListProviderDayAvailabilityService(
       fakeAppointmentsRepository,

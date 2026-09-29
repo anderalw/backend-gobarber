@@ -9,6 +9,7 @@ import 'express-async-errors';
 import uploadConfig from '@config/upload';
 import AppError from '@shared/errors/AppError';
 import connectDatabases from '@shared/infra/typeorm';
+import startJobs from '@shared/infra/jobs';
 import rateLimiter from './middlewares/rateLimiter';
 import validationMessage from './validationMessage';
 import routes from './routes';
@@ -57,6 +58,9 @@ connectDatabases()
     app.listen(3333, () => {
       console.log(' Server Started on port 3333!');
     });
+
+    // Pedidos de confirmação da véspera, de tempos em tempos
+    startJobs();
   })
   .catch(err => {
     console.error('Não foi possível conectar aos bancos de dados:', err);

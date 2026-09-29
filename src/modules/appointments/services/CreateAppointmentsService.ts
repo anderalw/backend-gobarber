@@ -13,6 +13,7 @@ import AgendaSettingsService from '@modules/catalog/services/AgendaSettingsServi
 import Appointment from '../infra/typeorm/entities/Appointment';
 import IAppointmentsRepaository from '../repositories/IAppointmentsRepository';
 import ITimeBlocksRepository from '../repositories/ITimeBlocksRepository';
+import IClientNotifier from '../notifier/IClientNotifier';
 import checkAvailableSlot from '../utils/checkAvailableSlot';
 
 interface IRequest {
@@ -49,6 +50,8 @@ class CreateAppointmentsServices {
 
     @inject('TimeBlocksRepository')
     private timeBlocksRepository: ITimeBlocksRepository,
+    @inject('ClientNotifier')
+    private clientNotifier: IClientNotifier,
   ) {}
 
   public async execute({
@@ -111,6 +114,10 @@ class CreateAppointmentsServices {
         'yyyy-M-d',
       )}`,
     );
+
+    // Com cliente, barbeiro e serviço para o e-mail
+    const full = await this.appointmentsRepository.findById(appointment.id);
+    await this.clientNotifier.appointmentCreated(full || appointment);
 
     return appointment;
   }

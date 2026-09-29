@@ -38,6 +38,10 @@ interface IAgendaAppointment {
   price_cents: number | null;
   // Concluído ou falta; null = ainda não registrado
   attendance: Attendance | null;
+  // Quando o cliente confirmou pelo link do e-mail (null = não confirmou)
+  confirmed_at: Date | null;
+  // Quando o pedido de confirmação foi enviado (null = ainda não foi)
+  confirmation_requested_at: Date | null;
   // Quando o cliente fez a marcação
   created_at: Date;
   // email null: cliente cadastrado pelo barbeiro sem e-mail
@@ -133,6 +137,8 @@ class ListDayAgendaService {
           : null,
         price_cents: appointment.price_cents,
         attendance: appointment.attendance,
+        confirmed_at: appointment.confirmed_at,
+        confirmation_requested_at: appointment.confirmation_requested_at,
         created_at: appointment.created_at,
         client: appointment.client
           ? {

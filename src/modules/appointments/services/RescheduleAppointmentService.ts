@@ -16,6 +16,7 @@ import AgendaSettingsService from '@modules/catalog/services/AgendaSettingsServi
 import Appointment from '../infra/typeorm/entities/Appointment';
 import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
 import ITimeBlocksRepository from '../repositories/ITimeBlocksRepository';
+import IClientNotifier from '../notifier/IClientNotifier';
 import checkAvailableSlot from '../utils/checkAvailableSlot';
 import ensureCanChangeAppointment, {
   IRequester,
@@ -57,6 +58,8 @@ class RescheduleAppointmentService {
 
     @inject('TimeBlocksRepository')
     private timeBlocksRepository: ITimeBlocksRepository,
+    @inject('ClientNotifier')
+    private clientNotifier: IClientNotifier,
   ) {}
 
   public async execute({
@@ -73,6 +76,7 @@ class RescheduleAppointmentService {
 
     const newStart = setMilliseconds(setSeconds(date, 0), 0);
     const oldProviderId = appointment.provider_id;
+    const oldProviderName = appointment.provider?.name || '';
     const oldStart = appointment.date;
 
     if (provider_id === oldProviderId && isEqual(newStart, oldStart)) {
@@ -111,6 +115,10 @@ class RescheduleAppointmentService {
     appointment.date = newStart;
     appointment.end_date = end;
     appointment.blocked_until = blockedUntil;
+    // O novo horário precisa ser confirmado de novo
+    appointment.confirmation_token = null;
+    appointment.confirmation_requested_at = null;
+    appointment.confirmed_at = null;
 
     const rescheduled = await this.appointmentsRepository.save(appointment);
 
@@ -149,6 +157,11 @@ class RescheduleAppointmentService {
         ),
       ),
     );
+
+    await this.clientNotifier.appointmentRescheduled(rescheduled, {
+      date: oldStart,
+      providerName: oldProviderName,
+    });
 
     return rescheduled;
   }
