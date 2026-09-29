@@ -109,14 +109,17 @@ describe('Bloqueios de horário', () => {
     jest.spyOn(Date, 'now').mockImplementation(() => at(8).getTime());
   });
 
-  const block = (start: Date, end: Date, reason?: string) =>
-    createTimeBlock.execute({
-      provider_id: providerId,
-      start_date: start,
-      end_date: end,
-      reason,
-      requester_id: providerId,
-    });
+  // Bloqueio de um barbeiro só (o dos testes)
+  const block = async (start: Date, end: Date, reason?: string) =>
+    (
+      await createTimeBlock.execute({
+        provider_ids: [providerId],
+        start_date: start,
+        end_date: end,
+        reason,
+        requester_id: providerId,
+      })
+    )[0];
 
   const dayTimes = async (): Promise<string[]> =>
     (
@@ -155,12 +158,85 @@ describe('Bloqueios de horário', () => {
   it('should reject a block for an unknown provider', async () => {
     await expect(
       createTimeBlock.execute({
-        provider_id: 'unknown',
+        provider_ids: [providerId, 'unknown'],
         start_date: at(11),
         end_date: at(12),
         requester_id: providerId,
       }),
     ).rejects.toBeInstanceOf(AppError);
+    await expect(
+      createTimeBlock.execute({
+        provider_ids: [],
+        start_date: at(11),
+        end_date: at(12),
+        requester_id: providerId,
+      }),
+    ).rejects.toBeInstanceOf(AppError);
+  });
+
+  describe('de vários barbeiros', () => {
+    let otherId: string;
+
+    beforeEach(async () => {
+      const other = await fakeUsersRepository.create({
+        name: 'Carlos',
+        email: 'carlos@example.test',
+        password: '123456',
+      });
+      otherId = other.id;
+    });
+
+    it('should block the same period for every chosen provider', async () => {
+      const created = await createTimeBlock.execute({
+        provider_ids: [providerId, otherId],
+        start_date: at(11),
+        end_date: at(12),
+        requester_id: providerId,
+      });
+
+      expect(created.map(item => item.provider_id)).toEqual([
+        providerId,
+        otherId,
+      ]);
+
+      const { blocks } = await listDayAgenda.execute({
+        day: 20,
+        month: 5,
+        year: 2020,
+      });
+
+      expect(blocks).toHaveLength(2);
+    });
+
+    it('should block nobody when one of them has appointments', async () => {
+      await fakeAppointmentsRepository.create(
+        makeAppointmentData({
+          provider_id: otherId,
+          client_id: 'client',
+          date: at(11),
+        }),
+      );
+
+      await expect(
+        createTimeBlock.execute({
+          provider_ids: [providerId, otherId],
+          start_date: at(11),
+          end_date: at(12),
+          requester_id: providerId,
+        }),
+      ).rejects.toMatchObject({
+        message:
+          'Há agendamentos neste período: Carlos (1 agendamento). Cancele ou remarque antes de bloquear.',
+      });
+
+      const { blocks } = await listDayAgenda.execute({
+        day: 20,
+        month: 5,
+        year: 2020,
+      });
+
+      expect(blocks).toEqual([]);
+    });
   });
 
   it('should reject a block over appointments already booked', async () => {
@@ -286,22 +362,26 @@ describe('Bloqueios de horário', () => {
     const everyDay = [0, 1, 2, 3, 4, 5, 6];
     let createRecurring: CreateRecurringTimeBlockService;
 
-    const repeat = (data: {
+    // Repetição do barbeiro dos testes, salvo outros barbeiros em provider_ids
+    const repeat = async (data: {
+      provider_ids?: string[];
       days_of_week?: number[];
       start_time?: string;
       end_time?: string;
       starts_on?: string;
       ends_on?: string | null;
     }) =>
-      createRecurring.execute({
-        provider_id: providerId,
-        days_of_week: everyDay,
-        start_time: '11:00',
-        end_time: '12:00',
-        starts_on: '2020-05-20',
-        requester_id: providerId,
-        ...data,
-      });
+      (
+        await createRecurring.execute({
+          provider_ids: [providerId],
+          days_of_week: everyDay,
+          start_time: '11:00',
+          end_time: '12:00',
+          starts_on: '2020-05-20',
+          requester_id: providerId,
+          ...data,
+        })
+      )[0];
 
     const timesOn = async (day: number, month = 5): Promise<string[]> =>
       (
@@ -409,6 +489,30 @@ describe('Bloqueios de horário', () => {
           }),
         }),
       ]);
+    });
+
+    it('should repeat for several providers, each with its own repetition', async () => {
+      const other = await fakeUsersRepository.create({
+        name: 'Carlos',
+        email: 'carlos@example.test',
+        password: '123456',
+      });
+
+      const rules = await createRecurring.execute({
+        provider_ids: [providerId, other.id],
+        days_of_week: everyDay,
+        start_time: '11:00',
+        end_time: '12:00',
+        starts_on: '2020-05-20',
+        requester_id: providerId,
+      });
+
+      expect(rules.map(rule => rule.provider_id)).toEqual([
+        providerId,
+        other.id,
+      ]);
+      expect(new Set(rules.map(rule => rule.id)).size).toBe(2);
+      expect(await timesOn(21)).toEqual(['09:00', '10:00', '12:00']);
     });
 
     it('should remove the whole repetition', async () => {

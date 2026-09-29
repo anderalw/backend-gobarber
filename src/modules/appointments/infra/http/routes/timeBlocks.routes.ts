@@ -17,7 +17,7 @@ timeBlocksRouter.post(
   '/',
   celebrate({
     [Segments.BODY]: {
-      provider_id: Joi.string().uuid().required(),
+      provider_ids: Joi.array().items(Joi.string().uuid()).min(1).required(),
       start_date: Joi.date().iso().required(),
       end_date: Joi.date().iso().required(),
       reason: Joi.string().trim().max(60).allow('', null),
@@ -33,7 +33,7 @@ timeBlocksRouter.post(
   '/recurring',
   celebrate({
     [Segments.BODY]: {
-      provider_id: Joi.string().uuid().required(),
+      provider_ids: Joi.array().items(Joi.string().uuid()).min(1).required(),
       days_of_week: Joi.array()
         .items(Joi.number().integer().min(0).max(6))
         .min(1)

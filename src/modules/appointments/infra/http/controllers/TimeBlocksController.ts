@@ -7,19 +7,19 @@ import DeleteTimeBlockService from '@modules/appointments/services/DeleteTimeBlo
 
 export default class TimeBlocksController {
   public async create(request: Request, response: Response): Promise<Response> {
-    const { provider_id, start_date, end_date, reason } = request.body;
+    const { provider_ids, start_date, end_date, reason } = request.body;
 
     const createTimeBlock = container.resolve(CreateTimeBlockService);
 
-    const block = await createTimeBlock.execute({
-      provider_id,
+    const blocks = await createTimeBlock.execute({
+      provider_ids,
       start_date: new Date(start_date),
       end_date: new Date(end_date),
       reason,
       requester_id: request.user.id,
     });
 
-    return response.status(201).json(block);
+    return response.status(201).json(blocks);
   }
 
   // Bloqueio que se repete nos dias da semana escolhidos
@@ -28,7 +28,7 @@ export default class TimeBlocksController {
     response: Response,
   ): Promise<Response> {
     const {
-      provider_id,
+      provider_ids,
       days_of_week,
       start_time,
       end_time,
@@ -39,8 +39,8 @@ export default class TimeBlocksController {
 
     const createRecurring = container.resolve(CreateRecurringTimeBlockService);
 
-    const rule = await createRecurring.execute({
-      provider_id,
+    const rules = await createRecurring.execute({
+      provider_ids,
       days_of_week,
       start_time,
       end_time,
@@ -50,7 +50,7 @@ export default class TimeBlocksController {
       requester_id: request.user.id,
     });
 
-    return response.status(201).json(rule);
+    return response.status(201).json(rules);
   }
 
   public async delete(request: Request, response: Response): Promise<Response> {

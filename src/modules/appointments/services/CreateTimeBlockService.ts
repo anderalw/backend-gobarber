@@ -12,9 +12,11 @@ import IUsersRepository from '@modules/users/repositories/IUsersRepository';
 import TimeBlock from '../infra/typeorm/entities/TimeBlock';
 import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
 import ITimeBlocksRepository from '../repositories/ITimeBlocksRepository';
+import { ensureNoConflicts, findBlockProviders } from '../utils/blockConflicts';
 
 interface IRequest {
-  provider_id: string;
+  // Um ou mais barbeiros: o mesmo período fica bloqueado para todos
+  provider_ids: string[];
   start_date: Date;
   end_date: Date;
   reason?: string | null;
@@ -27,9 +29,10 @@ export const MAX_BLOCK_DAYS = 90;
 
 const minute = (date: Date): Date => setMilliseconds(setSeconds(date, 0), 0);
 
-// Bloqueia um período na agenda de um barbeiro. Se já houver atendimentos
-// marcados no período, o bloqueio é recusado: eles precisam ser cancelados
-// ou remarcados antes, para nenhum cliente ficar com horário num bloqueio
+// Bloqueia um período na agenda de um ou mais barbeiros. Se já houver
+// atendimentos marcados no período, o bloqueio é recusado (para todos):
+// eles precisam ser cancelados ou remarcados antes, para nenhum cliente
+// ficar com horário num bloqueio
 @injectable()
 class CreateTimeBlockService {
   constructor(
@@ -44,12 +47,12 @@ class CreateTimeBlockService {
   ) {}
 
   public async execute({
-    provider_id,
+    provider_ids,
     start_date,
     end_date,
     reason,
     requester_id,
-  }: IRequest): Promise<TimeBlock> {
+  }: IRequest): Promise<TimeBlock[]> {
     const start = minute(start_date);
     const end = minute(end_date);
 
@@ -67,39 +70,39 @@ class CreateTimeBlockService {
       );
     }
 
-    const provider = await this.usersRepository.findById(provider_id);
-
-    if (!provider) {
-      throw new AppError('Barbeiro não encontrado.');
-    }
-
-    const appointments =
-      await this.appointmentsRepository.findInRangeFromProvider({
-        provider_id,
-        start,
-        end,
-      });
-
-    // Atendimentos que já terminaram não impedem (ex: bloquear o resto do dia)
-    const pending = appointments.filter(appointment =>
-      isBefore(Date.now(), appointment.end_date),
+    const providers = await findBlockProviders(
+      this.usersRepository,
+      provider_ids,
     );
 
-    if (pending.length > 0) {
-      throw new AppError(
-        pending.length === 1
-          ? 'Há 1 agendamento neste período. Cancele ou remarque antes de bloquear.'
-          : `Há ${pending.length} agendamentos neste período. Cancele ou remarque antes de bloquear.`,
-      );
-    }
+    const conflicts = await Promise.all(
+      providers.map(async provider => ({
+        provider,
+        // Atendimentos que já terminaram não impedem (ex: bloquear o resto
+        // do dia)
+        appointments: (
+          await this.appointmentsRepository.findInRangeFromProvider({
+            provider_id: provider.id,
+            start,
+            end,
+          })
+        ).filter(appointment => isBefore(Date.now(), appointment.end_date)),
+      })),
+    );
 
-    return this.timeBlocksRepository.create({
-      provider_id,
-      start_date: start,
-      end_date: end,
-      reason: reason?.trim() || null,
-      created_by: requester_id,
-    });
+    ensureNoConflicts(conflicts, 'neste período');
+
+    return Promise.all(
+      providers.map(provider =>
+        this.timeBlocksRepository.create({
+          provider_id: provider.id,
+          start_date: start,
+          end_date: end,
+          reason: reason?.trim() || null,
+          created_by: requester_id,
+        }),
+      ),
+    );
   }
 }
 

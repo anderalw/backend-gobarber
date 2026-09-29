@@ -7,9 +7,11 @@ import RecurringTimeBlock from '../infra/typeorm/entities/RecurringTimeBlock';
 import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
 import ITimeBlocksRepository from '../repositories/ITimeBlocksRepository';
 import expandRecurringBlocks from '../utils/expandRecurringBlocks';
+import { ensureNoConflicts, findBlockProviders } from '../utils/blockConflicts';
 
 interface IRequest {
-  provider_id: string;
+  // Um ou mais barbeiros: cada um ganha a sua repetição
+  provider_ids: string[];
   // 0 = domingo ... 6 = sábado
   days_of_week: number[];
   // 'HH:mm'
@@ -24,7 +26,7 @@ interface IRequest {
 
 // Bloqueio que se repete, como o almoço todos os dias das 12:00 às 13:30.
 // Como no bloqueio avulso, é recusado se algum atendimento já marcado cair
-// num dos dias bloqueados
+// num dos dias bloqueados (de qualquer um dos barbeiros escolhidos)
 @injectable()
 class CreateRecurringTimeBlockService {
   constructor(
@@ -39,7 +41,7 @@ class CreateRecurringTimeBlockService {
   ) {}
 
   public async execute({
-    provider_id,
+    provider_ids,
     days_of_week,
     start_time,
     end_time,
@@ -47,7 +49,7 @@ class CreateRecurringTimeBlockService {
     ends_on,
     reason,
     requester_id,
-  }: IRequest): Promise<RecurringTimeBlock> {
+  }: IRequest): Promise<RecurringTimeBlock[]> {
     const days = Array.from(new Set(days_of_week)).sort();
 
     if (days.length === 0) {
@@ -70,15 +72,13 @@ class CreateRecurringTimeBlockService {
       throw new AppError('Não é possível bloquear um período que já passou.');
     }
 
-    const provider = await this.usersRepository.findById(provider_id);
-
-    if (!provider) {
-      throw new AppError('Barbeiro não encontrado.');
-    }
+    const providers = await findBlockProviders(
+      this.usersRepository,
+      provider_ids,
+    );
 
     const rule = Object.assign(new RecurringTimeBlock(), {
       id: 'nova',
-      provider_id,
       days_of_week: days,
       start_time,
       end_time,
@@ -88,42 +88,50 @@ class CreateRecurringTimeBlockService {
     });
 
     // Atendimentos marcados que cairiam num dos dias bloqueados
-    const upcoming = await this.appointmentsRepository.findUpcomingFromProvider(
-      provider_id,
-      new Date(Date.now()),
+    const conflicts = await Promise.all(
+      providers.map(async provider => ({
+        provider,
+        appointments: (
+          await this.appointmentsRepository.findUpcomingFromProvider(
+            provider.id,
+            new Date(Date.now()),
+          )
+        ).filter(appointment =>
+          expandRecurringBlocks(
+            [rule],
+            appointment.date,
+            appointment.end_date,
+          ).some(
+            period =>
+              isBefore(period.start_date, appointment.end_date) &&
+              isAfter(period.end_date, appointment.date),
+          ),
+        ),
+      })),
     );
-    const conflicts = upcoming.filter(appointment =>
-      expandRecurringBlocks(
-        [rule],
-        appointment.date,
-        appointment.end_date,
-      ).some(
-        period =>
-          isBefore(period.start_date, appointment.end_date) &&
-          isAfter(period.end_date, appointment.date),
+
+    ensureNoConflicts(conflicts, 'nesses horários', appointments => {
+      const first = format(appointments[0].date, "dd/MM 'às' HH:mm");
+
+      return appointments.length === 1
+        ? `(${first})`
+        : `(o primeiro em ${first})`;
+    });
+
+    return Promise.all(
+      providers.map(provider =>
+        this.timeBlocksRepository.createRecurring({
+          provider_id: provider.id,
+          days_of_week: days,
+          start_time,
+          end_time,
+          starts_on,
+          ends_on: endsOn,
+          reason: reason?.trim() || null,
+          created_by: requester_id,
+        }),
       ),
     );
-
-    if (conflicts.length > 0) {
-      const first = format(conflicts[0].date, "dd/MM 'às' HH:mm");
-
-      throw new AppError(
-        conflicts.length === 1
-          ? `Há 1 agendamento nesses horários (${first}). Cancele ou remarque antes de bloquear.`
-          : `Há ${conflicts.length} agendamentos nesses horários (o primeiro em ${first}). Cancele ou remarque antes de bloquear.`,
-      );
-    }
-
-    return this.timeBlocksRepository.createRecurring({
-      provider_id,
-      days_of_week: days,
-      start_time,
-      end_time,
-      starts_on,
-      ends_on: endsOn,
-      reason: reason?.trim() || null,
-      created_by: requester_id,
-    });
   }
 }
 
