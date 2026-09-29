@@ -3,6 +3,7 @@ import FakeNotificationsRepository from '@modules/notifications/repositories/fak
 import FakeUsersRepository from '@modules/users/repositories/fakes/FakeUsersRepository';
 import FakeClientsRepository from '@modules/clients/repositories/fakes/FakeClientsRepository';
 import FakeServicesRepository from '@modules/catalog/repositories/fakes/FakeServicesRepository';
+import FakeProviderSchedulesRepository from '@modules/users/repositories/fakes/FakeProviderSchedulesRepository';
 import FakeCacheProvider from '@shared/container/providers/CacheProvider/fakes/FakeCacheProvider';
 import Client from '@modules/clients/infra/typeorm/entities/Client';
 import User from '@modules/users/infra/typeorm/entities/User';
@@ -62,6 +63,8 @@ describe('Lista de espera', () => {
     fakeNotificationsRepository = new FakeNotificationsRepository();
     fakeClientNotifier = new FakeClientNotifier();
     const fakeUsersRepository = new FakeUsersRepository();
+    const fakeProviderSchedulesRepository =
+      new FakeProviderSchedulesRepository();
 
     waitlist = new WaitlistService(
       fakeWaitlistRepository,
@@ -69,6 +72,7 @@ describe('Lista de espera', () => {
       fakeUsersRepository,
       new FakeServicesRepository(),
       fakeAppointmentsRepository,
+      fakeProviderSchedulesRepository,
     );
     cancelAppointment = new CancelAppointmentService(
       fakeAppointmentsRepository,
@@ -93,6 +97,19 @@ describe('Lista de espera', () => {
       email: 'luis@example.test',
       password: '123456',
     });
+    // Carlos atende de segunda a sábado; Luis só às quartas
+    await fakeProviderSchedulesRepository.replaceByProviderId(
+      carlos.id,
+      [1, 2, 3, 4, 5, 6].map(day_of_week => ({
+        day_of_week,
+        start_time: '08:00',
+        end_time: '18:00',
+      })),
+    );
+    await fakeProviderSchedulesRepository.replaceByProviderId(luis.id, [
+      { day_of_week: 3, start_time: '08:00', end_time: '18:00' },
+    ]);
+
     maria = await newClient('Maria', 'maria@example.test');
     pedro = await newClient('Pedro', 'pedro@example.test');
     // Sem e-mail: só a barbearia pode avisar
@@ -159,6 +176,25 @@ describe('Lista de espera', () => {
         created_by: 'client',
       }),
     ).rejects.toBeInstanceOf(AppError);
+
+    // 16/08/2020 é domingo: ninguém atende
+    await expect(
+      waitlist.add({
+        client_id: maria.id,
+        date: '2020-08-16',
+        created_by: 'client',
+      }),
+    ).rejects.toMatchObject({ message: 'A barbearia não atende neste dia.' });
+
+    // 13/08 é quinta: Luis não atende
+    await expect(
+      waitlist.add({
+        client_id: maria.id,
+        date: '2020-08-13',
+        provider_id: luis.id,
+        created_by: 'client',
+      }),
+    ).rejects.toMatchObject({ message: 'Este barbeiro não atende neste dia.' });
 
     await book(maria, carlos, 10);
 

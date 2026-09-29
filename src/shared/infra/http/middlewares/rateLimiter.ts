@@ -12,7 +12,10 @@ const redisClient = redis.createClient({
 const Limiter = new RateLimiterRedis({
   storeClient: redisClient,
   keyPrefix: 'ratelimit',
-  points: 5,
+  // Por IP, por segundo. Abrir a agenda já faz várias requisições juntas
+  // (dia, confirmações de amanhã, lista de espera, notificações), e numa
+  // barbearia os computadores da rede saem pelo mesmo IP
+  points: 30,
   duration: 1,
 });
 

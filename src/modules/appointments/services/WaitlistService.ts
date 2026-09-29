@@ -5,6 +5,7 @@ import AppError from '@shared/errors/AppError';
 import IClientsRepository from '@modules/clients/repositories/IClientsRepository';
 import IUsersRepository from '@modules/users/repositories/IUsersRepository';
 import IServicesRepository from '@modules/catalog/repositories/IServicesRepository';
+import IProviderSchedulesRepository from '@modules/users/repositories/IProviderSchedulesRepository';
 import WaitlistEntry, {
   WaitlistPeriod,
 } from '../infra/typeorm/entities/WaitlistEntry';
@@ -64,6 +65,9 @@ class WaitlistService {
 
     @inject('AppointmentsRepository')
     private appointmentsRepository: IAppointmentsRepository,
+
+    @inject('ProviderSchedulesRepository')
+    private providerSchedulesRepository: IProviderSchedulesRepository,
   ) {}
 
   public async add({
@@ -94,6 +98,22 @@ class WaitlistService {
       if (!service || !service.active) {
         throw new AppError('Serviço não encontrado.');
       }
+    }
+
+    // Dia sem expediente (do barbeiro escolhido ou de todos): não há vaga
+    // para esperar
+    const working = (
+      await this.providerSchedulesRepository.findByDayOfWeek(
+        parseISO(date).getDay(),
+      )
+    ).filter(schedule => !provider_id || schedule.provider_id === provider_id);
+
+    if (working.length === 0) {
+      throw new AppError(
+        provider_id
+          ? 'Este barbeiro não atende neste dia.'
+          : 'A barbearia não atende neste dia.',
+      );
     }
 
     if (await this.bookedClients(date).then(ids => ids.has(client_id))) {

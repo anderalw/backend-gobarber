@@ -6,14 +6,16 @@ import ISendMailDTO from '../dtos/iSendMailDTO';
 
 @injectable()
 export default class EtherealMailProvider implements IMailProvider {
-  private client: Transporter;
+  // A conta de teste é criada ao subir o servidor; os envios feitos antes
+  // disso esperam por ela
+  private client: Promise<Transporter>;
 
   constructor(
     @inject('MailTemplateProvider')
     private mailTemplateProvider: IMailTemplateProvider,
   ) {
-    nodemailer.createTestAccount().then(account => {
-      const transporter = nodemailer.createTransport({
+    this.client = nodemailer.createTestAccount().then(account =>
+      nodemailer.createTransport({
         host: account.smtp.host,
         port: account.smtp.port,
         secure: account.smtp.secure,
@@ -21,10 +23,12 @@ export default class EtherealMailProvider implements IMailProvider {
           user: account.user,
           pass: account.pass,
         },
-      });
+      }),
+    );
 
-      this.client = transporter;
-    });
+    // Sem internet a conta não é criada: o servidor continua no ar e cada
+    // envio falha (quem envia registra o erro)
+    this.client.catch(() => undefined);
   }
 
   public async sendMail({
@@ -33,7 +37,9 @@ export default class EtherealMailProvider implements IMailProvider {
     subject,
     templateData,
   }: ISendMailDTO): Promise<void> {
-    const message = await this.client.sendMail({
+    const client = await this.client;
+
+    const message = await client.sendMail({
       from: {
         name: from?.name || 'Equipe GoBarber',
         address: from?.email || 'equipe@gobarber.com.br',
