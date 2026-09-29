@@ -9,6 +9,7 @@ import Service from '@modules/catalog/infra/typeorm/entities/Service';
 import FakeCacheProvider from '@shared/container/providers/CacheProvider/fakes/FakeCacheProvider';
 import FakeAppointmentsRepository from '../repositories/fakes/FakeAppointmentsRepository';
 import FakeTimeBlocksRepository from '../repositories/fakes/FakeTimeBlocksRepository';
+import FakeBlockReasonsRepository from '../repositories/fakes/FakeBlockReasonsRepository';
 import makeAppointmentData from '../repositories/fakes/makeAppointmentData';
 import CreateTimeBlockService from './CreateTimeBlockService';
 import DeleteTimeBlockService from './DeleteTimeBlockService';
@@ -21,6 +22,8 @@ import ListDayAgendaService from './ListDayAgendaService';
 let fakeUsersRepository: FakeUsersRepository;
 let fakeAppointmentsRepository: FakeAppointmentsRepository;
 let fakeTimeBlocksRepository: FakeTimeBlocksRepository;
+let fakeBlockReasonsRepository: FakeBlockReasonsRepository;
+let lunchReasonId: string;
 let agendaSettings: AgendaSettingsService;
 let createTimeBlock: CreateTimeBlockService;
 let deleteTimeBlock: DeleteTimeBlockService;
@@ -40,6 +43,8 @@ describe('Bloqueios de horário', () => {
     fakeUsersRepository = new FakeUsersRepository();
     fakeAppointmentsRepository = new FakeAppointmentsRepository();
     fakeTimeBlocksRepository = new FakeTimeBlocksRepository();
+    fakeBlockReasonsRepository = new FakeBlockReasonsRepository();
+    lunchReasonId = (await fakeBlockReasonsRepository.create('Almoço')).id;
     const fakeProviderSchedulesRepository =
       new FakeProviderSchedulesRepository();
     const fakeServicesRepository = new FakeServicesRepository();
@@ -49,6 +54,7 @@ describe('Bloqueios de horário', () => {
       fakeUsersRepository,
       fakeAppointmentsRepository,
       fakeTimeBlocksRepository,
+      fakeBlockReasonsRepository,
     );
     deleteTimeBlock = new DeleteTimeBlockService(fakeTimeBlocksRepository);
     createAppointment = new CreateAppointmentsService(
@@ -110,13 +116,13 @@ describe('Bloqueios de horário', () => {
   });
 
   // Bloqueio de um barbeiro só (o dos testes)
-  const block = async (start: Date, end: Date, reason?: string) =>
+  const block = async (start: Date, end: Date, reason_id = lunchReasonId) =>
     (
       await createTimeBlock.execute({
         provider_ids: [providerId],
         start_date: start,
         end_date: end,
-        reason,
+        reason_id,
         requester_id: providerId,
       })
     )[0];
@@ -132,8 +138,8 @@ describe('Bloqueios de horário', () => {
       })
     ).map(({ time }) => time);
 
-  it('should create a block with the reason trimmed', async () => {
-    const created = await block(at(11), at(12), '  Almoço ');
+  it('should save the name of the chosen reason', async () => {
+    const created = await block(at(11), at(12));
 
     expect(created).toMatchObject({
       provider_id: providerId,
@@ -142,6 +148,15 @@ describe('Bloqueios de horário', () => {
       reason: 'Almoço',
       created_by: providerId,
     });
+  });
+
+  it('should require a registered reason', async () => {
+    await expect(block(at(11), at(12), '')).rejects.toMatchObject({
+      message: 'Escolha o motivo do bloqueio.',
+    });
+    await expect(
+      block(at(11), at(12), '00000000-0000-0000-0000-000000000000'),
+    ).rejects.toMatchObject({ message: 'Escolha o motivo do bloqueio.' });
   });
 
   it('should reject a block that ends before it starts or already passed', async () => {
@@ -161,6 +176,7 @@ describe('Bloqueios de horário', () => {
         provider_ids: [providerId, 'unknown'],
         start_date: at(11),
         end_date: at(12),
+        reason_id: lunchReasonId,
         requester_id: providerId,
       }),
     ).rejects.toBeInstanceOf(AppError);
@@ -169,6 +185,7 @@ describe('Bloqueios de horário', () => {
         provider_ids: [],
         start_date: at(11),
         end_date: at(12),
+        reason_id: lunchReasonId,
         requester_id: providerId,
       }),
     ).rejects.toBeInstanceOf(AppError);
@@ -191,6 +208,7 @@ describe('Bloqueios de horário', () => {
         provider_ids: [providerId, otherId],
         start_date: at(11),
         end_date: at(12),
+        reason_id: lunchReasonId,
         requester_id: providerId,
       });
 
@@ -222,6 +240,7 @@ describe('Bloqueios de horário', () => {
           provider_ids: [providerId, otherId],
           start_date: at(11),
           end_date: at(12),
+          reason_id: lunchReasonId,
           requester_id: providerId,
         }),
       ).rejects.toMatchObject({
@@ -325,7 +344,7 @@ describe('Bloqueios de horário', () => {
   });
 
   it('should list the blocks of the day in the agenda', async () => {
-    const lunch = await block(at(11), at(12), 'Almoço');
+    const lunch = await block(at(11), at(12));
     // Outro dia: não aparece
     await block(at(11, 0, 21), at(12, 0, 21));
 
@@ -378,6 +397,7 @@ describe('Bloqueios de horário', () => {
           start_time: '11:00',
           end_time: '12:00',
           starts_on: '2020-05-20',
+          reason_id: lunchReasonId,
           requester_id: providerId,
           ...data,
         })
@@ -399,6 +419,7 @@ describe('Bloqueios de horário', () => {
         fakeUsersRepository,
         fakeAppointmentsRepository,
         fakeTimeBlocksRepository,
+        fakeBlockReasonsRepository,
       );
     });
 
@@ -504,6 +525,7 @@ describe('Bloqueios de horário', () => {
         start_time: '11:00',
         end_time: '12:00',
         starts_on: '2020-05-20',
+        reason_id: lunchReasonId,
         requester_id: providerId,
       });
 

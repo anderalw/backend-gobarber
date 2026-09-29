@@ -6,6 +6,8 @@ import IUsersRepository from '@modules/users/repositories/IUsersRepository';
 import RecurringTimeBlock from '../infra/typeorm/entities/RecurringTimeBlock';
 import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
 import ITimeBlocksRepository from '../repositories/ITimeBlocksRepository';
+import IBlockReasonsRepository from '../repositories/IBlockReasonsRepository';
+import findBlockReason from '../utils/findBlockReason';
 import expandRecurringBlocks from '../utils/expandRecurringBlocks';
 import { ensureNoConflicts, findBlockProviders } from '../utils/blockConflicts';
 
@@ -20,7 +22,8 @@ interface IRequest {
   // 'yyyy-MM-dd'; sem data de fim, vale até ser removido
   starts_on: string;
   ends_on?: string | null;
-  reason?: string | null;
+  // Motivo cadastrado (obrigatório); o bloqueio guarda o nome dele
+  reason_id: string;
   requester_id: string;
 }
 
@@ -38,6 +41,9 @@ class CreateRecurringTimeBlockService {
 
     @inject('TimeBlocksRepository')
     private timeBlocksRepository: ITimeBlocksRepository,
+
+    @inject('BlockReasonsRepository')
+    private blockReasonsRepository: IBlockReasonsRepository,
   ) {}
 
   public async execute({
@@ -47,7 +53,7 @@ class CreateRecurringTimeBlockService {
     end_time,
     starts_on,
     ends_on,
-    reason,
+    reason_id,
     requester_id,
   }: IRequest): Promise<RecurringTimeBlock[]> {
     const days = Array.from(new Set(days_of_week)).sort();
@@ -71,6 +77,11 @@ class CreateRecurringTimeBlockService {
     if (endsOn && endsOn < today) {
       throw new AppError('Não é possível bloquear um período que já passou.');
     }
+
+    const reason = await findBlockReason(
+      this.blockReasonsRepository,
+      reason_id,
+    );
 
     const providers = await findBlockProviders(
       this.usersRepository,
@@ -127,7 +138,7 @@ class CreateRecurringTimeBlockService {
           end_time,
           starts_on,
           ends_on: endsOn,
-          reason: reason?.trim() || null,
+          reason,
           created_by: requester_id,
         }),
       ),

@@ -9,6 +9,9 @@ import AppointmentsRepository from '@modules/appointments/infra/typeorm/reposito
 import ITimeBlocksRepository from '@modules/appointments/repositories/ITimeBlocksRepository';
 import TimeBlocksRepository from '@modules/appointments/infra/typeorm/repositories/TimeBlocksRepository';
 
+import IBlockReasonsRepository from '@modules/appointments/repositories/IBlockReasonsRepository';
+import BlockReasonsRepository from '@modules/appointments/infra/typeorm/repositories/BlockReasonsRepository';
+
 import IUsersRepository from '@modules/users/repositories/IUsersRepository';
 import UsersRepository from '@modules/users/infra/typeorm/repositories/UsersRepository';
 
@@ -38,6 +41,11 @@ container.registerSingleton<IAppointmentsRepository>(
 container.registerSingleton<ITimeBlocksRepository>(
   'TimeBlocksRepository',
   TimeBlocksRepository,
+);
+
+container.registerSingleton<IBlockReasonsRepository>(
+  'BlockReasonsRepository',
+  BlockReasonsRepository,
 );
 
 container.registerSingleton<IUsersRepository>(

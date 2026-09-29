@@ -7,7 +7,7 @@ import DeleteTimeBlockService from '@modules/appointments/services/DeleteTimeBlo
 
 export default class TimeBlocksController {
   public async create(request: Request, response: Response): Promise<Response> {
-    const { provider_ids, start_date, end_date, reason } = request.body;
+    const { provider_ids, start_date, end_date, reason_id } = request.body;
 
     const createTimeBlock = container.resolve(CreateTimeBlockService);
 
@@ -15,7 +15,7 @@ export default class TimeBlocksController {
       provider_ids,
       start_date: new Date(start_date),
       end_date: new Date(end_date),
-      reason,
+      reason_id,
       requester_id: request.user.id,
     });
 
@@ -34,7 +34,7 @@ export default class TimeBlocksController {
       end_time,
       starts_on,
       ends_on,
-      reason,
+      reason_id,
     } = request.body;
 
     const createRecurring = container.resolve(CreateRecurringTimeBlockService);
@@ -46,7 +46,7 @@ export default class TimeBlocksController {
       end_time,
       starts_on,
       ends_on,
-      reason,
+      reason_id,
       requester_id: request.user.id,
     });
 

@@ -12,6 +12,8 @@ import IUsersRepository from '@modules/users/repositories/IUsersRepository';
 import TimeBlock from '../infra/typeorm/entities/TimeBlock';
 import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
 import ITimeBlocksRepository from '../repositories/ITimeBlocksRepository';
+import IBlockReasonsRepository from '../repositories/IBlockReasonsRepository';
+import findBlockReason from '../utils/findBlockReason';
 import { ensureNoConflicts, findBlockProviders } from '../utils/blockConflicts';
 
 interface IRequest {
@@ -19,7 +21,8 @@ interface IRequest {
   provider_ids: string[];
   start_date: Date;
   end_date: Date;
-  reason?: string | null;
+  // Motivo cadastrado (obrigatório); o bloqueio guarda o nome dele
+  reason_id: string;
   // Barbeiro logado que está bloqueando (a agenda é compartilhada)
   requester_id: string;
 }
@@ -44,13 +47,16 @@ class CreateTimeBlockService {
 
     @inject('TimeBlocksRepository')
     private timeBlocksRepository: ITimeBlocksRepository,
+
+    @inject('BlockReasonsRepository')
+    private blockReasonsRepository: IBlockReasonsRepository,
   ) {}
 
   public async execute({
     provider_ids,
     start_date,
     end_date,
-    reason,
+    reason_id,
     requester_id,
   }: IRequest): Promise<TimeBlock[]> {
     const start = minute(start_date);
@@ -69,6 +75,11 @@ class CreateTimeBlockService {
         `Um bloqueio pode ter no máximo ${MAX_BLOCK_DAYS} dias.`,
       );
     }
+
+    const reason = await findBlockReason(
+      this.blockReasonsRepository,
+      reason_id,
+    );
 
     const providers = await findBlockProviders(
       this.usersRepository,
@@ -98,7 +109,7 @@ class CreateTimeBlockService {
           provider_id: provider.id,
           start_date: start,
           end_date: end,
-          reason: reason?.trim() || null,
+          reason,
           created_by: requester_id,
         }),
       ),
