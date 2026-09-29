@@ -1,4 +1,5 @@
 import { injectable, inject } from 'tsyringe';
+import { endOfDay, startOfDay } from 'date-fns';
 
 import AppError from '@shared/errors/AppError';
 import IUsersRepository from '@modules/users/repositories/IUsersRepository';
@@ -6,7 +7,9 @@ import IProviderSchedulesRepository from '@modules/users/repositories/IProviderS
 import IServicesRepository from '@modules/catalog/repositories/IServicesRepository';
 import AgendaSettingsService from '@modules/catalog/services/AgendaSettingsService';
 import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
+import ITimeBlocksRepository from '../repositories/ITimeBlocksRepository';
 import findFreeStarts from '../utils/findFreeStarts';
+import blocksAsBusy from '../utils/blocksAsBusy';
 import workWindow from '../utils/workWindow';
 import CheckSlotService from './CheckSlotService';
 
@@ -48,6 +51,9 @@ class SuggestSlotsService {
 
     @inject(CheckSlotService)
     private checkSlot: CheckSlotService,
+
+    @inject('TimeBlocksRepository')
+    private timeBlocksRepository: ITimeBlocksRepository,
   ) {}
 
   public async execute({
@@ -89,12 +95,17 @@ class SuggestSlotsService {
 
     if (!schedule) return [];
 
-    const [appointments, { buffer_minutes }] = await Promise.all([
+    const [appointments, blocks, { buffer_minutes }] = await Promise.all([
       this.appointmentsRepository.findAllInDayFromProvider({
         provider_id,
         day: date.getDate(),
         month: date.getMonth() + 1,
         year: date.getFullYear(),
+      }),
+      this.timeBlocksRepository.findInRange({
+        provider_id,
+        start: startOfDay(date),
+        end: endOfDay(date),
       }),
       this.agendaSettings.get(),
     ]);
@@ -103,10 +114,13 @@ class SuggestSlotsService {
       ...workWindow(date, schedule),
       durationMinutes,
       bufferMinutes: buffer_minutes,
-      busy: appointments.map(appointment => ({
-        start: appointment.date,
-        end: appointment.blocked_until,
-      })),
+      busy: [
+        ...appointments.map(appointment => ({
+          start: appointment.date,
+          end: appointment.blocked_until,
+        })),
+        ...blocksAsBusy(blocks, buffer_minutes),
+      ],
       now: new Date(Date.now()),
     });
   }

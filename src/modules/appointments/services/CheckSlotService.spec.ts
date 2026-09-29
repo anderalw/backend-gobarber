@@ -6,6 +6,7 @@ import FakeSettingsRepository from '@modules/catalog/repositories/fakes/FakeSett
 import AgendaSettingsService from '@modules/catalog/services/AgendaSettingsService';
 import Service from '@modules/catalog/infra/typeorm/entities/Service';
 import FakeAppointmentsRepository from '../repositories/fakes/FakeAppointmentsRepository';
+import FakeTimeBlocksRepository from '../repositories/fakes/FakeTimeBlocksRepository';
 import makeAppointmentData from '../repositories/fakes/makeAppointmentData';
 import CheckSlotService from './CheckSlotService';
 
@@ -27,6 +28,7 @@ describe('CheckSlot', () => {
       fakeServicesRepository,
       new AgendaSettingsService(new FakeSettingsRepository()),
       fakeUsersRepository,
+      new FakeTimeBlocksRepository(),
     );
 
     // Barbeiro dos testes, com o id fixo usado nos agendamentos

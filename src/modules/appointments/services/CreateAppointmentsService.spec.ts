@@ -8,6 +8,7 @@ import AgendaSettingsService from '@modules/catalog/services/AgendaSettingsServi
 import Service from '@modules/catalog/infra/typeorm/entities/Service';
 import FakeCacheProvider from '@shared/container/providers/CacheProvider/fakes/FakeCacheProvider';
 import FakeAppointmentsRepository from '../repositories/fakes/FakeAppointmentsRepository';
+import FakeTimeBlocksRepository from '../repositories/fakes/FakeTimeBlocksRepository';
 import CreateAppointmentsService from './CreateAppointmentsService';
 
 let fakeAppointmentsRepository: FakeAppointmentsRepository;
@@ -35,6 +36,7 @@ describe('CreateAppointment', () => {
       fakeServicesRepository,
       agendaSettings,
       fakeUsersRepository,
+      new FakeTimeBlocksRepository(),
     );
 
     // Barbeiro dos testes, com o id fixo usado nos agendamentos

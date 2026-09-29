@@ -5,6 +5,7 @@ import FakeServicesRepository from '@modules/catalog/repositories/fakes/FakeServ
 import FakeSettingsRepository from '@modules/catalog/repositories/fakes/FakeSettingsRepository';
 import AgendaSettingsService from '@modules/catalog/services/AgendaSettingsService';
 import FakeAppointmentsRepository from '../repositories/fakes/FakeAppointmentsRepository';
+import FakeTimeBlocksRepository from '../repositories/fakes/FakeTimeBlocksRepository';
 import ListProviderMonthAvailabilityService from './ListProviderMonthAvailabilityService';
 
 let fakeAppointmentsRepository: FakeAppointmentsRepository;
@@ -23,6 +24,7 @@ describe('ListProviderMonthAvailability', () => {
       fakeProviderSchedulesRepository,
       fakeServicesRepository,
       new AgendaSettingsService(new FakeSettingsRepository()),
+      new FakeTimeBlocksRepository(),
     );
 
     // Segunda a sábado, das 08:00 às 12:00

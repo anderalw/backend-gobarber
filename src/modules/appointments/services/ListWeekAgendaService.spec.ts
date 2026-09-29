@@ -1,6 +1,7 @@
 import FakeUsersRepository from '@modules/users/repositories/fakes/FakeUsersRepository';
 import FakeProviderSchedulesRepository from '@modules/users/repositories/fakes/FakeProviderSchedulesRepository';
 import FakeAppointmentsRepository from '../repositories/fakes/FakeAppointmentsRepository';
+import FakeTimeBlocksRepository from '../repositories/fakes/FakeTimeBlocksRepository';
 import makeAppointmentData from '../repositories/fakes/makeAppointmentData';
 import ListDayAgendaService from './ListDayAgendaService';
 import ListWeekAgendaService from './ListWeekAgendaService';
@@ -17,6 +18,7 @@ describe('ListWeekAgenda', () => {
         fakeUsersRepository,
         fakeAppointmentsRepository,
         fakeProviderSchedulesRepository,
+        new FakeTimeBlocksRepository(),
       ),
     );
 

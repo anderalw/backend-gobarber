@@ -6,6 +6,7 @@ import IUsersRepository from '@modules/users/repositories/IUsersRepository';
 import IServicesRepository from '@modules/catalog/repositories/IServicesRepository';
 import AgendaSettingsService from '@modules/catalog/services/AgendaSettingsService';
 import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
+import ITimeBlocksRepository from '../repositories/ITimeBlocksRepository';
 import checkAvailableSlot from '../utils/checkAvailableSlot';
 
 interface IRequest {
@@ -39,6 +40,9 @@ class CheckSlotService {
 
     @inject('UsersRepository')
     private usersRepository: IUsersRepository,
+
+    @inject('TimeBlocksRepository')
+    private timeBlocksRepository: ITimeBlocksRepository,
   ) {}
 
   public async execute({
@@ -59,6 +63,7 @@ class CheckSlotService {
           appointmentsRepository: this.appointmentsRepository,
           providerSchedulesRepository: this.providerSchedulesRepository,
           agendaSettings: this.agendaSettings,
+          timeBlocksRepository: this.timeBlocksRepository,
         },
         { provider_id, start: date, durationMinutes: service.duration_minutes },
       );

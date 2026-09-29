@@ -7,6 +7,7 @@ import FakeSettingsRepository from '@modules/catalog/repositories/fakes/FakeSett
 import AgendaSettingsService from '@modules/catalog/services/AgendaSettingsService';
 import Service from '@modules/catalog/infra/typeorm/entities/Service';
 import FakeAppointmentsRepository from '../repositories/fakes/FakeAppointmentsRepository';
+import FakeTimeBlocksRepository from '../repositories/fakes/FakeTimeBlocksRepository';
 import ListProviderDayAvailabilityService from './ListProviderDayAvailabilityService';
 
 let fakeAppointmentsRepository: FakeAppointmentsRepository;
@@ -41,6 +42,7 @@ describe('ListProviderDayAvailability', () => {
       fakeProviderSchedulesRepository,
       fakeServicesRepository,
       agendaSettings,
+      new FakeTimeBlocksRepository(),
     );
 
     haircut = await fakeServicesRepository.create({

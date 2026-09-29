@@ -12,6 +12,7 @@ import IServicesRepository from '@modules/catalog/repositories/IServicesReposito
 import AgendaSettingsService from '@modules/catalog/services/AgendaSettingsService';
 import Appointment from '../infra/typeorm/entities/Appointment';
 import IAppointmentsRepaository from '../repositories/IAppointmentsRepository';
+import ITimeBlocksRepository from '../repositories/ITimeBlocksRepository';
 import checkAvailableSlot from '../utils/checkAvailableSlot';
 
 interface IRequest {
@@ -45,6 +46,9 @@ class CreateAppointmentsServices {
 
     @inject('UsersRepository')
     private usersRepository: IUsersRepository,
+
+    @inject('TimeBlocksRepository')
+    private timeBlocksRepository: ITimeBlocksRepository,
   ) {}
 
   public async execute({
@@ -72,6 +76,7 @@ class CreateAppointmentsServices {
         appointmentsRepository: this.appointmentsRepository,
         providerSchedulesRepository: this.providerSchedulesRepository,
         agendaSettings: this.agendaSettings,
+        timeBlocksRepository: this.timeBlocksRepository,
       },
       {
         provider_id,

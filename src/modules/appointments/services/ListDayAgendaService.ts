@@ -1,8 +1,10 @@
 import { injectable, inject } from 'tsyringe';
+import { endOfDay, startOfDay } from 'date-fns';
 
 import IUsersRepository from '@modules/users/repositories/IUsersRepository';
 import IProviderSchedulesRepository from '@modules/users/repositories/IProviderSchedulesRepository';
 import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
+import ITimeBlocksRepository from '../repositories/ITimeBlocksRepository';
 
 interface IRequest {
   day: number;
@@ -43,9 +45,20 @@ interface IAgendaAppointment {
   } | null;
 }
 
+interface IAgendaBlock {
+  id: string;
+  provider_id: string;
+  // Podem começar antes ou terminar depois do dia (ex: férias)
+  start_date: Date;
+  end_date: Date;
+  reason: string | null;
+}
+
 interface IResponse {
   providers: IAgendaProvider[];
   appointments: IAgendaAppointment[];
+  // Horários bloqueados no dia
+  blocks: IAgendaBlock[];
 }
 
 // Agenda compartilhada da barbearia: todos os barbeiros e todos os
@@ -61,15 +74,23 @@ class ListDayAgendaService {
 
     @inject('ProviderSchedulesRepository')
     private providerSchedulesRepository: IProviderSchedulesRepository,
+
+    @inject('TimeBlocksRepository')
+    private timeBlocksRepository: ITimeBlocksRepository,
   ) {}
 
   public async execute({ day, month, year }: IRequest): Promise<IResponse> {
-    const dayOfWeek = new Date(year, month - 1, day).getDay();
+    const date = new Date(year, month - 1, day);
+    const dayOfWeek = date.getDay();
 
-    const [users, schedules, appointments] = await Promise.all([
+    const [users, schedules, appointments, blocks] = await Promise.all([
       this.usersRepository.findAllProviders({ include_inactive: true }),
       this.providerSchedulesRepository.findByDayOfWeek(dayOfWeek),
       this.appointmentsRepository.findAllInDay({ day, month, year }),
+      this.timeBlocksRepository.findInRange({
+        start: startOfDay(date),
+        end: endOfDay(date),
+      }),
     ]);
 
     const providers = users
@@ -114,6 +135,13 @@ class ListDayAgendaService {
               phone: appointment.client.phone,
             }
           : null,
+      })),
+      blocks: blocks.map(block => ({
+        id: block.id,
+        provider_id: block.provider_id,
+        start_date: block.start_date,
+        end_date: block.end_date,
+        reason: block.reason,
       })),
     };
   }

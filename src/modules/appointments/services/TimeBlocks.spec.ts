@@ -1,0 +1,282 @@
+import AppError from '@shared/errors/AppError';
+import FakeUsersRepository from '@modules/users/repositories/fakes/FakeUsersRepository';
+import FakeProviderSchedulesRepository from '@modules/users/repositories/fakes/FakeProviderSchedulesRepository';
+import FakeNotificationsRepository from '@modules/notifications/repositories/fakes/FakeNotificationsRepository';
+import FakeServicesRepository from '@modules/catalog/repositories/fakes/FakeServicesRepository';
+import FakeSettingsRepository from '@modules/catalog/repositories/fakes/FakeSettingsRepository';
+import AgendaSettingsService from '@modules/catalog/services/AgendaSettingsService';
+import Service from '@modules/catalog/infra/typeorm/entities/Service';
+import FakeCacheProvider from '@shared/container/providers/CacheProvider/fakes/FakeCacheProvider';
+import FakeAppointmentsRepository from '../repositories/fakes/FakeAppointmentsRepository';
+import FakeTimeBlocksRepository from '../repositories/fakes/FakeTimeBlocksRepository';
+import makeAppointmentData from '../repositories/fakes/makeAppointmentData';
+import CreateTimeBlockService from './CreateTimeBlockService';
+import DeleteTimeBlockService from './DeleteTimeBlockService';
+import CreateAppointmentsService from './CreateAppointmentsService';
+import ListProviderDayAvailabilityService from './ListProviderDayAvailabilityService';
+import ListProviderMonthAvailabilityService from './ListProviderMonthAvailabilityService';
+import ListDayAgendaService from './ListDayAgendaService';
+
+let fakeUsersRepository: FakeUsersRepository;
+let fakeAppointmentsRepository: FakeAppointmentsRepository;
+let fakeTimeBlocksRepository: FakeTimeBlocksRepository;
+let agendaSettings: AgendaSettingsService;
+let createTimeBlock: CreateTimeBlockService;
+let deleteTimeBlock: DeleteTimeBlockService;
+let createAppointment: CreateAppointmentsService;
+let listDayAvailability: ListProviderDayAvailabilityService;
+let listMonthAvailability: ListProviderMonthAvailabilityService;
+let listDayAgenda: ListDayAgendaService;
+let providerId: string;
+let haircut: Service;
+
+// 20/05/2020 é quarta-feira
+const at = (hours: number, minutes = 0, day = 20): Date =>
+  new Date(2020, 4, day, hours, minutes);
+
+describe('Bloqueios de horário', () => {
+  beforeEach(async () => {
+    fakeUsersRepository = new FakeUsersRepository();
+    fakeAppointmentsRepository = new FakeAppointmentsRepository();
+    fakeTimeBlocksRepository = new FakeTimeBlocksRepository();
+    const fakeProviderSchedulesRepository =
+      new FakeProviderSchedulesRepository();
+    const fakeServicesRepository = new FakeServicesRepository();
+    agendaSettings = new AgendaSettingsService(new FakeSettingsRepository());
+
+    createTimeBlock = new CreateTimeBlockService(
+      fakeUsersRepository,
+      fakeAppointmentsRepository,
+      fakeTimeBlocksRepository,
+    );
+    deleteTimeBlock = new DeleteTimeBlockService(fakeTimeBlocksRepository);
+    createAppointment = new CreateAppointmentsService(
+      fakeAppointmentsRepository,
+      new FakeNotificationsRepository(),
+      new FakeCacheProvider(),
+      fakeProviderSchedulesRepository,
+      fakeServicesRepository,
+      agendaSettings,
+      fakeUsersRepository,
+      fakeTimeBlocksRepository,
+    );
+    listDayAvailability = new ListProviderDayAvailabilityService(
+      fakeAppointmentsRepository,
+      fakeProviderSchedulesRepository,
+      fakeServicesRepository,
+      agendaSettings,
+      fakeTimeBlocksRepository,
+    );
+    listMonthAvailability = new ListProviderMonthAvailabilityService(
+      fakeAppointmentsRepository,
+      fakeProviderSchedulesRepository,
+      fakeServicesRepository,
+      agendaSettings,
+      fakeTimeBlocksRepository,
+    );
+    listDayAgenda = new ListDayAgendaService(
+      fakeUsersRepository,
+      fakeAppointmentsRepository,
+      fakeProviderSchedulesRepository,
+      fakeTimeBlocksRepository,
+    );
+
+    const provider = await fakeUsersRepository.create({
+      name: 'Barbeiro',
+      email: 'barbeiro@example.test',
+      password: '123456',
+    });
+    providerId = provider.id;
+
+    haircut = await fakeServicesRepository.create({
+      name: 'Cabelo',
+      duration_minutes: 60,
+      price_cents: 4500,
+    });
+
+    // Todos os dias úteis, das 09:00 às 13:00
+    await fakeProviderSchedulesRepository.replaceByProviderId(
+      providerId,
+      [1, 2, 3, 4, 5].map(day_of_week => ({
+        day_of_week,
+        start_time: '09:00',
+        end_time: '13:00',
+      })),
+    );
+
+    // "Agora" é 20/05/2020 às 08:00
+    jest.spyOn(Date, 'now').mockImplementation(() => at(8).getTime());
+  });
+
+  const block = (start: Date, end: Date, reason?: string) =>
+    createTimeBlock.execute({
+      provider_id: providerId,
+      start_date: start,
+      end_date: end,
+      reason,
+      requester_id: providerId,
+    });
+
+  const dayTimes = async (): Promise<string[]> =>
+    (
+      await listDayAvailability.execute({
+        provider_id: providerId,
+        service_id: haircut.id,
+        day: 20,
+        month: 5,
+        year: 2020,
+      })
+    ).map(({ time }) => time);
+
+  it('should create a block with the reason trimmed', async () => {
+    const created = await block(at(11), at(12), '  Almoço ');
+
+    expect(created).toMatchObject({
+      provider_id: providerId,
+      start_date: at(11),
+      end_date: at(12),
+      reason: 'Almoço',
+      created_by: providerId,
+    });
+  });
+
+  it('should reject a block that ends before it starts or already passed', async () => {
+    await expect(block(at(12), at(11))).rejects.toBeInstanceOf(AppError);
+    await expect(block(at(6), at(7))).rejects.toBeInstanceOf(AppError);
+  });
+
+  it('should reject a block longer than the limit', async () => {
+    await expect(block(at(9), new Date(2020, 8, 1, 9))).rejects.toBeInstanceOf(
+      AppError,
+    );
+  });
+
+  it('should reject a block for an unknown provider', async () => {
+    await expect(
+      createTimeBlock.execute({
+        provider_id: 'unknown',
+        start_date: at(11),
+        end_date: at(12),
+        requester_id: providerId,
+      }),
+    ).rejects.toBeInstanceOf(AppError);
+  });
+
+  it('should reject a block over appointments already booked', async () => {
+    await fakeAppointmentsRepository.create(
+      makeAppointmentData({
+        provider_id: providerId,
+        client_id: 'client',
+        date: at(10),
+      }),
+    );
+
+    await expect(block(at(10, 30), at(12))).rejects.toMatchObject({
+      message:
+        'Há 1 agendamento neste período. Cancele ou remarque antes de bloquear.',
+    });
+  });
+
+  it('should allow blocking right after an appointment', async () => {
+    await fakeAppointmentsRepository.create(
+      makeAppointmentData({
+        provider_id: providerId,
+        client_id: 'client',
+        date: at(10),
+      }),
+    );
+
+    await expect(block(at(11), at(12))).resolves.toBeDefined();
+  });
+
+  it('should remove the blocked time from the free times', async () => {
+    await block(at(11), at(12));
+
+    expect(await dayTimes()).toEqual(['09:00', '10:00', '12:00']);
+  });
+
+  it('should let the buffer after an appointment run into the block', async () => {
+    await agendaSettings.update({ buffer_minutes: 15 });
+    await block(at(11, 15), at(13));
+
+    // 10:15 + 60 min termina 11:15, colado ao bloqueio; o intervalo avança
+    expect(await dayTimes()).toEqual(['09:00', '10:15']);
+  });
+
+  it('should not book an appointment inside a block', async () => {
+    await block(at(11), at(12));
+
+    await expect(
+      createAppointment.execute({
+        provider_id: providerId,
+        client_id: 'client',
+        service_id: haircut.id,
+        date: at(10, 30),
+      }),
+    ).rejects.toMatchObject({
+      message: 'O barbeiro não está atendendo neste horário.',
+    });
+
+    await expect(
+      createAppointment.execute({
+        provider_id: providerId,
+        client_id: 'client',
+        service_id: haircut.id,
+        date: at(12),
+      }),
+    ).resolves.toBeDefined();
+  });
+
+  it('should mark fully blocked days as unavailable in the month', async () => {
+    // Férias de quarta a sexta
+    await block(at(0, 0, 20), at(0, 0, 23));
+
+    const month = await listMonthAvailability.execute({
+      provider_id: providerId,
+      service_id: haircut.id,
+      month: 5,
+      year: 2020,
+    });
+
+    const available = (day: number): boolean | undefined =>
+      month.find(item => item.day === day)?.available;
+
+    expect(available(20)).toBe(false);
+    expect(available(21)).toBe(false);
+    expect(available(22)).toBe(false);
+    expect(available(25)).toBe(true);
+  });
+
+  it('should list the blocks of the day in the agenda', async () => {
+    const lunch = await block(at(11), at(12), 'Almoço');
+    // Outro dia: não aparece
+    await block(at(11, 0, 21), at(12, 0, 21));
+
+    const { blocks } = await listDayAgenda.execute({
+      day: 20,
+      month: 5,
+      year: 2020,
+    });
+
+    expect(blocks).toEqual([
+      {
+        id: lunch.id,
+        provider_id: providerId,
+        start_date: at(11),
+        end_date: at(12),
+        reason: 'Almoço',
+      },
+    ]);
+  });
+
+  it('should free the time again when the block is removed', async () => {
+    const lunch = await block(at(11), at(12));
+
+    await deleteTimeBlock.execute(lunch.id);
+
+    expect(await dayTimes()).toEqual(['09:00', '10:00', '11:00', '12:00']);
+    await expect(deleteTimeBlock.execute(lunch.id)).rejects.toBeInstanceOf(
+      AppError,
+    );
+  });
+});

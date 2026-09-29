@@ -7,6 +7,7 @@ import AgendaSettingsService from '@modules/catalog/services/AgendaSettingsServi
 import Service from '@modules/catalog/infra/typeorm/entities/Service';
 import User from '@modules/users/infra/typeorm/entities/User';
 import FakeAppointmentsRepository from '../repositories/fakes/FakeAppointmentsRepository';
+import FakeTimeBlocksRepository from '../repositories/fakes/FakeTimeBlocksRepository';
 import makeAppointmentData from '../repositories/fakes/makeAppointmentData';
 import CheckSlotService from './CheckSlotService';
 import SuggestSlotsService from './SuggestSlotsService';
@@ -51,7 +52,9 @@ describe('SuggestSlots', () => {
         fakeServicesRepository,
         agendaSettings,
         fakeUsersRepository,
+        new FakeTimeBlocksRepository(),
       ),
+      new FakeTimeBlocksRepository(),
     );
 
     haircut = await fakeServicesRepository.create({

@@ -6,6 +6,9 @@ import './providers';
 import IAppointmentsRepository from '@modules/appointments/repositories/IAppointmentsRepository';
 import AppointmentsRepository from '@modules/appointments/infra/typeorm/repositories/AppointmentsRepository';
 
+import ITimeBlocksRepository from '@modules/appointments/repositories/ITimeBlocksRepository';
+import TimeBlocksRepository from '@modules/appointments/infra/typeorm/repositories/TimeBlocksRepository';
+
 import IUsersRepository from '@modules/users/repositories/IUsersRepository';
 import UsersRepository from '@modules/users/infra/typeorm/repositories/UsersRepository';
 
@@ -30,6 +33,11 @@ import SettingsRepository from '@modules/catalog/infra/typeorm/repositories/Sett
 container.registerSingleton<IAppointmentsRepository>(
   'AppointmentsRepository',
   AppointmentsRepository,
+);
+
+container.registerSingleton<ITimeBlocksRepository>(
+  'TimeBlocksRepository',
+  TimeBlocksRepository,
 );
 
 container.registerSingleton<IUsersRepository>(

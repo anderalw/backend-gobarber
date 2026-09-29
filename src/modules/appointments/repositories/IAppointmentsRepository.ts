@@ -13,6 +13,9 @@ export default interface IAppointmentsRepository {
   findById(id: string): Promise<Appointment | undefined>;
   // Algum agendamento do barbeiro que ocupe parte do intervalo pedido
   findOverlapping(data: IFindOverlappingDTO): Promise<Appointment | undefined>;
+  // Atendimentos do barbeiro que ocupam parte do intervalo (sem contar o
+  // intervalo depois de cada um)
+  findInRangeFromProvider(data: IFindOverlappingDTO): Promise<Appointment[]>;
   findAllInMonthFromProvider(
     data: IFindAllInMonthFromProviderDTO,
   ): Promise<Appointment[]>;

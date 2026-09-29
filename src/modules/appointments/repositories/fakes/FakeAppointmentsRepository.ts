@@ -47,6 +47,19 @@ class AppointmentsRepository implements IAppointmentsRepository {
     );
   }
 
+  public async findInRangeFromProvider({
+    provider_id,
+    start,
+    end,
+  }: IFindOverlappingDTO): Promise<Appointment[]> {
+    return this.active.filter(
+      appointment =>
+        appointment.provider_id === provider_id &&
+        isBefore(appointment.date, end) &&
+        isAfter(appointment.end_date, start),
+    );
+  }
+
   public async findAllInMonthFromProvider({
     provider_id,
     month,

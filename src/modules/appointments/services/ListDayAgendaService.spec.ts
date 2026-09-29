@@ -2,6 +2,7 @@ import FakeUsersRepository from '@modules/users/repositories/fakes/FakeUsersRepo
 import FakeProviderSchedulesRepository from '@modules/users/repositories/fakes/FakeProviderSchedulesRepository';
 import Client from '@modules/clients/infra/typeorm/entities/Client';
 import FakeAppointmentsRepository from '../repositories/fakes/FakeAppointmentsRepository';
+import FakeTimeBlocksRepository from '../repositories/fakes/FakeTimeBlocksRepository';
 import makeAppointmentData from '../repositories/fakes/makeAppointmentData';
 import ListDayAgendaService from './ListDayAgendaService';
 
@@ -19,6 +20,7 @@ describe('ListDayAgenda', () => {
       fakeUsersRepository,
       fakeAppointmentsRepository,
       fakeProviderSchedulesRepository,
+      new FakeTimeBlocksRepository(),
     );
   });
 

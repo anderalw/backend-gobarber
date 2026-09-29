@@ -11,6 +11,7 @@ import User from '@modules/users/infra/typeorm/entities/User';
 import Client from '@modules/clients/infra/typeorm/entities/Client';
 import FakeCacheProvider from '@shared/container/providers/CacheProvider/fakes/FakeCacheProvider';
 import FakeAppointmentsRepository from '../repositories/fakes/FakeAppointmentsRepository';
+import FakeTimeBlocksRepository from '../repositories/fakes/FakeTimeBlocksRepository';
 import CreateAppointmentsService from './CreateAppointmentsService';
 import CreateProviderAppointmentService from './CreateProviderAppointmentService';
 
@@ -44,6 +45,7 @@ describe('CreateProviderAppointment', () => {
         fakeServicesRepository,
         new AgendaSettingsService(new FakeSettingsRepository()),
         fakeUsersRepository,
+        new FakeTimeBlocksRepository(),
       ),
     );
 

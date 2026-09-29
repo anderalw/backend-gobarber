@@ -1,12 +1,14 @@
 import { injectable, inject } from 'tsyringe';
-import { getDaysInMonth, isSameDay } from 'date-fns';
+import { endOfMonth, getDaysInMonth, isSameDay } from 'date-fns';
 
 import AppError from '@shared/errors/AppError';
 import IProviderSchedulesRepository from '@modules/users/repositories/IProviderSchedulesRepository';
 import IServicesRepository from '@modules/catalog/repositories/IServicesRepository';
 import AgendaSettingsService from '@modules/catalog/services/AgendaSettingsService';
 import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
+import ITimeBlocksRepository from '../repositories/ITimeBlocksRepository';
 import computeAvailableSlots from '../utils/computeAvailableSlots';
+import blocksAsBusy from '../utils/blocksAsBusy';
 import workWindow from '../utils/workWindow';
 
 interface IRequest {
@@ -38,6 +40,9 @@ class ListProviderMonthAvailabilityService {
 
     @inject(AgendaSettingsService)
     private agendaSettings: AgendaSettingsService,
+
+    @inject('TimeBlocksRepository')
+    private timeBlocksRepository: ITimeBlocksRepository,
   ) {}
 
   public async execute({
@@ -58,15 +63,25 @@ class ListProviderMonthAvailabilityService {
       durationMinutes = service.duration_minutes;
     }
 
-    const [appointments, schedules, { buffer_minutes }] = await Promise.all([
-      this.appointmentsRepository.findAllInMonthFromProvider({
-        provider_id,
-        year,
-        month,
-      }),
-      this.providerSchedulesRepository.findByProviderId(provider_id),
-      this.agendaSettings.get(),
-    ]);
+    const monthStart = new Date(year, month - 1, 1);
+
+    const [appointments, blocks, schedules, { buffer_minutes }] =
+      await Promise.all([
+        this.appointmentsRepository.findAllInMonthFromProvider({
+          provider_id,
+          year,
+          month,
+        }),
+        this.timeBlocksRepository.findInRange({
+          provider_id,
+          start: monthStart,
+          end: endOfMonth(monthStart),
+        }),
+        this.providerSchedulesRepository.findByProviderId(provider_id),
+        this.agendaSettings.get(),
+      ]);
+
+    const blockedPeriods = blocksAsBusy(blocks, buffer_minutes);
 
     const now = new Date(Date.now());
 
@@ -87,12 +102,16 @@ class ListProviderMonthAvailabilityService {
           ...workWindow(date, schedule),
           durationMinutes,
           bufferMinutes: buffer_minutes,
-          busy: appointments
-            .filter(appointment => isSameDay(appointment.date, date))
-            .map(appointment => ({
-              start: appointment.date,
-              end: appointment.blocked_until,
-            })),
+          // Bloqueios de outros dias não atrapalham o cálculo
+          busy: [
+            ...appointments
+              .filter(appointment => isSameDay(appointment.date, date))
+              .map(appointment => ({
+                start: appointment.date,
+                end: appointment.blocked_until,
+              })),
+            ...blockedPeriods,
+          ],
           now,
         });
 

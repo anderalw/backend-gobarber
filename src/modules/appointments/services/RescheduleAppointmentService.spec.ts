@@ -8,6 +8,7 @@ import User from '@modules/users/infra/typeorm/entities/User';
 import FakeCacheProvider from '@shared/container/providers/CacheProvider/fakes/FakeCacheProvider';
 import Appointment from '../infra/typeorm/entities/Appointment';
 import FakeAppointmentsRepository from '../repositories/fakes/FakeAppointmentsRepository';
+import FakeTimeBlocksRepository from '../repositories/fakes/FakeTimeBlocksRepository';
 import makeAppointmentData from '../repositories/fakes/makeAppointmentData';
 import RescheduleAppointmentService from './RescheduleAppointmentService';
 
@@ -38,6 +39,7 @@ describe('RescheduleAppointment', () => {
       agendaSettings,
       fakeNotificationsRepository,
       new FakeCacheProvider(),
+      new FakeTimeBlocksRepository(),
     );
 
     carlos = await fakeUsersRepository.create({

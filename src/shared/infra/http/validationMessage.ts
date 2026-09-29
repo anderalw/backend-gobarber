@@ -37,6 +37,9 @@ const FIELD_LABELS: Record<string, string> = {
   day_of_week: 'Dia da semana',
   start_time: 'Início',
   end_time: 'Fim',
+  start_date: 'Início',
+  end_date: 'Fim',
+  reason: 'Motivo',
 };
 
 function fieldLabel(detail: IValidationDetail): string {

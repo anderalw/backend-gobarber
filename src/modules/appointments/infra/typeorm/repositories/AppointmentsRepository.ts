@@ -82,6 +82,22 @@ class AppointmentsRepository implements IAppointmentsRepository {
     return appointment ?? undefined;
   }
 
+  public async findInRangeFromProvider({
+    provider_id,
+    start,
+    end,
+  }: IFindOverlappingDTO): Promise<Appointment[]> {
+    return this.ormRepository.find({
+      where: {
+        ...ACTIVE,
+        provider_id,
+        date: LessThan(end),
+        end_date: MoreThan(start),
+      },
+      order: { date: 'ASC' },
+    });
+  }
+
   public async findAllInMonthFromProvider({
     provider_id,
     month,

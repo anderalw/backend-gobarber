@@ -15,6 +15,7 @@ import IProviderSchedulesRepository from '@modules/users/repositories/IProviderS
 import AgendaSettingsService from '@modules/catalog/services/AgendaSettingsService';
 import Appointment from '../infra/typeorm/entities/Appointment';
 import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
+import ITimeBlocksRepository from '../repositories/ITimeBlocksRepository';
 import checkAvailableSlot from '../utils/checkAvailableSlot';
 import ensureCanChangeAppointment, {
   IRequester,
@@ -53,6 +54,9 @@ class RescheduleAppointmentService {
 
     @inject('CacheProvider')
     private cacheProvider: ICacheProvider,
+
+    @inject('TimeBlocksRepository')
+    private timeBlocksRepository: ITimeBlocksRepository,
   ) {}
 
   public async execute({
@@ -93,6 +97,7 @@ class RescheduleAppointmentService {
         appointmentsRepository: this.appointmentsRepository,
         providerSchedulesRepository: this.providerSchedulesRepository,
         agendaSettings: this.agendaSettings,
+        timeBlocksRepository: this.timeBlocksRepository,
       },
       {
         provider_id,
