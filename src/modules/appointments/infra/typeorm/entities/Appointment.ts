@@ -12,6 +12,9 @@ import User from '@modules/users/infra/typeorm/entities/User';
 import Service from '@modules/catalog/infra/typeorm/entities/Service';
 import Client from '../../../../clients/infra/typeorm/entities/Client';
 
+// Como terminou o atendimento: o cliente foi atendido ou faltou
+export type Attendance = 'completed' | 'no_show';
+
 @Entity('appointments')
 class Appointment {
   @PrimaryGeneratedColumn('uuid')
@@ -62,6 +65,17 @@ class Appointment {
 
   @Column({ type: 'varchar', nullable: true })
   canceled_by: 'provider' | 'client' | null;
+
+  // Registrado pelo barbeiro depois que o horário começa; null = a confirmar
+  @Column({ type: 'varchar', nullable: true })
+  attendance: Attendance | null;
+
+  @Column({ type: 'timestamp with time zone', nullable: true })
+  attendance_at: Date | null;
+
+  // Barbeiro que registrou
+  @Column({ type: 'uuid', nullable: true })
+  attendance_by: string | null;
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
   created_at: Date;

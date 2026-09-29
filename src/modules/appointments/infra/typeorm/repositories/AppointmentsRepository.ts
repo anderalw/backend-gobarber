@@ -18,6 +18,7 @@ import IFindAllInMonthFromProviderDTO from '@modules/appointments/dtos/IFindAllI
 import IFindAllInDayFromProviderDTO from '@modules/appointments/dtos/IFindAllInDayFromProviderDTO';
 import IFindAllInDayDTO from '@modules/appointments/dtos/IFindAllInDayDTO';
 import IFindOverlappingDTO from '@modules/appointments/dtos/IFindOverlappingDTO';
+import ISetAttendanceDTO from '@modules/appointments/dtos/ISetAttendanceDTO';
 
 import Appointment from '../entities/Appointment';
 
@@ -156,6 +157,27 @@ class AppointmentsRepository implements IAppointmentsRepository {
   ): Promise<Appointment[]> {
     return this.ormRepository.find({
       where: { ...ACTIVE, provider_id, end_date: MoreThan(now) },
+      order: { date: 'ASC' },
+    });
+  }
+
+  public async setAttendance({
+    appointment_id,
+    attendance,
+    attendance_at,
+    attendance_by,
+  }: ISetAttendanceDTO): Promise<void> {
+    await this.ormRepository.update(appointment_id, {
+      attendance,
+      attendance_at,
+      attendance_by,
+    });
+  }
+
+  public async findAllInPeriod(start: Date, end: Date): Promise<Appointment[]> {
+    return this.ormRepository.find({
+      where: { date: Between(start, end) },
+      relations: ['provider', 'service'],
       order: { date: 'ASC' },
     });
   }

@@ -4,6 +4,7 @@ import IFindAllInMonthFromProviderDTO from '../dtos/IFindAllInMonthFromProviderD
 import IFindAllInDayFromProviderDTO from '../dtos/IFindAllInDayFromProviderDTO';
 import IFindAllInDayDTO from '../dtos/IFindAllInDayDTO';
 import IFindOverlappingDTO from '../dtos/IFindOverlappingDTO';
+import ISetAttendanceDTO from '../dtos/ISetAttendanceDTO';
 
 // Salvo findById, as buscas ignoram agendamentos cancelados
 export default interface IAppointmentsRepository {
@@ -29,6 +30,11 @@ export default interface IAppointmentsRepository {
   findUpcomingFromClient(client_id: string, now: Date): Promise<Appointment[]>;
   // Quantos agendamentos do barbeiro ainda não terminaram
   countUpcomingFromProvider(provider_id: string, now: Date): Promise<number>;
+  // Registra (ou desfaz) a situação do atendimento
+  setAttendance(data: ISetAttendanceDTO): Promise<void>;
+  // Todos os agendamentos que começam no período, inclusive os cancelados,
+  // com o barbeiro e o serviço (para o faturamento)
+  findAllInPeriod(start: Date, end: Date): Promise<Appointment[]>;
   // Agendamentos do barbeiro que ainda não terminaram, em ordem
   findUpcomingFromProvider(
     provider_id: string,

@@ -4,6 +4,7 @@ import { endOfDay, startOfDay } from 'date-fns';
 import IUsersRepository from '@modules/users/repositories/IUsersRepository';
 import IProviderSchedulesRepository from '@modules/users/repositories/IProviderSchedulesRepository';
 import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
+import { Attendance } from '../infra/typeorm/entities/Appointment';
 import ITimeBlocksRepository from '../repositories/ITimeBlocksRepository';
 import IBlockPeriod from '../dtos/IBlockPeriod';
 
@@ -35,6 +36,8 @@ interface IAgendaAppointment {
   service: { id: string; name: string } | null;
   // Valor cobrado no momento da marcação, em centavos
   price_cents: number | null;
+  // Concluído ou falta; null = ainda não registrado
+  attendance: Attendance | null;
   // Quando o cliente fez a marcação
   created_at: Date;
   // email null: cliente cadastrado pelo barbeiro sem e-mail
@@ -129,6 +132,7 @@ class ListDayAgendaService {
           ? { id: appointment.service.id, name: appointment.service.name }
           : null,
         price_cents: appointment.price_cents,
+        attendance: appointment.attendance,
         created_at: appointment.created_at,
         client: appointment.client
           ? {

@@ -41,6 +41,7 @@ const FIELD_LABELS: Record<string, string> = {
   end_date: 'Fim',
   reason: 'Motivo',
   reason_id: 'Motivo',
+  attendance: 'Situação',
   starts_on: 'Data inicial',
   ends_on: 'Data final',
 };

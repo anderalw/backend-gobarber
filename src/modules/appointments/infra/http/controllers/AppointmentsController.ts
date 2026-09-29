@@ -6,6 +6,7 @@ import CreateProviderAppointmentService from '@modules/appointments/services/Cre
 import CreateAnyProviderAppointmentService from '@modules/appointments/services/CreateAnyProviderAppointmentService';
 import CancelAppointmentService from '@modules/appointments/services/CancelAppointmentService';
 import RescheduleAppointmentService from '@modules/appointments/services/RescheduleAppointmentService';
+import SetAttendanceService from '@modules/appointments/services/SetAttendanceService';
 import ListClientAppointmentsService from '@modules/appointments/services/ListClientAppointmentsService';
 
 export default class AppointmentsController {
@@ -75,6 +76,21 @@ export default class AppointmentsController {
     );
 
     return response.json(await listClientAppointments.execute(request.user.id));
+  }
+
+  public async attendance(
+    request: Request,
+    response: Response,
+  ): Promise<Response> {
+    const setAttendance = container.resolve(SetAttendanceService);
+
+    const appointment = await setAttendance.execute({
+      appointment_id: request.params.id,
+      attendance: request.body.attendance,
+      requester_id: request.user.id,
+    });
+
+    return response.json(appointment);
   }
 
   public async cancel(request: Request, response: Response): Promise<Response> {

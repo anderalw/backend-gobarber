@@ -85,4 +85,20 @@ appointmentsRouter.patch(
   appointmentsController.reschedule,
 );
 
+// Depois do horário: o barbeiro registra se o cliente foi atendido ou faltou
+appointmentsRouter.patch(
+  '/:id/attendance',
+  ensureRole('provider'),
+  celebrate({
+    ...appointmentId,
+    [Segments.BODY]: {
+      attendance: Joi.string()
+        .valid('completed', 'no_show')
+        .allow(null)
+        .required(),
+    },
+  }),
+  appointmentsController.attendance,
+);
+
 export default appointmentsRouter;

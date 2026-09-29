@@ -6,6 +6,7 @@ import IFindAllInMonthFromProviderDTO from '@modules/appointments/dtos/IFindAllI
 import IFindAllInDayFromProviderDTO from '@modules/appointments/dtos/IFindAllInDayFromProviderDTO';
 import IFindAllInDayDTO from '@modules/appointments/dtos/IFindAllInDayDTO';
 import IFindOverlappingDTO from '@modules/appointments/dtos/IFindOverlappingDTO';
+import ISetAttendanceDTO from '@modules/appointments/dtos/ISetAttendanceDTO';
 
 import Appointment from '../../infra/typeorm/entities/Appointment';
 
@@ -103,6 +104,26 @@ class AppointmentsRepository implements IAppointmentsRepository {
       .sort((a, b) => a.date.getTime() - b.date.getTime());
   }
 
+  public async setAttendance({
+    appointment_id,
+    ...data
+  }: ISetAttendanceDTO): Promise<void> {
+    const appointment = this.appointments.find(
+      item => item.id === appointment_id,
+    );
+
+    if (appointment) Object.assign(appointment, data);
+  }
+
+  public async findAllInPeriod(start: Date, end: Date): Promise<Appointment[]> {
+    return this.appointments
+      .filter(
+        appointment =>
+          !isBefore(appointment.date, start) && !isAfter(appointment.date, end),
+      )
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
+  }
+
   public async countUpcomingFromProvider(
     provider_id: string,
     now: Date,
@@ -134,6 +155,9 @@ class AppointmentsRepository implements IAppointmentsRepository {
       id: randomUUID(),
       canceled_at: null,
       canceled_by: null,
+      attendance: null,
+      attendance_at: null,
+      attendance_by: null,
       // No banco, preenchido pelo @CreateDateColumn
       created_at: new Date(),
     });
