@@ -144,6 +144,8 @@ export default class AppointmentsController {
       appointment_id: request.params.id,
       attendance: request.body.attendance,
       requester_id: request.user.id,
+      payment_method: request.body.payment_method,
+      paid_cents: request.body.paid_cents,
     });
 
     return response.json(appointment);

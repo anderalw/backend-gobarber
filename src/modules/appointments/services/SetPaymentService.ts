@@ -1,9 +1,7 @@
 import { injectable, inject } from 'tsyringe';
-import { isBefore } from 'date-fns';
 
 import AppError from '@shared/errors/AppError';
 import Appointment, {
-  Attendance,
   PaymentMethod,
 } from '../infra/typeorm/entities/Appointment';
 import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
@@ -11,19 +9,15 @@ import { validatePayment } from '../utils/payment';
 
 interface IRequest {
   appointment_id: string;
-  // null desfaz o registro
-  attendance: Attendance | null;
-  // Barbeiro logado (a agenda é compartilhada)
-  requester_id: string;
-  // Só com "atendido": como pagou e quanto (sem valor = o preço marcado)
-  payment_method?: PaymentMethod | null;
+  payment_method: PaymentMethod | null;
+  // Sem valor = o preço marcado
   paid_cents?: number | null;
 }
 
-// Registra como terminou o atendimento: concluído (entra no faturamento) ou
-// falta do cliente. Só depois que o horário começa, e pode ser corrigido
+// Completa ou corrige o pagamento de um atendimento já concluído (ex: pela
+// tela do caixa, antes de fechar)
 @injectable()
-class SetAttendanceService {
+class SetPaymentService {
   constructor(
     @inject('AppointmentsRepository')
     private appointmentsRepository: IAppointmentsRepository,
@@ -31,9 +25,7 @@ class SetAttendanceService {
 
   public async execute({
     appointment_id,
-    attendance,
-    requester_id,
-    payment_method = null,
+    payment_method,
     paid_cents = null,
   }: IRequest): Promise<Appointment> {
     validatePayment(payment_method, paid_cents);
@@ -46,23 +38,19 @@ class SetAttendanceService {
       throw new AppError('Agendamento não encontrado.', 404);
     }
 
-    if (appointment.canceled_at) {
-      throw new AppError('Este agendamento foi cancelado.');
-    }
-
-    if (isBefore(Date.now(), appointment.date)) {
+    if (appointment.canceled_at || appointment.attendance !== 'completed') {
       throw new AppError(
-        'Só é possível registrar a situação depois que o horário começa.',
+        'O pagamento só é registrado em atendimentos concluídos.',
       );
     }
 
     await this.appointmentsRepository.setAttendance({
       appointment_id,
-      attendance,
-      attendance_at: attendance ? new Date(Date.now()) : null,
-      attendance_by: attendance ? requester_id : null,
-      payment_method: attendance === 'completed' ? payment_method : null,
-      paid_cents: attendance === 'completed' ? paid_cents : null,
+      attendance: appointment.attendance,
+      attendance_at: appointment.attendance_at,
+      attendance_by: appointment.attendance_by,
+      payment_method,
+      paid_cents,
     });
 
     return (await this.appointmentsRepository.findById(
@@ -71,4 +59,4 @@ class SetAttendanceService {
   }
 }
 
-export default SetAttendanceService;
+export default SetPaymentService;

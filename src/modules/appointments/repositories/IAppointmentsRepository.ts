@@ -34,7 +34,7 @@ export default interface IAppointmentsRepository {
   // Registra (ou desfaz) a situação do atendimento
   setAttendance(data: ISetAttendanceDTO): Promise<void>;
   // Todos os agendamentos que começam no período, inclusive os cancelados,
-  // com o barbeiro e o serviço (para o faturamento)
+  // com cliente, barbeiro e serviço (para o faturamento e o caixa)
   findAllInPeriod(start: Date, end: Date): Promise<Appointment[]>;
   // Ativos que começam no intervalo e ainda não tiveram a confirmação
   // pedida, com cliente, barbeiro e serviço

@@ -168,18 +168,22 @@ class AppointmentsRepository implements IAppointmentsRepository {
     attendance,
     attendance_at,
     attendance_by,
+    payment_method,
+    paid_cents,
   }: ISetAttendanceDTO): Promise<void> {
     await this.ormRepository.update(appointment_id, {
       attendance,
       attendance_at,
       attendance_by,
+      payment_method,
+      paid_cents,
     });
   }
 
   public async findAllInPeriod(start: Date, end: Date): Promise<Appointment[]> {
     return this.ormRepository.find({
       where: { date: Between(start, end) },
-      relations: ['provider', 'service'],
+      relations: ['client', 'provider', 'service'],
       order: { date: 'ASC' },
     });
   }

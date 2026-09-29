@@ -261,6 +261,16 @@ async function simulate(): Promise<void> {
           counts.completed += 1;
         }
 
+        // Pix é o mais comum; parte em cartão e em dinheiro
+        const paymentMethod = (): string => {
+          const pay = random();
+
+          if (pay < 0.45) return 'pix';
+          if (pay < 0.65) return 'credit';
+          if (pay < 0.8) return 'debit';
+
+          return 'cash';
+        };
         const createdAt = subDays(start, 1 + Math.floor(random() * 10));
 
         rows.push([
@@ -276,6 +286,7 @@ async function simulate(): Promise<void> {
           attendance,
           attendance ? addMinutes(end, 5) : null,
           attendance ? provider.id : null,
+          attendance === 'completed' ? paymentMethod() : null,
           isAfter(createdAt, now) ? now : createdAt,
         ]);
 
@@ -285,7 +296,7 @@ async function simulate(): Promise<void> {
     });
   }
 
-  const COLUMNS = 13;
+  const COLUMNS = 14;
   const BATCH = 200;
   const batches = Array.from(
     { length: Math.ceil(rows.length / BATCH) },
@@ -297,7 +308,7 @@ async function simulate(): Promise<void> {
       (previous, batch) =>
         previous.then(() =>
           manager.query(
-            `INSERT INTO appointments (provider_id, client_id, service_id, price_cents, date, end_date, blocked_until, canceled_at, canceled_by, attendance, attendance_at, attendance_by, created_at) VALUES ${batch
+            `INSERT INTO appointments (provider_id, client_id, service_id, price_cents, date, end_date, blocked_until, canceled_at, canceled_by, attendance, attendance_at, attendance_by, payment_method, created_at) VALUES ${batch
               .map(
                 (_, row) =>
                   `(${Array.from(

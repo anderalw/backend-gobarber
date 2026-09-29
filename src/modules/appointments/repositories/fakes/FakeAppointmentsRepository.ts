@@ -269,6 +269,8 @@ class AppointmentsRepository implements IAppointmentsRepository {
       attendance: null,
       attendance_at: null,
       attendance_by: null,
+      payment_method: null,
+      paid_cents: null,
       confirmation_token: null,
       confirmation_requested_at: null,
       confirmed_at: null,

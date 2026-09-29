@@ -15,6 +15,9 @@ import Client from '../../../../clients/infra/typeorm/entities/Client';
 // Como terminou o atendimento: o cliente foi atendido ou faltou
 export type Attendance = 'completed' | 'no_show';
 
+// Como o cliente pagou (registrado junto com "atendido")
+export type PaymentMethod = 'pix' | 'credit' | 'debit' | 'cash';
+
 @Entity('appointments')
 class Appointment {
   @PrimaryGeneratedColumn('uuid')
@@ -76,6 +79,14 @@ class Appointment {
   // Barbeiro que registrou
   @Column({ type: 'uuid', nullable: true })
   attendance_by: string | null;
+
+  // Forma de pagamento do atendimento concluído (null = não informada)
+  @Column({ type: 'varchar', nullable: true })
+  payment_method: PaymentMethod | null;
+
+  // Valor recebido, com desconto ou acréscimo (null = o preço marcado)
+  @Column({ type: 'int', nullable: true })
+  paid_cents: number | null;
 
   // Link de confirmação enviado ao cliente na véspera
   @Column({ type: 'varchar', nullable: true })

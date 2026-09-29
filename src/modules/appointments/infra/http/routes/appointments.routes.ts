@@ -131,6 +131,10 @@ appointmentsRouter.patch(
         .valid('completed', 'no_show')
         .allow(null)
         .required(),
+      payment_method: Joi.string()
+        .valid('pix', 'credit', 'debit', 'cash')
+        .allow(null),
+      paid_cents: Joi.number().integer().min(0).max(1000000).allow(null),
     },
   }),
   appointmentsController.attendance,

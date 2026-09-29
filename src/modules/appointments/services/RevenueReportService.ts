@@ -12,6 +12,8 @@ import {
 import AppError from '@shared/errors/AppError';
 import Appointment from '../infra/typeorm/entities/Appointment';
 import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
+import { PaymentTotals } from '../infra/typeorm/entities/CashClosing';
+import { receivedCents, totalsByMethod } from '../utils/payment';
 
 interface IRequest {
   // 'yyyy-MM-dd', inclusive
@@ -49,6 +51,8 @@ interface IResponse {
   }>;
   // Um item por dia do período, para o gráfico
   days: Array<{ date: string; completed: number; revenue_cents: number }>;
+  // Recebido em cada forma de pagamento (unknown = não informada)
+  methods: PaymentTotals;
 }
 
 // Limite de um relatório (um ano)
@@ -136,7 +140,11 @@ class RevenueReportService {
       }
 
       const situation = situationOf(appointment, now);
-      const price = appointment.price_cents || 0;
+      // Atendido: o que foi recebido; nos outros casos, o preço marcado
+      const price =
+        situation === 'completed'
+          ? receivedCents(appointment)
+          : appointment.price_cents || 0;
 
       const provider = providers.get(appointment.provider_id) || {
         ...emptyCounts(),
@@ -196,6 +204,11 @@ class RevenueReportService {
       providers: Array.from(providers.values()).sort(byRevenue),
       services: Array.from(services.values()).sort(byRevenue),
       days: Array.from(days.values()),
+      methods: totalsByMethod(
+        appointments.filter(
+          item => !item.canceled_at && item.attendance === 'completed',
+        ),
+      ),
     };
   }
 }

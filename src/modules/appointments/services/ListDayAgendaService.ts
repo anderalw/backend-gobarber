@@ -4,7 +4,10 @@ import { endOfDay, startOfDay } from 'date-fns';
 import IUsersRepository from '@modules/users/repositories/IUsersRepository';
 import IProviderSchedulesRepository from '@modules/users/repositories/IProviderSchedulesRepository';
 import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
-import { Attendance } from '../infra/typeorm/entities/Appointment';
+import {
+  Attendance,
+  PaymentMethod,
+} from '../infra/typeorm/entities/Appointment';
 import ITimeBlocksRepository from '../repositories/ITimeBlocksRepository';
 import IBlockPeriod from '../dtos/IBlockPeriod';
 import IAppointmentSeriesRepository from '../repositories/IAppointmentSeriesRepository';
@@ -43,6 +46,9 @@ interface IAgendaAppointment {
   price_cents: number | null;
   // Concluído ou falta; null = ainda não registrado
   attendance: Attendance | null;
+  // Pagamento do atendimento concluído (null = não informado)
+  payment_method: PaymentMethod | null;
+  paid_cents: number | null;
   // Quando o cliente confirmou pelo link do e-mail, ou a barbearia registrou
   // (null = não confirmou)
   confirmed_at: Date | null;
@@ -238,6 +244,8 @@ class ListDayAgendaService {
           : null,
         price_cents: appointment.price_cents,
         attendance: appointment.attendance,
+        payment_method: appointment.payment_method,
+        paid_cents: appointment.paid_cents,
         confirmed_at: appointment.confirmed_at,
         confirmed_by: confirmedBy(appointment.confirmed_by),
         series: seriesOf(appointment),

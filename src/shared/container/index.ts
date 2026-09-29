@@ -14,6 +14,8 @@ import BlockReasonsRepository from '@modules/appointments/infra/typeorm/reposito
 import IAppointmentSeriesRepository from '@modules/appointments/repositories/IAppointmentSeriesRepository';
 import AppointmentSeriesRepository from '@modules/appointments/infra/typeorm/repositories/AppointmentSeriesRepository';
 import IWaitlistRepository from '@modules/appointments/repositories/IWaitlistRepository';
+import ICashClosingsRepository from '@modules/appointments/repositories/ICashClosingsRepository';
+import CashClosingsRepository from '@modules/appointments/infra/typeorm/repositories/CashClosingsRepository';
 import WaitlistRepository from '@modules/appointments/infra/typeorm/repositories/WaitlistRepository';
 
 import IClientNotifier from '@modules/appointments/notifier/IClientNotifier';
@@ -48,6 +50,11 @@ container.registerSingleton<IAppointmentsRepository>(
 container.registerSingleton<ITimeBlocksRepository>(
   'TimeBlocksRepository',
   TimeBlocksRepository,
+);
+
+container.registerSingleton<ICashClosingsRepository>(
+  'CashClosingsRepository',
+  CashClosingsRepository,
 );
 
 container.registerSingleton<IWaitlistRepository>(
