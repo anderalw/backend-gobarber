@@ -12,6 +12,7 @@ import FakeTimeBlocksRepository from '../repositories/fakes/FakeTimeBlocksReposi
 import makeAppointmentData from '../repositories/fakes/makeAppointmentData';
 import CreateTimeBlockService from './CreateTimeBlockService';
 import DeleteTimeBlockService from './DeleteTimeBlockService';
+import CreateRecurringTimeBlockService from './CreateRecurringTimeBlockService';
 import CreateAppointmentsService from './CreateAppointmentsService';
 import ListProviderDayAvailabilityService from './ListProviderDayAvailabilityService';
 import ListProviderMonthAvailabilityService from './ListProviderMonthAvailabilityService';
@@ -265,6 +266,7 @@ describe('Bloqueios de horário', () => {
         start_date: at(11),
         end_date: at(12),
         reason: 'Almoço',
+        recurrence: null,
       },
     ]);
   });
@@ -278,5 +280,143 @@ describe('Bloqueios de horário', () => {
     await expect(deleteTimeBlock.execute(lunch.id)).rejects.toBeInstanceOf(
       AppError,
     );
+  });
+
+  describe('que se repetem', () => {
+    const everyDay = [0, 1, 2, 3, 4, 5, 6];
+    let createRecurring: CreateRecurringTimeBlockService;
+
+    const repeat = (data: {
+      days_of_week?: number[];
+      start_time?: string;
+      end_time?: string;
+      starts_on?: string;
+      ends_on?: string | null;
+    }) =>
+      createRecurring.execute({
+        provider_id: providerId,
+        days_of_week: everyDay,
+        start_time: '11:00',
+        end_time: '12:00',
+        starts_on: '2020-05-20',
+        requester_id: providerId,
+        ...data,
+      });
+
+    const timesOn = async (day: number, month = 5): Promise<string[]> =>
+      (
+        await listDayAvailability.execute({
+          provider_id: providerId,
+          service_id: haircut.id,
+          day,
+          month,
+          year: 2020,
+        })
+      ).map(({ time }) => time);
+
+    beforeEach(() => {
+      createRecurring = new CreateRecurringTimeBlockService(
+        fakeUsersRepository,
+        fakeAppointmentsRepository,
+        fakeTimeBlocksRepository,
+      );
+    });
+
+    it('should block the same time every day with no end date', async () => {
+      await repeat({ start_time: '11:00', end_time: '12:00' });
+
+      expect(await timesOn(20)).toEqual(['09:00', '10:00', '12:00']);
+      // Dias depois, continua bloqueado
+      expect(await timesOn(29)).toEqual(['09:00', '10:00', '12:00']);
+    });
+
+    it('should only block the chosen weekdays, inside the dates', async () => {
+      // Só às quartas (3), de 20/05 a 27/05
+      await repeat({ days_of_week: [3], ends_on: '2020-05-27' });
+
+      expect(await timesOn(20)).toEqual(['09:00', '10:00', '12:00']);
+      // Quinta: livre
+      expect(await timesOn(21)).toEqual(['09:00', '10:00', '11:00', '12:00']);
+      expect(await timesOn(27)).toEqual(['09:00', '10:00', '12:00']);
+      // Quarta depois da data final (03/06): livre
+      expect(await timesOn(3, 6)).toEqual(['09:00', '10:00', '11:00', '12:00']);
+    });
+
+    it('should not book inside a repeated block', async () => {
+      await repeat({});
+
+      await expect(
+        createAppointment.execute({
+          provider_id: providerId,
+          client_id: 'client',
+          service_id: haircut.id,
+          date: at(11, 0, 22),
+        }),
+      ).rejects.toMatchObject({
+        message: 'O barbeiro não está atendendo neste horário.',
+      });
+    });
+
+    it('should reject a repetition over appointments already booked', async () => {
+      await fakeAppointmentsRepository.create(
+        makeAppointmentData({
+          provider_id: providerId,
+          client_id: 'client',
+          date: at(11, 30, 26),
+        }),
+      );
+
+      await expect(repeat({})).rejects.toMatchObject({
+        message:
+          'Há 1 agendamento nesses horários (26/05 às 11:30). Cancele ou remarque antes de bloquear.',
+      });
+      // Em outros dias da semana, não conflita
+      await expect(repeat({ days_of_week: [3] })).resolves.toBeDefined();
+    });
+
+    it('should reject invalid repetitions', async () => {
+      await expect(
+        repeat({ start_time: '13:00', end_time: '12:00' }),
+      ).rejects.toBeInstanceOf(AppError);
+      await expect(repeat({ days_of_week: [] })).rejects.toBeInstanceOf(
+        AppError,
+      );
+      await expect(
+        repeat({ starts_on: '2020-05-20', ends_on: '2020-05-19' }),
+      ).rejects.toBeInstanceOf(AppError);
+      await expect(
+        repeat({ starts_on: '2020-05-01', ends_on: '2020-05-10' }),
+      ).rejects.toBeInstanceOf(AppError);
+    });
+
+    it('should show each day of the repetition in the agenda', async () => {
+      const lunch = await repeat({ ends_on: null });
+
+      const { blocks } = await listDayAgenda.execute({
+        day: 21,
+        month: 5,
+        year: 2020,
+      });
+
+      expect(blocks).toEqual([
+        expect.objectContaining({
+          id: lunch.id,
+          start_date: at(11, 0, 21),
+          end_date: at(12, 0, 21),
+          recurrence: expect.objectContaining({
+            days_of_week: everyDay,
+            ends_on: null,
+          }),
+        }),
+      ]);
+    });
+
+    it('should remove the whole repetition', async () => {
+      const lunch = await repeat({});
+
+      await deleteTimeBlock.execute(lunch.id);
+
+      expect(await timesOn(20)).toEqual(['09:00', '10:00', '11:00', '12:00']);
+    });
   });
 });

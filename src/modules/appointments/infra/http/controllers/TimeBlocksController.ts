@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { container } from 'tsyringe';
 
 import CreateTimeBlockService from '@modules/appointments/services/CreateTimeBlockService';
+import CreateRecurringTimeBlockService from '@modules/appointments/services/CreateRecurringTimeBlockService';
 import DeleteTimeBlockService from '@modules/appointments/services/DeleteTimeBlockService';
 
 export default class TimeBlocksController {
@@ -19,6 +20,37 @@ export default class TimeBlocksController {
     });
 
     return response.status(201).json(block);
+  }
+
+  // Bloqueio que se repete nos dias da semana escolhidos
+  public async createRecurring(
+    request: Request,
+    response: Response,
+  ): Promise<Response> {
+    const {
+      provider_id,
+      days_of_week,
+      start_time,
+      end_time,
+      starts_on,
+      ends_on,
+      reason,
+    } = request.body;
+
+    const createRecurring = container.resolve(CreateRecurringTimeBlockService);
+
+    const rule = await createRecurring.execute({
+      provider_id,
+      days_of_week,
+      start_time,
+      end_time,
+      starts_on,
+      ends_on,
+      reason,
+      requester_id: request.user.id,
+    });
+
+    return response.status(201).json(rule);
   }
 
   public async delete(request: Request, response: Response): Promise<Response> {

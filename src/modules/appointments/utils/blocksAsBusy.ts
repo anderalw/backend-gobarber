@@ -1,6 +1,6 @@
 import { addMinutes } from 'date-fns';
 
-import TimeBlock from '../infra/typeorm/entities/TimeBlock';
+import IBlockPeriod from '../dtos/IBlockPeriod';
 
 // Bloqueios no formato dos períodos ocupados usados no cálculo de horários.
 // O bloqueio funciona como o fim do expediente: o atendimento precisa
@@ -9,7 +9,7 @@ import TimeBlock from '../infra/typeorm/entities/TimeBlock';
 // atendimento somado ao intervalo, o início do bloqueio é adiado pelo mesmo
 // intervalo
 export default function blocksAsBusy(
-  blocks: TimeBlock[],
+  blocks: IBlockPeriod[],
   bufferMinutes: number,
 ): Array<{ start: Date; end: Date }> {
   return blocks.map(block => ({

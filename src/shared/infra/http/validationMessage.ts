@@ -40,6 +40,8 @@ const FIELD_LABELS: Record<string, string> = {
   start_date: 'Início',
   end_date: 'Fim',
   reason: 'Motivo',
+  starts_on: 'Data inicial',
+  ends_on: 'Data final',
 };
 
 function fieldLabel(detail: IValidationDetail): string {

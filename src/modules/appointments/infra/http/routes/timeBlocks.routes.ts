@@ -25,6 +25,29 @@ timeBlocksRouter.post(
   }),
   timeBlocksController.create,
 );
+// Repete nos dias da semana escolhidos, com ou sem data de fim
+const time = Joi.string().pattern(/^([01]\d|2[0-3]):[0-5]\d$/);
+const day = Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/);
+
+timeBlocksRouter.post(
+  '/recurring',
+  celebrate({
+    [Segments.BODY]: {
+      provider_id: Joi.string().uuid().required(),
+      days_of_week: Joi.array()
+        .items(Joi.number().integer().min(0).max(6))
+        .min(1)
+        .required(),
+      start_time: time.required(),
+      end_time: time.required(),
+      starts_on: day.required(),
+      ends_on: day.allow(null),
+      reason: Joi.string().trim().max(60).allow('', null),
+    },
+  }),
+  timeBlocksController.createRecurring,
+);
+// Remove um bloqueio avulso ou uma repetição inteira
 timeBlocksRouter.delete(
   '/:id',
   celebrate({

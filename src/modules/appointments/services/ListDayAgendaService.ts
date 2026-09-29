@@ -5,6 +5,7 @@ import IUsersRepository from '@modules/users/repositories/IUsersRepository';
 import IProviderSchedulesRepository from '@modules/users/repositories/IProviderSchedulesRepository';
 import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
 import ITimeBlocksRepository from '../repositories/ITimeBlocksRepository';
+import IBlockPeriod from '../dtos/IBlockPeriod';
 
 interface IRequest {
   day: number;
@@ -52,6 +53,8 @@ interface IAgendaBlock {
   start_date: Date;
   end_date: Date;
   reason: string | null;
+  // Bloqueio que se repete: a regra; null no avulso
+  recurrence: IBlockPeriod['recurrence'];
 }
 
 interface IResponse {
@@ -142,6 +145,7 @@ class ListDayAgendaService {
         start_date: block.start_date,
         end_date: block.end_date,
         reason: block.reason,
+        recurrence: block.recurrence,
       })),
     };
   }

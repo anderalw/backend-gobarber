@@ -150,6 +150,16 @@ class AppointmentsRepository implements IAppointmentsRepository {
     });
   }
 
+  public async findUpcomingFromProvider(
+    provider_id: string,
+    now: Date,
+  ): Promise<Appointment[]> {
+    return this.ormRepository.find({
+      where: { ...ACTIVE, provider_id, end_date: MoreThan(now) },
+      order: { date: 'ASC' },
+    });
+  }
+
   public async countUpcomingFromProvider(
     provider_id: string,
     now: Date,

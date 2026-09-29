@@ -90,6 +90,19 @@ class AppointmentsRepository implements IAppointmentsRepository {
       .sort((a, b) => a.date.getTime() - b.date.getTime());
   }
 
+  public async findUpcomingFromProvider(
+    provider_id: string,
+    now: Date,
+  ): Promise<Appointment[]> {
+    return this.active
+      .filter(
+        appointment =>
+          appointment.provider_id === provider_id &&
+          isAfter(appointment.end_date, now),
+      )
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
+  }
+
   public async countUpcomingFromProvider(
     provider_id: string,
     now: Date,
