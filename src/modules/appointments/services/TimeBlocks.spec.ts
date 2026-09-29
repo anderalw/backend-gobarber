@@ -19,6 +19,7 @@ import CreateAppointmentsService from './CreateAppointmentsService';
 import ListProviderDayAvailabilityService from './ListProviderDayAvailabilityService';
 import ListProviderMonthAvailabilityService from './ListProviderMonthAvailabilityService';
 import ListDayAgendaService from './ListDayAgendaService';
+import NoShowPolicyService from './NoShowPolicyService';
 
 let fakeUsersRepository: FakeUsersRepository;
 let fakeAppointmentsRepository: FakeAppointmentsRepository;
@@ -88,6 +89,10 @@ describe('Bloqueios de horário', () => {
       fakeAppointmentsRepository,
       fakeProviderSchedulesRepository,
       fakeTimeBlocksRepository,
+      new NoShowPolicyService(
+        new FakeSettingsRepository(),
+        fakeAppointmentsRepository,
+      ),
     );
 
     const provider = await fakeUsersRepository.create({

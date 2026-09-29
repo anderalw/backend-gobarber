@@ -9,12 +9,15 @@ import RescheduleAppointmentService from '@modules/appointments/services/Resched
 import SetConfirmationService from '@modules/appointments/services/SetConfirmationService';
 import SetAttendanceService from '@modules/appointments/services/SetAttendanceService';
 import ListClientAppointmentsService from '@modules/appointments/services/ListClientAppointmentsService';
+import NoShowPolicyService from '@modules/appointments/services/NoShowPolicyService';
 
 export default class AppointmentsController {
   public async create(request: Request, response: Response): Promise<Response> {
     // O cliente vem sempre do token, nunca do body
     const client_id = request.user.id;
     const { provider_id, service_id, date } = request.body;
+
+    await container.resolve(NoShowPolicyService).ensureCanBookOnline(client_id);
 
     const createAppointmets = container.resolve(CreateAppointmentsService);
 
@@ -34,6 +37,10 @@ export default class AppointmentsController {
     response: Response,
   ): Promise<Response> {
     const { service_id, date } = request.body;
+
+    await container
+      .resolve(NoShowPolicyService)
+      .ensureCanBookOnline(request.user.id);
 
     const createAppointment = container.resolve(
       CreateAnyProviderAppointmentService,

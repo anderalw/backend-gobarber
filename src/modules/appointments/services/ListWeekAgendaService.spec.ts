@@ -1,9 +1,11 @@
+import FakeSettingsRepository from '@modules/catalog/repositories/fakes/FakeSettingsRepository';
 import FakeUsersRepository from '@modules/users/repositories/fakes/FakeUsersRepository';
 import FakeProviderSchedulesRepository from '@modules/users/repositories/fakes/FakeProviderSchedulesRepository';
 import FakeAppointmentsRepository from '../repositories/fakes/FakeAppointmentsRepository';
 import FakeTimeBlocksRepository from '../repositories/fakes/FakeTimeBlocksRepository';
 import makeAppointmentData from '../repositories/fakes/makeAppointmentData';
 import ListDayAgendaService from './ListDayAgendaService';
+import NoShowPolicyService from './NoShowPolicyService';
 import ListWeekAgendaService from './ListWeekAgendaService';
 
 describe('ListWeekAgenda', () => {
@@ -19,6 +21,10 @@ describe('ListWeekAgenda', () => {
         fakeAppointmentsRepository,
         fakeProviderSchedulesRepository,
         new FakeTimeBlocksRepository(),
+        new NoShowPolicyService(
+          new FakeSettingsRepository(),
+          fakeAppointmentsRepository,
+        ),
       ),
     );
 

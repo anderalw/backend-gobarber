@@ -43,6 +43,10 @@ const FIELD_LABELS: Record<string, string> = {
   reason_id: 'Motivo',
   attendance: 'Situação',
   confirmed: 'Confirmação',
+  notes: 'Observações',
+  alert_threshold: 'Número de faltas',
+  block_online: 'Bloquear o site',
+  page: 'Página',
   starts_on: 'Data inicial',
   ends_on: 'Data final',
 };

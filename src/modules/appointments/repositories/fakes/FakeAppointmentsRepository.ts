@@ -7,6 +7,7 @@ import IFindAllInDayFromProviderDTO from '@modules/appointments/dtos/IFindAllInD
 import IFindAllInDayDTO from '@modules/appointments/dtos/IFindAllInDayDTO';
 import IFindOverlappingDTO from '@modules/appointments/dtos/IFindOverlappingDTO';
 import ISetAttendanceDTO from '@modules/appointments/dtos/ISetAttendanceDTO';
+import IClientSummaryDTO from '@modules/appointments/dtos/IClientSummaryDTO';
 
 import Appointment from '../../infra/typeorm/entities/Appointment';
 
@@ -172,6 +173,54 @@ class AppointmentsRepository implements IAppointmentsRepository {
       appointment.confirmed_at = confirmed_at;
       appointment.confirmed_by = confirmed_by;
     }
+  }
+
+  public async summarizeByClients(
+    client_ids: string[],
+    now: Date,
+    recentCount: number,
+  ): Promise<IClientSummaryDTO[]> {
+    return client_ids
+      .map(client_id => {
+        const mine = this.appointments.filter(
+          item => item.client_id === client_id,
+        );
+        const completed = mine.filter(item => item.attendance === 'completed');
+        const noShows = mine.filter(item => item.attendance === 'no_show');
+        const upcoming = mine
+          .filter(item => !item.canceled_at && isAfter(item.date, now))
+          .sort((a, b) => a.date.getTime() - b.date.getTime());
+        const lastVisit = completed
+          .map(item => item.date)
+          .sort((a, b) => b.getTime() - a.getTime())[0];
+
+        return {
+          client_id,
+          count: mine.length,
+          completed: completed.length,
+          no_shows: noShows.length,
+          recent_no_shows: mine
+            .filter(item => !item.canceled_at && isBefore(item.date, now))
+            .sort((a, b) => b.date.getTime() - a.date.getTime())
+            .slice(0, recentCount)
+            .filter(item => item.attendance === 'no_show').length,
+          canceled: mine.filter(item => item.canceled_at).length,
+          total_cents: completed.reduce(
+            (sum, item) => sum + (item.price_cents || 0),
+            0,
+          ),
+          last_visit: lastVisit || null,
+          next_appointment: upcoming[0]?.date || null,
+        };
+      })
+      .filter(summary => summary.count > 0)
+      .map(({ count: _, ...summary }) => summary);
+  }
+
+  public async findAllFromClient(client_id: string): Promise<Appointment[]> {
+    return this.appointments
+      .filter(item => item.client_id === client_id)
+      .sort((a, b) => b.date.getTime() - a.date.getTime());
   }
 
   public async countUpcomingFromProvider(

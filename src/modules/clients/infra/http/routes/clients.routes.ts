@@ -48,4 +48,46 @@ clientsRouter.get(
   clientsController.index,
 );
 
+// Ficha e lista de clientes (barbearia)
+clientsRouter.get(
+  '/directory',
+  ensureAuthenticated,
+  ensureRole('provider'),
+  celebrate({
+    [Segments.QUERY]: {
+      search: Joi.string().trim().max(100).allow(''),
+      page: Joi.number().integer().min(1).max(10000),
+    },
+  }),
+  clientsController.directory,
+);
+
+const clientId = {
+  [Segments.PARAMS]: { id: Joi.string().uuid().required() },
+};
+
+clientsRouter.get(
+  '/:id',
+  ensureAuthenticated,
+  ensureRole('provider'),
+  celebrate(clientId),
+  clientsController.show,
+);
+
+clientsRouter.put(
+  '/:id',
+  ensureAuthenticated,
+  ensureRole('provider'),
+  celebrate({
+    ...clientId,
+    [Segments.BODY]: {
+      name: Joi.string().trim().max(100).required(),
+      phone: Joi.string().trim().max(30).required(),
+      email: Joi.string().trim().email().max(100).allow('', null),
+      notes: Joi.string().max(2000).allow('', null),
+    },
+  }),
+  clientsController.update,
+);
+
 export default clientsRouter;

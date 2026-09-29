@@ -1,3 +1,4 @@
+import FakeSettingsRepository from '@modules/catalog/repositories/fakes/FakeSettingsRepository';
 import FakeUsersRepository from '@modules/users/repositories/fakes/FakeUsersRepository';
 import FakeProviderSchedulesRepository from '@modules/users/repositories/fakes/FakeProviderSchedulesRepository';
 import Client from '@modules/clients/infra/typeorm/entities/Client';
@@ -5,6 +6,7 @@ import FakeAppointmentsRepository from '../repositories/fakes/FakeAppointmentsRe
 import FakeTimeBlocksRepository from '../repositories/fakes/FakeTimeBlocksRepository';
 import makeAppointmentData from '../repositories/fakes/makeAppointmentData';
 import ListDayAgendaService from './ListDayAgendaService';
+import NoShowPolicyService from './NoShowPolicyService';
 
 let fakeUsersRepository: FakeUsersRepository;
 let fakeAppointmentsRepository: FakeAppointmentsRepository;
@@ -21,6 +23,10 @@ describe('ListDayAgenda', () => {
       fakeAppointmentsRepository,
       fakeProviderSchedulesRepository,
       new FakeTimeBlocksRepository(),
+      new NoShowPolicyService(
+        new FakeSettingsRepository(),
+        fakeAppointmentsRepository,
+      ),
     );
   });
 
@@ -72,6 +78,7 @@ describe('ListDayAgenda', () => {
       email: 'maria@example.test',
       phone: '999',
       password: 'hashed-password',
+      notes: 'Prefere tesoura',
     });
 
     const appointmentA = await fakeAppointmentsRepository.create(
@@ -118,6 +125,11 @@ describe('ListDayAgenda', () => {
       name: 'Maria',
       email: 'maria@example.test',
       phone: '999',
+      notes: 'Prefere tesoura',
+      completed: 0,
+      no_shows: 0,
+      last_visit: null,
+      no_show_alert: false,
     });
     // Data em que a marcação foi feita, para os detalhes do agendamento
     expect(appointments[1].created_at).toBe(appointmentA.created_at);
@@ -164,5 +176,60 @@ describe('ListDayAgenda', () => {
     expect(providers.map(provider => [provider.name, provider.active])).toEqual(
       [['Bia', false]],
     );
+  });
+
+  it('should flag clients who missed appointments recently', async () => {
+    jest
+      .spyOn(Date, 'now')
+      .mockImplementation(() => new Date(2020, 4, 20, 8).getTime());
+
+    const client = Object.assign(new Client(), {
+      id: 'client-id',
+      name: 'Maria',
+      phone: '999',
+    });
+
+    // Duas faltas nos últimos 12 meses e um atendimento concluído
+    const past = [
+      [new Date(2020, 1, 10, 9), 'no_show'],
+      [new Date(2020, 2, 10, 9), 'no_show'],
+      [new Date(2020, 3, 10, 9), 'completed'],
+    ] as const;
+
+    await Promise.all(
+      past.map(async ([date, attendance]) => {
+        const appointment = await fakeAppointmentsRepository.create(
+          makeAppointmentData({
+            provider_id: 'provider-a',
+            client_id: client.id,
+            date,
+          }),
+        );
+        appointment.attendance = attendance;
+      }),
+    );
+
+    const today = await fakeAppointmentsRepository.create(
+      makeAppointmentData({
+        provider_id: 'provider-a',
+        client_id: client.id,
+        date: new Date(2020, 4, 20, 15),
+      }),
+    );
+    today.client = client;
+
+    const { appointments } = await listDayAgenda.execute({
+      day: 20,
+      month: 5,
+      year: 2020,
+    });
+
+    expect(appointments[0].client).toMatchObject({
+      completed: 1,
+      no_shows: 2,
+      last_visit: new Date(2020, 3, 10, 9),
+      // Padrão: alerta a partir de 2 faltas
+      no_show_alert: true,
+    });
   });
 });

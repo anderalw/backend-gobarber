@@ -19,6 +19,7 @@ import IFindAllInDayFromProviderDTO from '@modules/appointments/dtos/IFindAllInD
 import IFindAllInDayDTO from '@modules/appointments/dtos/IFindAllInDayDTO';
 import IFindOverlappingDTO from '@modules/appointments/dtos/IFindOverlappingDTO';
 import ISetAttendanceDTO from '@modules/appointments/dtos/ISetAttendanceDTO';
+import IClientSummaryDTO from '@modules/appointments/dtos/IClientSummaryDTO';
 
 import Appointment from '../entities/Appointment';
 
@@ -230,6 +231,67 @@ class AppointmentsRepository implements IAppointmentsRepository {
     confirmed_by: string | null = null,
   ): Promise<void> {
     await this.ormRepository.update(id, { confirmed_at, confirmed_by });
+  }
+
+  public async summarizeByClients(
+    client_ids: string[],
+    now: Date,
+    recentCount: number,
+  ): Promise<IClientSummaryDTO[]> {
+    if (client_ids.length === 0) return [];
+
+    const rows: Array<Record<string, string | Date | null>> =
+      await this.ormRepository.query(
+        `SELECT a.client_id,
+          COUNT(*) FILTER (WHERE a.attendance = 'completed') AS completed,
+          COUNT(*) FILTER (WHERE a.attendance = 'no_show') AS no_shows,
+          COALESCE(r.recent_no_shows, 0) AS recent_no_shows,
+          COUNT(*) FILTER (WHERE a.canceled_at IS NOT NULL) AS canceled,
+          COALESCE(SUM(a.price_cents) FILTER (WHERE a.attendance = 'completed'), 0) AS total_cents,
+          MAX(a.date) FILTER (WHERE a.attendance = 'completed') AS last_visit,
+          MIN(a.date) FILTER (WHERE a.canceled_at IS NULL AND a.date > $2) AS next_appointment
+        FROM appointments a
+        LEFT JOIN (
+          SELECT client_id,
+            COUNT(*) FILTER (WHERE attendance = 'no_show') AS recent_no_shows
+          FROM (
+            SELECT client_id, attendance,
+              ROW_NUMBER() OVER (PARTITION BY client_id ORDER BY date DESC) AS position
+            FROM appointments
+            WHERE client_id = ANY($1::uuid[])
+              AND canceled_at IS NULL
+              AND date < $2
+          ) ranked
+          WHERE position <= $3
+          GROUP BY client_id
+        ) r ON r.client_id = a.client_id
+        WHERE a.client_id = ANY($1::uuid[])
+        GROUP BY a.client_id, r.recent_no_shows`,
+        [client_ids, now, recentCount],
+      );
+
+    return rows.map(row => ({
+      client_id: String(row.client_id),
+      completed: Number(row.completed),
+      no_shows: Number(row.no_shows),
+      recent_no_shows: Number(row.recent_no_shows),
+      canceled: Number(row.canceled),
+      total_cents: Number(row.total_cents),
+      last_visit: row.last_visit ? new Date(row.last_visit) : null,
+      next_appointment: row.next_appointment
+        ? new Date(row.next_appointment)
+        : null,
+    }));
+  }
+
+  public async findAllFromClient(client_id: string): Promise<Appointment[]> {
+    if (!client_id) return [];
+
+    return this.ormRepository.find({
+      where: { client_id },
+      relations: ['provider', 'service'],
+      order: { date: 'DESC' },
+    });
   }
 
   public async countUpcomingFromProvider(

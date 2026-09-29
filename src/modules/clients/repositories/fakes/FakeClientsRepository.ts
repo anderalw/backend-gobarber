@@ -33,6 +33,22 @@ class FakeClientsRepository implements IClientsRepository {
     return this.clients.find(client => client.id === id);
   }
 
+  public async list({
+    search,
+    offset,
+    limit,
+  }: {
+    search: string;
+    offset: number;
+    limit: number;
+  }): Promise<{ clients: Client[]; total: number }> {
+    const all = search
+      ? await this.search(search, Number.MAX_SAFE_INTEGER)
+      : [...this.clients].sort((a, b) => a.name.localeCompare(b.name));
+
+    return { clients: all.slice(offset, offset + limit), total: all.length };
+  }
+
   public async search(term: string, limit: number): Promise<Client[]> {
     const lower = term.toLowerCase();
 

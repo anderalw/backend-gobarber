@@ -8,4 +8,10 @@ export default interface IClientsRepository {
   findById(id: string): Promise<Client | undefined>;
   // Busca por nome, e-mail ou telefone (para o barbeiro marcar pela agenda)
   search(term: string, limit: number): Promise<Client[]>;
+  // Página da lista de clientes em ordem de nome; search vazio = todos
+  list(options: {
+    search: string;
+    offset: number;
+    limit: number;
+  }): Promise<{ clients: Client[]; total: number }>;
 }

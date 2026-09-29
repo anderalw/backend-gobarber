@@ -7,6 +7,10 @@ import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
 import { Attendance } from '../infra/typeorm/entities/Appointment';
 import ITimeBlocksRepository from '../repositories/ITimeBlocksRepository';
 import IBlockPeriod from '../dtos/IBlockPeriod';
+import NoShowPolicyService, {
+  hasNoShowAlert,
+  RECENT_APPOINTMENTS,
+} from './NoShowPolicyService';
 
 interface IRequest {
   day: number;
@@ -53,6 +57,13 @@ interface IAgendaAppointment {
     name: string;
     email: string | null;
     phone: string;
+    notes: string | null;
+    // Atendimentos concluídos, faltas e última visita
+    completed: number;
+    no_shows: number;
+    last_visit: Date | null;
+    // Faltas recentes acima do limite da política de faltas
+    no_show_alert: boolean;
   } | null;
 }
 
@@ -90,6 +101,9 @@ class ListDayAgendaService {
 
     @inject('TimeBlocksRepository')
     private timeBlocksRepository: ITimeBlocksRepository,
+
+    @inject(NoShowPolicyService)
+    private noShowPolicy: NoShowPolicyService,
   ) {}
 
   public async execute({ day, month, year }: IRequest): Promise<IResponse> {
@@ -104,6 +118,23 @@ class ListDayAgendaService {
         start: startOfDay(date),
         end: endOfDay(date),
       }),
+    ]);
+
+    const now = new Date(Date.now());
+    const clientIds = Array.from(
+      new Set(
+        appointments.flatMap(appointment =>
+          appointment.client_id ? [appointment.client_id] : [],
+        ),
+      ),
+    );
+    const [summaries, policy] = await Promise.all([
+      this.appointmentsRepository.summarizeByClients(
+        clientIds,
+        now,
+        RECENT_APPOINTMENTS,
+      ),
+      this.noShowPolicy.get(),
     ]);
 
     const providers = users
@@ -126,6 +157,28 @@ class ListDayAgendaService {
         };
       })
       .sort((a, b) => a.name.localeCompare(b.name));
+
+    const clientWithHistory = (client: {
+      id: string;
+      name: string;
+      email: string | null;
+      phone: string;
+      notes: string | null;
+    }): NonNullable<IAgendaAppointment['client']> => {
+      const summary = summaries.find(item => item.client_id === client.id);
+
+      return {
+        id: client.id,
+        name: client.name,
+        email: client.email,
+        phone: client.phone,
+        notes: client.notes ?? null,
+        completed: summary?.completed || 0,
+        no_shows: summary?.no_shows || 0,
+        last_visit: summary?.last_visit || null,
+        no_show_alert: hasNoShowAlert(summary?.recent_no_shows || 0, policy),
+      };
+    };
 
     const confirmedBy = (
       id: string | null,
@@ -153,12 +206,7 @@ class ListDayAgendaService {
         confirmation_requested_at: appointment.confirmation_requested_at,
         created_at: appointment.created_at,
         client: appointment.client
-          ? {
-              id: appointment.client.id,
-              name: appointment.client.name,
-              email: appointment.client.email,
-              phone: appointment.client.phone,
-            }
+          ? clientWithHistory(appointment.client)
           : null,
       })),
       blocks: blocks.map(block => ({

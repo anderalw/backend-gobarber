@@ -37,6 +37,34 @@ class ClientsRepository implements IClientsRepository {
     });
   }
 
+  public async list({
+    search,
+    offset,
+    limit,
+  }: {
+    search: string;
+    offset: number;
+    limit: number;
+  }): Promise<{ clients: Client[]; total: number }> {
+    const pattern = `%${search.replace(/[\\%_]/g, char => `\\${char}`)}%`;
+    const where = search
+      ? [
+          { name: ILike(pattern) },
+          { email: ILike(pattern) },
+          { phone: ILike(pattern) },
+        ]
+      : undefined;
+
+    const [clients, total] = await this.ormRepository.findAndCount({
+      where,
+      order: { name: 'ASC', id: 'ASC' },
+      skip: offset,
+      take: limit,
+    });
+
+    return { clients, total };
+  }
+
   public async save(client: Client): Promise<Client> {
     return this.ormRepository.save(client);
   }

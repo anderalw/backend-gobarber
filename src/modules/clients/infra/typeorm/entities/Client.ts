@@ -27,6 +27,10 @@ class Client {
   @Column()
   phone: string;
 
+  // Observações da barbearia (preferências, alergias...)
+  @Column({ type: 'text', nullable: true })
+  notes: string | null;
+
   @CreateDateColumn({ type: 'timestamp with time zone' })
   created_at: Date;
 
