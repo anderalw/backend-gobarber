@@ -10,6 +10,8 @@ import SetConfirmationService from '@modules/appointments/services/SetConfirmati
 import SetAttendanceService from '@modules/appointments/services/SetAttendanceService';
 import ListClientAppointmentsService from '@modules/appointments/services/ListClientAppointmentsService';
 import NoShowPolicyService from '@modules/appointments/services/NoShowPolicyService';
+import CreateAppointmentSeriesService from '@modules/appointments/services/CreateAppointmentSeriesService';
+import CancelSeriesService from '@modules/appointments/services/CancelSeriesService';
 
 export default class AppointmentsController {
   public async create(request: Request, response: Response): Promise<Response> {
@@ -75,6 +77,52 @@ export default class AppointmentsController {
     });
 
     return response.json(appointment);
+  }
+
+  // Cliente fixo marcado pela agenda (dry_run: só a prévia dos horários)
+  public async createSeries(
+    request: Request,
+    response: Response,
+  ): Promise<Response> {
+    const {
+      provider_id,
+      service_id,
+      client_id,
+      date,
+      interval_weeks,
+      count,
+      dry_run,
+    } = request.body;
+
+    const createSeries = container.resolve(CreateAppointmentSeriesService);
+
+    const result = await createSeries.execute({
+      requester_id: request.user.id,
+      provider_id,
+      service_id,
+      client_id,
+      date: new Date(date),
+      interval_weeks,
+      count,
+      dry_run,
+    });
+
+    return response.json(result);
+  }
+
+  // Cancela o horário e os seguintes do mesmo cliente fixo
+  public async cancelSeries(
+    request: Request,
+    response: Response,
+  ): Promise<Response> {
+    const cancelSeries = container.resolve(CancelSeriesService);
+
+    const canceled = await cancelSeries.execute({
+      appointment_id: request.params.id,
+      requester_id: request.user.id,
+    });
+
+    return response.json({ canceled: canceled.length });
   }
 
   // Próximos agendamentos do cliente logado

@@ -4,6 +4,7 @@ import {
   IsNull,
   LessThan,
   MoreThan,
+  MoreThanOrEqual,
   Not,
   QueryFailedError,
 } from 'typeorm';
@@ -282,6 +283,19 @@ class AppointmentsRepository implements IAppointmentsRepository {
         ? new Date(row.next_appointment)
         : null,
     }));
+  }
+
+  public async findFollowingInSeries(
+    series_id: string,
+    from: Date,
+  ): Promise<Appointment[]> {
+    if (!series_id) return [];
+
+    return this.ormRepository.find({
+      where: { ...ACTIVE, series_id, date: MoreThanOrEqual(from) },
+      relations: ['client', 'provider', 'service'],
+      order: { date: 'ASC' },
+    });
   }
 
   public async findAllFromClient(client_id: string): Promise<Appointment[]> {

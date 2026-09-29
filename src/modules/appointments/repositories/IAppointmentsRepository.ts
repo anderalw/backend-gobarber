@@ -69,6 +69,9 @@ export default interface IAppointmentsRepository {
   // Todos os agendamentos do cliente, inclusive cancelados, do mais recente
   // ao mais antigo, com o barbeiro e o serviço
   findAllFromClient(client_id: string): Promise<Appointment[]>;
+  // Cliente fixo: agendamentos ativos da série a partir de from (inclusive),
+  // em ordem, com cliente, barbeiro e serviço
+  findFollowingInSeries(series_id: string, from: Date): Promise<Appointment[]>;
   // Agendamentos do barbeiro que ainda não terminaram, em ordem
   findUpcomingFromProvider(
     provider_id: string,

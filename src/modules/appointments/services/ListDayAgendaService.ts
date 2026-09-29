@@ -7,6 +7,7 @@ import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
 import { Attendance } from '../infra/typeorm/entities/Appointment';
 import ITimeBlocksRepository from '../repositories/ITimeBlocksRepository';
 import IBlockPeriod from '../dtos/IBlockPeriod';
+import IAppointmentSeriesRepository from '../repositories/IAppointmentSeriesRepository';
 import NoShowPolicyService, {
   hasNoShowAlert,
   RECENT_APPOINTMENTS,
@@ -47,6 +48,8 @@ interface IAgendaAppointment {
   confirmed_at: Date | null;
   // Barbeiro que registrou a confirmação; null = o cliente, pelo link
   confirmed_by: { id: string; name: string } | null;
+  // Cliente fixo: repetição e quantos horários faltam, contando este
+  series: { id: string; interval_weeks: number; remaining: number } | null;
   // Quando o pedido de confirmação foi enviado (null = ainda não foi)
   confirmation_requested_at: Date | null;
   // Quando o cliente fez a marcação
@@ -104,6 +107,9 @@ class ListDayAgendaService {
 
     @inject(NoShowPolicyService)
     private noShowPolicy: NoShowPolicyService,
+
+    @inject('AppointmentSeriesRepository')
+    private seriesRepository: IAppointmentSeriesRepository,
   ) {}
 
   public async execute({ day, month, year }: IRequest): Promise<IResponse> {
@@ -128,14 +134,45 @@ class ListDayAgendaService {
         ),
       ),
     );
-    const [summaries, policy] = await Promise.all([
+    const inSeries = appointments.filter(appointment => appointment.series_id);
+    const [summaries, policy, seriesList, remaining] = await Promise.all([
       this.appointmentsRepository.summarizeByClients(
         clientIds,
         now,
         RECENT_APPOINTMENTS,
       ),
       this.noShowPolicy.get(),
+      this.seriesRepository.findByIds(
+        Array.from(new Set(inSeries.map(item => item.series_id as string))),
+      ),
+      Promise.all(
+        inSeries.map(async item => ({
+          id: item.id,
+          count: (
+            await this.appointmentsRepository.findFollowingInSeries(
+              item.series_id as string,
+              item.date,
+            )
+          ).length,
+        })),
+      ),
     ]);
+
+    const seriesOf = (appointment: {
+      id: string;
+      series_id: string | null;
+    }): IAgendaAppointment['series'] => {
+      const series = seriesList.find(item => item.id === appointment.series_id);
+
+      if (!series) return null;
+
+      return {
+        id: series.id,
+        interval_weeks: series.interval_weeks,
+        remaining:
+          remaining.find(item => item.id === appointment.id)?.count || 1,
+      };
+    };
 
     const providers = users
       .filter(
@@ -203,6 +240,7 @@ class ListDayAgendaService {
         attendance: appointment.attendance,
         confirmed_at: appointment.confirmed_at,
         confirmed_by: confirmedBy(appointment.confirmed_by),
+        series: seriesOf(appointment),
         confirmation_requested_at: appointment.confirmation_requested_at,
         created_at: appointment.created_at,
         client: appointment.client

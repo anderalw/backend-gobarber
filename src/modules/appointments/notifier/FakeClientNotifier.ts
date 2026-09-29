@@ -2,8 +2,16 @@ import Appointment from '../infra/typeorm/entities/Appointment';
 import IClientNotifier from './IClientNotifier';
 
 interface ISentNotice {
-  kind: 'created' | 'confirmation' | 'rescheduled' | 'canceled';
+  kind:
+    | 'created'
+    | 'confirmation'
+    | 'rescheduled'
+    | 'canceled'
+    | 'series-created'
+    | 'series-canceled';
+  // Na série, o primeiro horário
   appointment_id: string;
+  count?: number;
   link?: string;
 }
 
@@ -32,5 +40,21 @@ export default class FakeClientNotifier implements IClientNotifier {
 
   public async appointmentCanceled(appointment: Appointment): Promise<void> {
     this.sent.push({ kind: 'canceled', appointment_id: appointment.id });
+  }
+
+  public async seriesCreated(appointments: Appointment[]): Promise<void> {
+    this.sent.push({
+      kind: 'series-created',
+      appointment_id: appointments[0].id,
+      count: appointments.length,
+    });
+  }
+
+  public async seriesCanceled(appointments: Appointment[]): Promise<void> {
+    this.sent.push({
+      kind: 'series-canceled',
+      appointment_id: appointments[0].id,
+      count: appointments.length,
+    });
   }
 }

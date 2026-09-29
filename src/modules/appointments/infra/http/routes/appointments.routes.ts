@@ -55,6 +55,23 @@ appointmentsRouter.post(
   }),
   appointmentsController.createByProvider,
 );
+// Cliente fixo: o mesmo horário a cada N semanas
+appointmentsRouter.post(
+  '/series',
+  ensureRole('provider'),
+  celebrate({
+    [Segments.BODY]: {
+      provider_id: Joi.string().uuid().required(),
+      service_id: Joi.string().uuid().required(),
+      client_id: Joi.string().uuid().required(),
+      date: Joi.date().required(),
+      interval_weeks: Joi.number().integer().min(1).max(8).required(),
+      count: Joi.number().integer().min(2).max(26).required(),
+      dry_run: Joi.boolean(),
+    },
+  }),
+  appointmentsController.createSeries,
+);
 appointmentsRouter.get(
   '/me',
   ensureRole('provider'),
@@ -72,6 +89,12 @@ appointmentsRouter.patch(
   '/:id/cancel',
   celebrate(appointmentId),
   appointmentsController.cancel,
+);
+appointmentsRouter.patch(
+  '/:id/cancel-series',
+  ensureRole('provider'),
+  celebrate(appointmentId),
+  appointmentsController.cancelSeries,
 );
 appointmentsRouter.patch(
   '/:id/reschedule',

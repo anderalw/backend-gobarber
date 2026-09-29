@@ -1,0 +1,42 @@
+<style>
+.message-content {
+  font-family: Arial, Helvetica, sans-serif;
+  max-width: 600px;
+  font-size: 16px;
+  line-height: 22px;
+  color: #232129;
+}
+.details {
+  padding: 12px 16px;
+  border-left: 4px solid #ff9000;
+  background: #f4ede8;
+}
+.dates {
+  margin: 8px 0 0;
+  padding-left: 20px;
+}
+</style>
+
+<div class="message-content">
+  <p>Olá, {{name}}!</p>
+  <p>
+    Seus horários fixos estão marcados ({{interval}}):
+  </p>
+  <div class="details">
+    <strong>{{service}}</strong> com {{provider}}
+    <ul class="dates">
+      {{#each dates}}
+      <li>{{this}}</li>
+      {{/each}}
+    </ul>
+  </div>
+  <p>
+    Na véspera de cada um você recebe um e-mail para confirmar a presença.
+    Para remarcar ou cancelar, acesse
+    <a href="{{myAppointmentsLink}}">Meus agendamentos</a>.
+  </p>
+  <p>
+    Até breve! <br/>
+    <strong>Equipe GoBarber</strong>
+  </p>
+</div>

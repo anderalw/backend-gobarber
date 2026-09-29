@@ -88,6 +88,10 @@ class Appointment {
   @Column({ type: 'timestamp with time zone', nullable: true })
   confirmed_at: Date | null;
 
+  // Cliente fixo: série de horários marcados juntos (null = avulso)
+  @Column({ type: 'uuid', nullable: true })
+  series_id: string | null;
+
   // Barbeiro que registrou a confirmação; null = o cliente, pelo link
   @Column({ type: 'uuid', nullable: true })
   confirmed_by: string | null;

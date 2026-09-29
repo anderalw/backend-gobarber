@@ -6,6 +6,7 @@ import FakeTimeBlocksRepository from '../repositories/fakes/FakeTimeBlocksReposi
 import makeAppointmentData from '../repositories/fakes/makeAppointmentData';
 import ListDayAgendaService from './ListDayAgendaService';
 import NoShowPolicyService from './NoShowPolicyService';
+import FakeAppointmentSeriesRepository from '../repositories/fakes/FakeAppointmentSeriesRepository';
 import ListWeekAgendaService from './ListWeekAgendaService';
 
 describe('ListWeekAgenda', () => {
@@ -25,6 +26,7 @@ describe('ListWeekAgenda', () => {
           new FakeSettingsRepository(),
           fakeAppointmentsRepository,
         ),
+        new FakeAppointmentSeriesRepository(),
       ),
     );
 

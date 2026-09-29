@@ -23,6 +23,9 @@ interface IRequest {
   client_id: string;
   // false quando o próprio barbeiro marcou na agenda dele
   notifyProvider?: boolean;
+  // false no cliente fixo: um e-mail só para a série inteira
+  notifyClient?: boolean;
+  series_id?: string | null;
 }
 @injectable()
 class CreateAppointmentsServices {
@@ -60,6 +63,8 @@ class CreateAppointmentsServices {
     client_id,
     service_id,
     notifyProvider = true,
+    notifyClient = true,
+    series_id = null,
   }: IRequest): Promise<Appointment> {
     const appointmentDate = setMilliseconds(setSeconds(date, 0), 0);
 
@@ -97,6 +102,7 @@ class CreateAppointmentsServices {
       date: appointmentDate,
       end_date: end,
       blocked_until: blockedUntil,
+      series_id,
     });
     const dateFormatted = format(appointmentDate, "dd/MM/yyyy 'às' HH:mm'h'");
 
@@ -115,9 +121,11 @@ class CreateAppointmentsServices {
       )}`,
     );
 
-    // Com cliente, barbeiro e serviço para o e-mail
-    const full = await this.appointmentsRepository.findById(appointment.id);
-    await this.clientNotifier.appointmentCreated(full || appointment);
+    if (notifyClient) {
+      // Com cliente, barbeiro e serviço para o e-mail
+      const full = await this.appointmentsRepository.findById(appointment.id);
+      await this.clientNotifier.appointmentCreated(full || appointment);
+    }
 
     return appointment;
   }

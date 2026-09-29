@@ -87,11 +87,49 @@ export default class EmailClientNotifier implements IClientNotifier {
     );
   }
 
+  public async seriesCreated(
+    appointments: Appointment[],
+    intervalWeeks: number,
+  ): Promise<void> {
+    const [first] = appointments;
+
+    await this.send(
+      first,
+      `[GoBarber] ${appointments.length} horários marcados a partir de ${format(
+        first.date,
+        'dd/MM',
+      )}`,
+      'appointment_series_created.hbs',
+      {
+        dates: appointments.map(item => when(item.date)),
+        count: appointments.length,
+        interval:
+          intervalWeeks === 1
+            ? 'toda semana'
+            : `a cada ${intervalWeeks} semanas`,
+      },
+    );
+  }
+
+  public async seriesCanceled(appointments: Appointment[]): Promise<void> {
+    const [first] = appointments;
+
+    await this.send(
+      first,
+      `[GoBarber] ${appointments.length} horários cancelados`,
+      'appointment_series_canceled.hbs',
+      {
+        dates: appointments.map(item => when(item.date)),
+        count: appointments.length,
+      },
+    );
+  }
+
   private async send(
     appointment: Appointment,
     subject: string,
     template: string,
-    extra: Record<string, string | boolean> = {},
+    extra: Record<string, string | number | boolean | string[]> = {},
   ): Promise<void> {
     const { client } = appointment;
 

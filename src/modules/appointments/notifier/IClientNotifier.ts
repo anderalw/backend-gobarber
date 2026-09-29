@@ -19,4 +19,11 @@ export default interface IClientNotifier {
   ): Promise<void>;
   // Informativo: o horário foi cancelado
   appointmentCanceled(appointment: Appointment): Promise<void>;
+  // Cliente fixo: um e-mail com todos os horários marcados (em ordem)
+  seriesCreated(
+    appointments: Appointment[],
+    intervalWeeks: number,
+  ): Promise<void>;
+  // Cliente fixo: um e-mail com os horários cancelados
+  seriesCanceled(appointments: Appointment[]): Promise<void>;
 }
