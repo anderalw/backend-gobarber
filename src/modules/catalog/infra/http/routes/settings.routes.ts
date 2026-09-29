@@ -1,12 +1,10 @@
-import { NextFunction, Request, Response, Router } from 'express';
-import multer from 'multer';
+import { Router } from 'express';
 import { celebrate, Segments, Joi } from 'celebrate';
 
 import ensureAuthenticated from '@modules/users/infra/http/middlewares/ensureAuthenticated';
 import ensureAdmin from '@shared/infra/http/middlewares/ensureAdmin';
 import ensureRole from '@shared/infra/http/middlewares/ensureRole';
-import uploadConfig from '@config/upload';
-import AppError from '@shared/errors/AppError';
+import receiveImage from '@shared/infra/http/middlewares/receiveImage';
 import AgendaSettingsController from '../controllers/AgendaSettingsController';
 import NoShowPolicyController from '../controllers/NoShowPolicyController';
 import BrandingController from '../controllers/BrandingController';
@@ -15,46 +13,6 @@ const settingsRouter = Router();
 const agendaSettingsController = new AgendaSettingsController();
 const noShowPolicyController = new NoShowPolicyController();
 const brandingController = new BrandingController();
-
-// Logo: só imagens, até 2 MB
-const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
-const logoUpload = multer({
-  ...uploadConfig.multer,
-  limits: { fileSize: 2 * 1024 * 1024 },
-  fileFilter(request, file, callback) {
-    if (!LOGO_TYPES.includes(file.mimetype)) {
-      callback(Object.assign(new Error('tipo'), { code: 'LOGO_TYPE' }));
-      return;
-    }
-
-    callback(null, true);
-  },
-}).single('logo');
-
-// Erros do upload (tamanho, tipo) como mensagens para o usuário
-function receiveLogo(
-  request: Request,
-  response: Response,
-  next: NextFunction,
-): void {
-  logoUpload(request, response, err => {
-    if (err) {
-      const messages: Record<string, string> = {
-        LOGO_TYPE: 'Envie uma imagem PNG, JPG, WEBP ou SVG.',
-        LIMIT_FILE_SIZE: 'A imagem pode ter no máximo 2 MB.',
-      };
-
-      next(
-        new AppError(
-          messages[err.code] || 'Não foi possível receber a imagem.',
-        ),
-      );
-      return;
-    }
-
-    next();
-  });
-}
 
 // Identidade da barbearia: pública (o site e o login usam antes de entrar)
 settingsRouter.get('/branding', brandingController.show);
@@ -80,7 +38,7 @@ settingsRouter.put(
 settingsRouter.patch(
   '/branding/logo',
   ...onlyAdmin,
-  receiveLogo,
+  receiveImage('logo', 2),
   brandingController.updateLogo,
 );
 
