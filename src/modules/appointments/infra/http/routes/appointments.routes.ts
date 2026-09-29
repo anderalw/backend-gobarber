@@ -85,6 +85,18 @@ appointmentsRouter.patch(
   appointmentsController.reschedule,
 );
 
+// Antes do horário: a barbearia registra que o cliente confirmou (por
+// telefone, por exemplo), ou desfaz esse registro
+appointmentsRouter.patch(
+  '/:id/confirmation',
+  ensureRole('provider'),
+  celebrate({
+    ...appointmentId,
+    [Segments.BODY]: { confirmed: Joi.boolean().required() },
+  }),
+  appointmentsController.confirmation,
+);
+
 // Depois do horário: o barbeiro registra se o cliente foi atendido ou faltou
 appointmentsRouter.patch(
   '/:id/attendance',

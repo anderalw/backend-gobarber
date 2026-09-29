@@ -50,7 +50,13 @@ export default interface IAppointmentsRepository {
   ): Promise<boolean>;
   // Com cliente, barbeiro e serviço
   findByConfirmationToken(token: string): Promise<Appointment | undefined>;
-  markConfirmed(id: string, confirmed_at: Date): Promise<void>;
+  // confirmed_by: barbeiro que registrou (omitido = o cliente, pelo link);
+  // confirmed_at null desfaz
+  markConfirmed(
+    id: string,
+    confirmed_at: Date | null,
+    confirmed_by?: string | null,
+  ): Promise<void>;
   // Agendamentos do barbeiro que ainda não terminaram, em ordem
   findUpcomingFromProvider(
     provider_id: string,

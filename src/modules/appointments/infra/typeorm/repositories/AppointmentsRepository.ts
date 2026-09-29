@@ -224,8 +224,12 @@ class AppointmentsRepository implements IAppointmentsRepository {
     return appointment ?? undefined;
   }
 
-  public async markConfirmed(id: string, confirmed_at: Date): Promise<void> {
-    await this.ormRepository.update(id, { confirmed_at });
+  public async markConfirmed(
+    id: string,
+    confirmed_at: Date | null,
+    confirmed_by: string | null = null,
+  ): Promise<void> {
+    await this.ormRepository.update(id, { confirmed_at, confirmed_by });
   }
 
   public async countUpcomingFromProvider(
@@ -266,6 +270,7 @@ class AppointmentsRepository implements IAppointmentsRepository {
       confirmation_token,
       confirmation_requested_at,
       confirmed_at,
+      confirmed_by,
     } = appointment;
 
     try {
@@ -280,6 +285,7 @@ class AppointmentsRepository implements IAppointmentsRepository {
         confirmation_token,
         confirmation_requested_at,
         confirmed_at,
+        confirmed_by,
       });
     } catch (err) {
       if (isOverlapError(err)) {

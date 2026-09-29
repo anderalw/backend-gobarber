@@ -38,8 +38,11 @@ interface IAgendaAppointment {
   price_cents: number | null;
   // Concluído ou falta; null = ainda não registrado
   attendance: Attendance | null;
-  // Quando o cliente confirmou pelo link do e-mail (null = não confirmou)
+  // Quando o cliente confirmou pelo link do e-mail, ou a barbearia registrou
+  // (null = não confirmou)
   confirmed_at: Date | null;
+  // Barbeiro que registrou a confirmação; null = o cliente, pelo link
+  confirmed_by: { id: string; name: string } | null;
   // Quando o pedido de confirmação foi enviado (null = ainda não foi)
   confirmation_requested_at: Date | null;
   // Quando o cliente fez a marcação
@@ -124,6 +127,14 @@ class ListDayAgendaService {
       })
       .sort((a, b) => a.name.localeCompare(b.name));
 
+    const confirmedBy = (
+      id: string | null,
+    ): IAgendaAppointment['confirmed_by'] => {
+      const user = id ? users.find(item => item.id === id) : undefined;
+
+      return user ? { id: user.id, name: user.name } : null;
+    };
+
     return {
       providers,
       appointments: appointments.map(appointment => ({
@@ -138,6 +149,7 @@ class ListDayAgendaService {
         price_cents: appointment.price_cents,
         attendance: appointment.attendance,
         confirmed_at: appointment.confirmed_at,
+        confirmed_by: confirmedBy(appointment.confirmed_by),
         confirmation_requested_at: appointment.confirmation_requested_at,
         created_at: appointment.created_at,
         client: appointment.client

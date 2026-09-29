@@ -161,10 +161,17 @@ class AppointmentsRepository implements IAppointmentsRepository {
     );
   }
 
-  public async markConfirmed(id: string, confirmed_at: Date): Promise<void> {
+  public async markConfirmed(
+    id: string,
+    confirmed_at: Date | null,
+    confirmed_by: string | null = null,
+  ): Promise<void> {
     const appointment = this.appointments.find(item => item.id === id);
 
-    if (appointment) appointment.confirmed_at = confirmed_at;
+    if (appointment) {
+      appointment.confirmed_at = confirmed_at;
+      appointment.confirmed_by = confirmed_by;
+    }
   }
 
   public async countUpcomingFromProvider(
@@ -204,6 +211,7 @@ class AppointmentsRepository implements IAppointmentsRepository {
       confirmation_token: null,
       confirmation_requested_at: null,
       confirmed_at: null,
+      confirmed_by: null,
       // No banco, preenchido pelo @CreateDateColumn
       created_at: new Date(),
     });

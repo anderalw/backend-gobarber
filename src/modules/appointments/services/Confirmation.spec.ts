@@ -7,12 +7,14 @@ import makeAppointmentData from '../repositories/fakes/makeAppointmentData';
 import Appointment from '../infra/typeorm/entities/Appointment';
 import SendConfirmationRequestsService from './SendConfirmationRequestsService';
 import ConfirmAppointmentService from './ConfirmAppointmentService';
+import SetConfirmationService from './SetConfirmationService';
 
 let fakeAppointmentsRepository: FakeAppointmentsRepository;
 let fakeNotificationsRepository: FakeNotificationsRepository;
 let fakeClientNotifier: FakeClientNotifier;
 let sendRequests: SendConfirmationRequestsService;
 let confirmAppointment: ConfirmAppointmentService;
+let setConfirmation: SetConfirmationService;
 
 // "Agora" é 29/09/2026 às 12:00
 const at = (day: number, hours: number): Date => new Date(2026, 8, day, hours);
@@ -60,6 +62,8 @@ describe('Confirmação pelo cliente', () => {
       fakeAppointmentsRepository,
       fakeNotificationsRepository,
     );
+
+    setConfirmation = new SetConfirmationService(fakeAppointmentsRepository);
 
     process.env.APP_WEB_URL = 'http://gobarber.test';
     jest.spyOn(Date, 'now').mockImplementation(() => at(29, 12).getTime());
@@ -133,5 +137,82 @@ describe('Confirmação pelo cliente', () => {
     await expect(
       confirmAppointment.execute(soon.confirmation_token as string),
     ).rejects.toMatchObject({ message: 'Este horário já passou.' });
+  });
+
+  it('should let the barbershop confirm and undo its own confirmation', async () => {
+    const appointment = await book(30, 10);
+
+    await setConfirmation.execute({
+      appointment_id: appointment.id,
+      confirmed: true,
+      requester_id: 'joao',
+    });
+
+    expect(appointment).toMatchObject({
+      confirmed_at: at(29, 12),
+      confirmed_by: 'joao',
+    });
+
+    await setConfirmation.execute({
+      appointment_id: appointment.id,
+      confirmed: false,
+      requester_id: 'joao',
+    });
+
+    expect(appointment).toMatchObject({
+      confirmed_at: null,
+      confirmed_by: null,
+    });
+  });
+
+  it('should keep the confirmation made by the client', async () => {
+    const appointment = await book(30, 10);
+    await sendRequests.execute();
+    await confirmAppointment.execute(lastToken());
+
+    await expect(
+      setConfirmation.execute({
+        appointment_id: appointment.id,
+        confirmed: false,
+        requester_id: 'joao',
+      }),
+    ).rejects.toBeInstanceOf(AppError);
+
+    // Confirmar de novo não troca o autor da confirmação
+    await setConfirmation.execute({
+      appointment_id: appointment.id,
+      confirmed: true,
+      requester_id: 'joao',
+    });
+
+    expect(appointment.confirmed_by).toBeNull();
+  });
+
+  it('should not confirm canceled or started appointments', async () => {
+    const started = await book(29, 11);
+    const canceled = await book(30, 10);
+    canceled.canceled_at = at(29, 11);
+
+    await expect(
+      setConfirmation.execute({
+        appointment_id: started.id,
+        confirmed: true,
+        requester_id: 'joao',
+      }),
+    ).rejects.toBeInstanceOf(AppError);
+    await expect(
+      setConfirmation.execute({
+        appointment_id: canceled.id,
+        confirmed: true,
+        requester_id: 'joao',
+      }),
+    ).rejects.toBeInstanceOf(AppError);
+    await expect(
+      setConfirmation.execute({
+        appointment_id: 'nope',
+        confirmed: true,
+        requester_id: 'joao',
+      }),
+    ).rejects.toMatchObject({ statusCode: 404 });
   });
 });

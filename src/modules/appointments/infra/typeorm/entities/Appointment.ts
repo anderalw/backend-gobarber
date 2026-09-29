@@ -84,9 +84,13 @@ class Appointment {
   @Column({ type: 'timestamp with time zone', nullable: true })
   confirmation_requested_at: Date | null;
 
-  // Preenchido quando o cliente confirma pelo link
+  // Preenchido quando o cliente confirma pelo link (ou a barbearia registra)
   @Column({ type: 'timestamp with time zone', nullable: true })
   confirmed_at: Date | null;
+
+  // Barbeiro que registrou a confirmação; null = o cliente, pelo link
+  @Column({ type: 'uuid', nullable: true })
+  confirmed_by: string | null;
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
   created_at: Date;

@@ -119,6 +119,7 @@ class RescheduleAppointmentService {
     appointment.confirmation_token = null;
     appointment.confirmation_requested_at = null;
     appointment.confirmed_at = null;
+    appointment.confirmed_by = null;
 
     const rescheduled = await this.appointmentsRepository.save(appointment);
 
