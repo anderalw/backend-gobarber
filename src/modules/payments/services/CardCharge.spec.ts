@@ -72,6 +72,13 @@ describe('Cobrança na maquininha', () => {
       devices: [],
       available: [{ key: 'simulator', label: 'Simulador (testes)' }],
     });
+    // As operadoras reais aparecem como "em breve", sem poder escolher
+    expect((await settings.get()).upcoming.map(item => item.key)).toContain(
+      'mercadopago',
+    );
+    await expect(settings.update('mercadopago')).rejects.toMatchObject({
+      message: 'Operadora não disponível.',
+    });
 
     await expect(
       charges.start({

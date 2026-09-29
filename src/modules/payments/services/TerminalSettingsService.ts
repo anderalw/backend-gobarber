@@ -41,6 +41,8 @@ export interface ITerminalSettings {
     device_id_help: string;
     credential_fields: ITerminalCredentialField[];
   }>;
+  // Operadoras que ainda vão ser integradas (só para mostrar)
+  upcoming: Array<{ key: string; label: string }>;
   // Só para o admin: todas as maquininhas e as credenciais mascaradas
   registered?: IRegisteredDevice[];
   credentials?: Record<string, string>;
@@ -130,6 +132,7 @@ class TerminalSettingsService {
         device_id_help: item.deviceIdHelp,
         credential_fields: item.credentialFields,
       })),
+      upcoming: this.registry.upcoming(),
     };
 
     if (admin) {
