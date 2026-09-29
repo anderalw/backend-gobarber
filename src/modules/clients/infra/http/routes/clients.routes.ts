@@ -48,6 +48,20 @@ clientsRouter.get(
   clientsController.index,
 );
 
+// O próprio cliente: nome e telefone
+clientsRouter.put(
+  '/me',
+  ensureAuthenticated,
+  ensureRole('client'),
+  celebrate({
+    [Segments.BODY]: {
+      name: Joi.string().trim().max(100).required(),
+      phone: Joi.string().trim().max(30).required(),
+    },
+  }),
+  clientsController.updateMe,
+);
+
 // Ficha e lista de clientes (barbearia)
 clientsRouter.get(
   '/directory',

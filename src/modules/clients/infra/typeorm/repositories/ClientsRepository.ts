@@ -22,6 +22,12 @@ class ClientsRepository implements IClientsRepository {
     return (await this.ormRepository.findOneBy({ id })) ?? undefined;
   }
 
+  public async findByGoogleId(google_id: string): Promise<Client | undefined> {
+    if (!google_id) return undefined;
+
+    return (await this.ormRepository.findOneBy({ google_id })) ?? undefined;
+  }
+
   public async findByIds(ids: string[]): Promise<Client[]> {
     if (ids.length === 0) return [];
 

@@ -6,6 +6,7 @@ import CreateClientByProviderService from '@modules/clients/services/CreateClien
 import ListClientsService from '@modules/clients/services/ListClientsService';
 import ShowClientService from '@modules/clients/services/ShowClientService';
 import UpdateClientService from '@modules/clients/services/UpdateClientService';
+import UpdateOwnClientService from '@modules/clients/services/UpdateOwnClientService';
 
 export default class ClientsController {
   // Cadastro rápido pelo barbeiro, na hora de marcar pela agenda
@@ -76,6 +77,27 @@ export default class ClientsController {
 
     // Devolve a ficha atualizada
     return response.json(await showClient.execute(client.id));
+  }
+
+  // O cliente logado atualiza o próprio nome e telefone
+  public async updateMe(
+    request: Request,
+    response: Response,
+  ): Promise<Response> {
+    const client = await container.resolve(UpdateOwnClientService).execute({
+      client_id: request.user.id,
+      name: request.body.name,
+      phone: request.body.phone,
+    });
+
+    return response.json({
+      id: client.id,
+      name: client.name,
+      email: client.email,
+      phone: client.phone,
+      created_at: client.created_at,
+      updated_at: client.updated_at,
+    });
   }
 
   public async create(request: Request, response: Response): Promise<Response> {

@@ -30,6 +30,8 @@ import UserTokensRepository from '@modules/users/infra/typeorm/repositories/User
 import INotificationsRepository from '@modules/notifications/repositories/INotificationsRepository';
 import NotificationsRepository from '@modules/notifications/infra/typeorm/repositories/NotificationsRepository';
 
+import IGoogleTokenProvider from '@modules/clients/providers/GoogleTokenProvider/models/IGoogleTokenProvider';
+import GoogleAuthTokenProvider from '@modules/clients/providers/GoogleTokenProvider/implementations/GoogleAuthTokenProvider';
 import IClientsRepository from '@modules/clients/repositories/IClientsRepository';
 import ClientsRepository from '@modules/clients/infra/typeorm/repositories/ClientsRepository';
 
@@ -90,6 +92,11 @@ container.registerSingleton<IUserTokensRepository>(
 container.registerSingleton<INotificationsRepository>(
   'NotificationsRepository',
   NotificationsRepository,
+);
+
+container.registerSingleton<IGoogleTokenProvider>(
+  'GoogleTokenProvider',
+  GoogleAuthTokenProvider,
 );
 
 container.registerSingleton<IClientsRepository>(

@@ -24,8 +24,14 @@ class Client {
   @Exclude()
   password: string | null;
 
+  // Vazio só no primeiro login com Google (o cliente informa em seguida)
   @Column()
   phone: string;
+
+  // Conta Google ligada (login com Google); null = só e-mail e senha
+  @Column({ type: 'varchar', nullable: true })
+  @Exclude()
+  google_id: string | null;
 
   // Observações da barbearia (preferências, alergias...)
   @Column({ type: 'text', nullable: true })

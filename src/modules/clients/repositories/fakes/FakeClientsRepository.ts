@@ -10,7 +10,7 @@ class FakeClientsRepository implements IClientsRepository {
   public async create(data: ICreateClientDTO): Promise<Client> {
     const client = new Client();
 
-    Object.assign(client, { id: randomUUID() }, data);
+    Object.assign(client, { id: randomUUID(), google_id: null }, data);
 
     this.clients.push(client);
 
@@ -31,6 +31,10 @@ class FakeClientsRepository implements IClientsRepository {
 
   public async findById(id: string): Promise<Client | undefined> {
     return this.clients.find(client => client.id === id);
+  }
+
+  public async findByGoogleId(google_id: string): Promise<Client | undefined> {
+    return this.clients.find(client => client.google_id === google_id);
   }
 
   public async findByIds(ids: string[]): Promise<Client[]> {

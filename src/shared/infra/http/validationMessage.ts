@@ -59,6 +59,7 @@ const FIELD_LABELS: Record<string, string> = {
   address: 'Endereço',
   whatsapp: 'WhatsApp',
   instagram: 'Instagram',
+  credential: 'Login com Google',
   alert_threshold: 'Número de faltas',
   block_online: 'Bloquear o site',
   page: 'Página',
