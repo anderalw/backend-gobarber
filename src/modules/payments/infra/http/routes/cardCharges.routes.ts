@@ -14,15 +14,67 @@ const simulatorController = new TerminalSimulatorController();
 cardChargesRouter.use(ensureAuthenticated);
 cardChargesRouter.use(ensureRole('provider'));
 
-// Operadora em uso e as maquininhas (o admin escolhe a operadora)
+// Operadora em uso e as maquininhas ativas (para cobrar)
 cardChargesRouter.get('/settings', controller.settings);
+
+// Configuração (admin): conta da operadora e cadastro das maquininhas
+cardChargesRouter.get('/settings/admin', ensureAdmin, controller.adminSettings);
 cardChargesRouter.put(
   '/settings',
   ensureAdmin,
   celebrate({
-    [Segments.BODY]: { provider: Joi.string().max(40).allow('', null) },
+    [Segments.BODY]: {
+      provider: Joi.string().max(40).allow('', null),
+      credentials: Joi.object()
+        .pattern(Joi.string().max(40), Joi.string().max(500).allow(''))
+        .max(10),
+    },
   }),
   controller.updateSettings,
+);
+cardChargesRouter.post(
+  '/settings/test',
+  ensureAdmin,
+  controller.testConnection,
+);
+
+const deviceId = {
+  [Segments.PARAMS]: { id: Joi.string().uuid().required() },
+};
+
+cardChargesRouter.get(
+  '/devices/discover',
+  ensureAdmin,
+  controller.discoverDevices,
+);
+cardChargesRouter.post(
+  '/devices',
+  ensureAdmin,
+  celebrate({
+    [Segments.BODY]: {
+      external_id: Joi.string().trim().max(100).required(),
+      name: Joi.string().trim().max(60).required(),
+    },
+  }),
+  controller.createDevice,
+);
+cardChargesRouter.put(
+  '/devices/:id',
+  ensureAdmin,
+  celebrate({
+    ...deviceId,
+    [Segments.BODY]: {
+      name: Joi.string().trim().max(60),
+      active: Joi.boolean(),
+    },
+  }),
+  controller.updateDevice,
+);
+cardChargesRouter.delete(
+  '/devices/:id',
+  ensureAdmin,
+  celebrate(deviceId),
+  controller.deleteDevice,
 );
 
 // Maquininha simulada (testes sem operadora)
@@ -46,7 +98,7 @@ cardChargesRouter.post(
   celebrate({
     [Segments.BODY]: {
       appointment_id: Joi.string().uuid().required(),
-      device_id: Joi.string().max(100).required(),
+      device_id: Joi.string().uuid().required(),
       amount_cents: Joi.number().integer().min(100).max(1000000).allow(null),
     },
   }),

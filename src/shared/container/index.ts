@@ -32,6 +32,8 @@ import NotificationsRepository from '@modules/notifications/infra/typeorm/reposi
 
 import ICardChargesRepository from '@modules/payments/repositories/ICardChargesRepository';
 import CardChargesRepository from '@modules/payments/infra/typeorm/repositories/CardChargesRepository';
+import ITerminalDevicesRepository from '@modules/payments/repositories/ITerminalDevicesRepository';
+import TerminalDevicesRepository from '@modules/payments/infra/typeorm/repositories/TerminalDevicesRepository';
 import SimulatorTerminalProvider from '@modules/payments/providers/TerminalProvider/implementations/SimulatorTerminalProvider';
 import IGoogleTokenProvider from '@modules/clients/providers/GoogleTokenProvider/models/IGoogleTokenProvider';
 import GoogleAuthTokenProvider from '@modules/clients/providers/GoogleTokenProvider/implementations/GoogleAuthTokenProvider';
@@ -100,6 +102,11 @@ container.registerSingleton<INotificationsRepository>(
 container.registerSingleton<ICardChargesRepository>(
   'CardChargesRepository',
   CardChargesRepository,
+);
+
+container.registerSingleton<ITerminalDevicesRepository>(
+  'TerminalDevicesRepository',
+  TerminalDevicesRepository,
 );
 
 // Uma instância só: as cobranças simuladas ficam na memória dela

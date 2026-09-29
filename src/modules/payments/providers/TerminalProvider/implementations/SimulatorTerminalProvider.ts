@@ -4,6 +4,8 @@ import AppError from '@shared/errors/AppError';
 import { ChargeMethod } from '../../../infra/typeorm/entities/CardCharge';
 import ITerminalProvider, {
   ITerminalChargeStatus,
+  ITerminalCredentialField,
+  ITerminalCredentials,
   ITerminalDevice,
 } from '../models/ITerminalProvider';
 
@@ -18,6 +20,7 @@ interface ISimulatedCharge extends ITerminalChargeStatus {
 // Cobrança parada na maquininha por mais que isso vence (como nas reais)
 const EXPIRES_IN_MS = 10 * 60 * 1000;
 
+// Aparelhos "vinculados" à conta de teste (qualquer id pode ser cadastrado)
 const DEVICES: ITerminalDevice[] = [
   { id: 'sim-balcao', name: 'Maquininha do balcão (simulada)' },
   { id: 'sim-cadeira-2', name: 'Maquininha da cadeira 2 (simulada)' },
@@ -30,24 +33,56 @@ export default class SimulatorTerminalProvider implements ITerminalProvider {
 
   public readonly label = 'Simulador (testes)';
 
+  public readonly credentialFields: ITerminalCredentialField[] = [
+    {
+      key: 'access_token',
+      label: 'Chave de acesso',
+      secret: true,
+      required: true,
+      placeholder: 'sim_minha_barbearia',
+      help: 'No simulador, qualquer chave que comece com "sim_".',
+    },
+  ];
+
+  public readonly setupHelp =
+    'Para testar sem maquininha: use uma chave começando com "sim_" e cadastre os aparelhos simulados (ou qualquer número de série inventado).';
+
+  public readonly deviceIdLabel = 'Número de série';
+
+  public readonly deviceIdHelp =
+    'No simulador pode ser qualquer código, por exemplo sim-balcao.';
+
   private charges = new Map<string, ISimulatedCharge>();
 
-  public async listDevices(): Promise<ITerminalDevice[]> {
+  public async verify(credentials: ITerminalCredentials): Promise<void> {
+    if (!/^sim_\S{3,}$/.test(credentials.access_token || '')) {
+      throw new AppError(
+        'Chave de acesso inválida: no simulador ela começa com "sim_".',
+      );
+    }
+  }
+
+  public async listDevices(
+    credentials: ITerminalCredentials,
+  ): Promise<ITerminalDevice[]> {
+    await this.verify(credentials);
+
     return DEVICES;
   }
 
-  public async createCharge({
-    device_id,
-    amount_cents,
-    description,
-  }: {
-    device_id: string;
-    amount_cents: number;
-    description: string;
-  }): Promise<{ external_id: string }> {
-    if (!DEVICES.some(device => device.id === device_id)) {
-      throw new AppError('Maquininha não encontrada.');
-    }
+  public async createCharge(
+    credentials: ITerminalCredentials,
+    {
+      device_id,
+      amount_cents,
+      description,
+    }: {
+      device_id: string;
+      amount_cents: number;
+      description: string;
+    },
+  ): Promise<{ external_id: string }> {
+    await this.verify(credentials);
 
     // Como nas reais: uma cobrança por vez em cada maquininha
     this.pendingFor(device_id).forEach(item => {
@@ -68,7 +103,10 @@ export default class SimulatorTerminalProvider implements ITerminalProvider {
     return { external_id };
   }
 
-  public async getStatus(external_id: string): Promise<ITerminalChargeStatus> {
+  public async getStatus(
+    _credentials: ITerminalCredentials,
+    external_id: string,
+  ): Promise<ITerminalChargeStatus> {
     const charge = this.charges.get(external_id);
 
     // Servidor reiniciado: a cobrança simulada se perdeu
@@ -92,7 +130,10 @@ export default class SimulatorTerminalProvider implements ITerminalProvider {
     };
   }
 
-  public async cancel(external_id: string): Promise<void> {
+  public async cancel(
+    _credentials: ITerminalCredentials,
+    external_id: string,
+  ): Promise<void> {
     const charge = this.charges.get(external_id);
 
     if (charge && charge.status === 'pending') {

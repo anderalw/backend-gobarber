@@ -6,6 +6,7 @@ import IAppointmentsRepository from '@modules/appointments/repositories/IAppoint
 import { MAX_PAID_CENTS } from '@modules/appointments/utils/payment';
 import CardCharge from '../infra/typeorm/entities/CardCharge';
 import ICardChargesRepository from '../repositories/ICardChargesRepository';
+import ITerminalDevicesRepository from '../repositories/ITerminalDevicesRepository';
 import TerminalRegistry from '../providers/TerminalProvider/TerminalRegistry';
 import { ITerminalChargeStatus } from '../providers/TerminalProvider/models/ITerminalProvider';
 import TerminalSettingsService from './TerminalSettingsService';
@@ -30,6 +31,9 @@ class CardChargeService {
     @inject('AppointmentsRepository')
     private appointmentsRepository: IAppointmentsRepository,
 
+    @inject('TerminalDevicesRepository')
+    private devicesRepository: ITerminalDevicesRepository,
+
     @inject(TerminalRegistry)
     private registry: TerminalRegistry,
 
@@ -43,11 +47,13 @@ class CardChargeService {
     amount_cents,
     requester_id,
   }: IStartRequest): Promise<CardCharge> {
-    const provider = await this.terminalSettings.activeProvider();
+    const terminal = await this.terminalSettings.active();
 
-    if (!provider) {
+    if (!terminal) {
       throw new AppError('A cobrança na maquininha não está configurada.');
     }
+
+    const { provider, credentials } = terminal;
 
     const appointment = await this.appointmentsRepository.findById(
       appointment_id,
@@ -75,11 +81,9 @@ class CardChargeService {
       throw new AppError('Informe um valor a partir de R$ 1,00.');
     }
 
-    const device = (await provider.listDevices()).find(
-      item => item.id === device_id,
-    );
+    const device = await this.devicesRepository.findById(device_id);
 
-    if (!device) {
+    if (!device || !device.active || device.provider !== provider.key) {
       throw new AppError('Maquininha não encontrada.');
     }
 
@@ -95,15 +99,15 @@ class CardChargeService {
     const charge = await this.chargesRepository.create({
       appointment_id,
       provider: provider.key,
-      device_id: device.id,
+      device_id: device.external_id,
       device_name: device.name,
       amount_cents: amount,
       created_by: requester_id,
     });
 
     try {
-      const { external_id } = await provider.createCharge({
-        device_id: device.id,
+      const { external_id } = await provider.createCharge(credentials, {
+        device_id: device.external_id,
         amount_cents: amount,
         description: [appointment.service?.name, appointment.client?.name]
           .filter(Boolean)
@@ -134,7 +138,14 @@ class CardChargeService {
 
     if (!provider) return charge;
 
-    return this.apply(charge, await provider.getStatus(charge.external_id));
+    const credentials = await this.terminalSettings.credentialsFor(
+      provider.key,
+    );
+
+    return this.apply(
+      charge,
+      await provider.getStatus(credentials, charge.external_id),
+    );
   }
 
   public async cancel(charge_id: string): Promise<CardCharge> {
@@ -145,14 +156,18 @@ class CardChargeService {
     const provider = this.registry.get(charge.provider);
 
     if (provider && charge.external_id) {
+      const credentials = await this.terminalSettings.credentialsFor(
+        provider.key,
+      );
+
       // Pode ter sido paga no último instante: confere antes de cancelar
-      const current = await provider.getStatus(charge.external_id);
+      const current = await provider.getStatus(credentials, charge.external_id);
 
       if (current.status !== 'pending') {
         return this.apply(charge, current);
       }
 
-      await provider.cancel(charge.external_id);
+      await provider.cancel(credentials, charge.external_id);
     }
 
     return this.apply(charge, {

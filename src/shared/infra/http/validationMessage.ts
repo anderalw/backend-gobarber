@@ -64,6 +64,8 @@ const FIELD_LABELS: Record<string, string> = {
   amount_cents: 'Valor',
   provider: 'Operadora',
   result: 'Resultado',
+  external_id: 'Identificador da maquininha',
+  credentials: 'Dados da operadora',
   alert_threshold: 'Número de faltas',
   block_online: 'Bloquear o site',
   page: 'Página',
