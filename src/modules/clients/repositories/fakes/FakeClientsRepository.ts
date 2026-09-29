@@ -33,6 +33,10 @@ class FakeClientsRepository implements IClientsRepository {
     return this.clients.find(client => client.id === id);
   }
 
+  public async findByIds(ids: string[]): Promise<Client[]> {
+    return this.clients.filter(client => ids.includes(client.id));
+  }
+
   public async list({
     search,
     offset,

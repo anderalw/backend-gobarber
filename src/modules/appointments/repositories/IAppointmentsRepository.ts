@@ -6,6 +6,7 @@ import IFindAllInDayDTO from '../dtos/IFindAllInDayDTO';
 import IFindOverlappingDTO from '../dtos/IFindOverlappingDTO';
 import ISetAttendanceDTO from '../dtos/ISetAttendanceDTO';
 import IClientSummaryDTO from '../dtos/IClientSummaryDTO';
+import IClientVisitsDTO from '../dtos/IClientVisitsDTO';
 
 // Salvo findById, as buscas ignoram agendamentos cancelados
 export default interface IAppointmentsRepository {
@@ -66,6 +67,8 @@ export default interface IAppointmentsRepository {
     now: Date,
     recentCount: number,
   ): Promise<IClientSummaryDTO[]>;
+  // Primeira e última visita de todos os clientes que já agendaram
+  clientVisits(now: Date): Promise<IClientVisitsDTO[]>;
   // Todos os agendamentos do cliente, inclusive cancelados, do mais recente
   // ao mais antigo, com o barbeiro e o serviço
   findAllFromClient(client_id: string): Promise<Appointment[]>;

@@ -52,6 +52,7 @@ const FIELD_LABELS: Record<string, string> = {
   paid_cents: 'Valor recebido',
   opening_cents: 'Fundo de troco',
   counted_cents: 'Dinheiro contado',
+  days: 'Dias',
   alert_threshold: 'Número de faltas',
   block_online: 'Bloquear o site',
   page: 'Página',

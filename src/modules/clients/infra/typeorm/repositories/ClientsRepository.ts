@@ -1,4 +1,4 @@
-import { ILike, Repository } from 'typeorm';
+import { ILike, In, Repository } from 'typeorm';
 import dataSource from '@shared/infra/typeorm/dataSource';
 import IClientsRepository from '@modules/clients/repositories/IClientsRepository';
 import ICreateClientDTO from '@modules/clients/dtos/ICreateClientDTO';
@@ -20,6 +20,12 @@ class ClientsRepository implements IClientsRepository {
     if (!id) return undefined;
 
     return (await this.ormRepository.findOneBy({ id })) ?? undefined;
+  }
+
+  public async findByIds(ids: string[]): Promise<Client[]> {
+    if (ids.length === 0) return [];
+
+    return this.ormRepository.findBy({ id: In(ids) });
   }
 
   public async search(term: string, limit: number): Promise<Client[]> {

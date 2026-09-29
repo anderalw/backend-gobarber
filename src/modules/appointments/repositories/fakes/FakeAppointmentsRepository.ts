@@ -8,6 +8,7 @@ import IFindAllInDayDTO from '@modules/appointments/dtos/IFindAllInDayDTO';
 import IFindOverlappingDTO from '@modules/appointments/dtos/IFindOverlappingDTO';
 import ISetAttendanceDTO from '@modules/appointments/dtos/ISetAttendanceDTO';
 import IClientSummaryDTO from '@modules/appointments/dtos/IClientSummaryDTO';
+import IClientVisitsDTO from '@modules/appointments/dtos/IClientVisitsDTO';
 
 import Appointment from '../../infra/typeorm/entities/Appointment';
 
@@ -206,7 +207,7 @@ class AppointmentsRepository implements IAppointmentsRepository {
             .filter(item => item.attendance === 'no_show').length,
           canceled: mine.filter(item => item.canceled_at).length,
           total_cents: completed.reduce(
-            (sum, item) => sum + (item.price_cents || 0),
+            (sum, item) => sum + (item.paid_cents ?? item.price_cents ?? 0),
             0,
           ),
           last_visit: lastVisit || null,
@@ -215,6 +216,42 @@ class AppointmentsRepository implements IAppointmentsRepository {
       })
       .filter(summary => summary.count > 0)
       .map(({ count: _, ...summary }) => summary);
+  }
+
+  public async clientVisits(now: Date): Promise<IClientVisitsDTO[]> {
+    const ids = Array.from(
+      new Set(
+        this.appointments.flatMap(item =>
+          item.client_id ? [item.client_id] : [],
+        ),
+      ),
+    );
+
+    return ids.map(client_id => {
+      const mine = this.appointments.filter(
+        item => item.client_id === client_id,
+      );
+      const dates = mine
+        .filter(item => item.attendance === 'completed')
+        .map(item => item.date)
+        .sort((a, b) => a.getTime() - b.getTime());
+
+      return {
+        client_id,
+        first_visit: dates[0] || null,
+        last_visit: dates[dates.length - 1] || null,
+        visits: dates.length,
+        total_cents: mine
+          .filter(item => item.attendance === 'completed')
+          .reduce(
+            (sum, item) => sum + (item.paid_cents ?? item.price_cents ?? 0),
+            0,
+          ),
+        has_upcoming: mine.some(
+          item => !item.canceled_at && isAfter(item.date, now),
+        ),
+      };
+    });
   }
 
   public async findFollowingInSeries(

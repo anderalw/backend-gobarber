@@ -24,4 +24,24 @@ reportsRouter.get(
   reportsController.revenue,
 );
 
+// Indicadores: ocupação, faltas, serviços, horários e clientes
+reportsRouter.get(
+  '/insights',
+  celebrate({
+    [Segments.QUERY]: { start: day.required(), end: day.required() },
+  }),
+  reportsController.insights,
+);
+
+// Clientes que não voltam há alguns dias
+reportsRouter.get(
+  '/lost-clients',
+  celebrate({
+    [Segments.QUERY]: {
+      days: Joi.number().integer().min(7).max(365).required(),
+    },
+  }),
+  reportsController.lostClients,
+);
+
 export default reportsRouter;

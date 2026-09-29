@@ -21,6 +21,7 @@ import IFindAllInDayDTO from '@modules/appointments/dtos/IFindAllInDayDTO';
 import IFindOverlappingDTO from '@modules/appointments/dtos/IFindOverlappingDTO';
 import ISetAttendanceDTO from '@modules/appointments/dtos/ISetAttendanceDTO';
 import IClientSummaryDTO from '@modules/appointments/dtos/IClientSummaryDTO';
+import IClientVisitsDTO from '@modules/appointments/dtos/IClientVisitsDTO';
 
 import Appointment from '../entities/Appointment';
 
@@ -252,7 +253,7 @@ class AppointmentsRepository implements IAppointmentsRepository {
           COUNT(*) FILTER (WHERE a.attendance = 'no_show') AS no_shows,
           COALESCE(r.recent_no_shows, 0) AS recent_no_shows,
           COUNT(*) FILTER (WHERE a.canceled_at IS NOT NULL) AS canceled,
-          COALESCE(SUM(a.price_cents) FILTER (WHERE a.attendance = 'completed'), 0) AS total_cents,
+          COALESCE(SUM(COALESCE(a.paid_cents, a.price_cents)) FILTER (WHERE a.attendance = 'completed'), 0) AS total_cents,
           MAX(a.date) FILTER (WHERE a.attendance = 'completed') AS last_visit,
           MIN(a.date) FILTER (WHERE a.canceled_at IS NULL AND a.date > $2) AS next_appointment
         FROM appointments a
@@ -286,6 +287,31 @@ class AppointmentsRepository implements IAppointmentsRepository {
       next_appointment: row.next_appointment
         ? new Date(row.next_appointment)
         : null,
+    }));
+  }
+
+  public async clientVisits(now: Date): Promise<IClientVisitsDTO[]> {
+    const rows: Array<Record<string, string | Date | boolean | null>> =
+      await this.ormRepository.query(
+        `SELECT client_id,
+          MIN(date) FILTER (WHERE attendance = 'completed') AS first_visit,
+          MAX(date) FILTER (WHERE attendance = 'completed') AS last_visit,
+          COUNT(*) FILTER (WHERE attendance = 'completed') AS visits,
+          COALESCE(SUM(COALESCE(paid_cents, price_cents)) FILTER (WHERE attendance = 'completed'), 0) AS total_cents,
+          BOOL_OR(canceled_at IS NULL AND date > $1) AS has_upcoming
+        FROM appointments
+        WHERE client_id IS NOT NULL
+        GROUP BY client_id`,
+        [now],
+      );
+
+    return rows.map(row => ({
+      client_id: String(row.client_id),
+      first_visit: row.first_visit ? new Date(row.first_visit as Date) : null,
+      last_visit: row.last_visit ? new Date(row.last_visit as Date) : null,
+      visits: Number(row.visits),
+      total_cents: Number(row.total_cents),
+      has_upcoming: !!row.has_upcoming,
     }));
   }
 
