@@ -6,6 +6,7 @@ import INotificationsRepository from '@modules/notifications/repositories/INotif
 import Appointment from '../infra/typeorm/entities/Appointment';
 import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
 import IClientNotifier from '../notifier/IClientNotifier';
+import NotifyWaitlistService from './NotifyWaitlistService';
 import ensureCanChangeAppointment, {
   IRequester,
 } from '../utils/ensureCanChangeAppointment';
@@ -29,6 +30,9 @@ class CancelAppointmentService {
     private cacheProvider: ICacheProvider,
     @inject('ClientNotifier')
     private clientNotifier: IClientNotifier,
+
+    @inject(NotifyWaitlistService)
+    private notifyWaitlist: NotifyWaitlistService,
   ) {}
 
   public async execute({
@@ -68,6 +72,9 @@ class CancelAppointmentService {
     );
 
     await this.clientNotifier.appointmentCanceled(canceled);
+
+    // O horário ficou livre: avisa quem está na lista de espera
+    await this.notifyWaitlist.slotFreed(canceled);
 
     return canceled;
   }

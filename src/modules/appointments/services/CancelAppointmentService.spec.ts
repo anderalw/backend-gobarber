@@ -1,6 +1,8 @@
 import AppError from '@shared/errors/AppError';
 import FakeNotificationsRepository from '@modules/notifications/repositories/fakes/FakeNotificationsRepository';
 import FakeCacheProvider from '@shared/container/providers/CacheProvider/fakes/FakeCacheProvider';
+import NotifyWaitlistService from './NotifyWaitlistService';
+import FakeWaitlistRepository from '../repositories/fakes/FakeWaitlistRepository';
 import Appointment from '../infra/typeorm/entities/Appointment';
 import FakeAppointmentsRepository from '../repositories/fakes/FakeAppointmentsRepository';
 import FakeClientNotifier from '../notifier/FakeClientNotifier';
@@ -24,6 +26,12 @@ describe('CancelAppointment', () => {
       fakeNotificationsRepository,
       new FakeCacheProvider(),
       new FakeClientNotifier(),
+      new NotifyWaitlistService(
+        new FakeWaitlistRepository(),
+        fakeAppointmentsRepository,
+        fakeNotificationsRepository,
+        new FakeClientNotifier(),
+      ),
     );
 
     // Agendamento às 15h; "agora" é 10h do mesmo dia

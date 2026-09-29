@@ -1,3 +1,4 @@
+import Client from '@modules/clients/infra/typeorm/entities/Client';
 import Appointment from '../infra/typeorm/entities/Appointment';
 
 // Avisos ao cliente sobre o agendamento. Hoje por e-mail; outros canais
@@ -26,4 +27,6 @@ export default interface IClientNotifier {
   ): Promise<void>;
   // Cliente fixo: um e-mail com os horários cancelados
   seriesCanceled(appointments: Appointment[]): Promise<void>;
+  // Lista de espera: abriu um horário (freed é o agendamento que saiu dele)
+  waitlistSlotFreed(client: Client, freed: Appointment): Promise<void>;
 }

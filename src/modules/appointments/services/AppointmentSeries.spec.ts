@@ -10,6 +10,8 @@ import Service from '@modules/catalog/infra/typeorm/entities/Service';
 import User from '@modules/users/infra/typeorm/entities/User';
 import Client from '@modules/clients/infra/typeorm/entities/Client';
 import FakeCacheProvider from '@shared/container/providers/CacheProvider/fakes/FakeCacheProvider';
+import NotifyWaitlistService from './NotifyWaitlistService';
+import FakeWaitlistRepository from '../repositories/fakes/FakeWaitlistRepository';
 import FakeAppointmentsRepository from '../repositories/fakes/FakeAppointmentsRepository';
 import FakeAppointmentSeriesRepository from '../repositories/fakes/FakeAppointmentSeriesRepository';
 import FakeClientNotifier from '../notifier/FakeClientNotifier';
@@ -82,6 +84,12 @@ describe('Cliente fixo', () => {
       fakeNotificationsRepository,
       fakeCacheProvider,
       fakeClientNotifier,
+      new NotifyWaitlistService(
+        new FakeWaitlistRepository(),
+        fakeAppointmentsRepository,
+        fakeNotificationsRepository,
+        fakeClientNotifier,
+      ),
     );
 
     barber = await fakeUsersRepository.create({

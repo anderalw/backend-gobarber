@@ -17,6 +17,7 @@ import Appointment from '../infra/typeorm/entities/Appointment';
 import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
 import ITimeBlocksRepository from '../repositories/ITimeBlocksRepository';
 import IClientNotifier from '../notifier/IClientNotifier';
+import NotifyWaitlistService from './NotifyWaitlistService';
 import checkAvailableSlot from '../utils/checkAvailableSlot';
 import ensureCanChangeAppointment, {
   IRequester,
@@ -60,6 +61,9 @@ class RescheduleAppointmentService {
     private timeBlocksRepository: ITimeBlocksRepository,
     @inject('ClientNotifier')
     private clientNotifier: IClientNotifier,
+
+    @inject(NotifyWaitlistService)
+    private notifyWaitlist: NotifyWaitlistService,
   ) {}
 
   public async execute({
@@ -110,6 +114,9 @@ class RescheduleAppointmentService {
         except_appointment_id: appointment.id,
       },
     );
+
+    // Como estava antes: o horário antigo fica livre
+    const previous = Object.assign(new Appointment(), appointment);
 
     appointment.provider_id = provider_id;
     appointment.date = newStart;
@@ -163,6 +170,8 @@ class RescheduleAppointmentService {
       date: oldStart,
       providerName: oldProviderName,
     });
+
+    await this.notifyWaitlist.slotFreed(previous);
 
     return rescheduled;
   }

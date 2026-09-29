@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import ptBR from 'date-fns/locale/pt-BR';
 
 import IMailProvider from '@shared/container/providers/MailProvider/models/IMailProvider';
+import Client from '@modules/clients/infra/typeorm/entities/Client';
 import Appointment from '../infra/typeorm/entities/Appointment';
 import IClientNotifier from './IClientNotifier';
 
@@ -125,13 +126,31 @@ export default class EmailClientNotifier implements IClientNotifier {
     );
   }
 
+  public async waitlistSlotFreed(
+    client: Client,
+    freed: Appointment,
+  ): Promise<void> {
+    await this.send(
+      freed,
+      `[GoBarber] Abriu um horário em ${format(
+        freed.date,
+        "dd/MM 'às' HH:mm",
+      )}`,
+      'waitlist_slot_freed.hbs',
+      { bookLink: `${process.env.APP_WEB_URL}/agendar` },
+      client,
+    );
+  }
+
+  // recipient: quem recebe (padrão: o cliente do agendamento)
   private async send(
     appointment: Appointment,
     subject: string,
     template: string,
     extra: Record<string, string | number | boolean | string[]> = {},
+    recipient: Client | null = appointment.client,
   ): Promise<void> {
-    const { client } = appointment;
+    const client = recipient;
 
     if (!client?.email) return;
 

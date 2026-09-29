@@ -47,6 +47,7 @@ const FIELD_LABELS: Record<string, string> = {
   interval_weeks: 'Repetição',
   count: 'Quantidade',
   dry_run: 'Prévia',
+  period: 'Período',
   alert_threshold: 'Número de faltas',
   block_online: 'Bloquear o site',
   page: 'Página',

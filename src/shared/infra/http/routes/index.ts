@@ -7,6 +7,7 @@ import timeBlocksRouter from '@modules/appointments/infra/http/routes/timeBlocks
 import notificationsRouter from '@modules/notifications/infra/http/routes/notifications.routes';
 import reportsRouter from '@modules/appointments/infra/http/routes/reports.routes';
 import confirmationsRouter from '@modules/appointments/infra/http/routes/confirmations.routes';
+import waitlistRouter from '@modules/appointments/infra/http/routes/waitlist.routes';
 import servicesRouter from '@modules/catalog/infra/http/routes/services.routes';
 import settingsRouter from '@modules/catalog/infra/http/routes/settings.routes';
 import usersRouter from '@modules/users/infra/http/routes/users.routes';
@@ -27,6 +28,7 @@ routes.use('/block-reasons', blockReasonsRouter);
 routes.use('/notifications', notificationsRouter);
 routes.use('/reports', reportsRouter);
 routes.use('/confirmations', confirmationsRouter);
+routes.use('/waitlist', waitlistRouter);
 routes.use('/services', servicesRouter);
 routes.use('/settings', settingsRouter);
 routes.use('/users', usersRouter);

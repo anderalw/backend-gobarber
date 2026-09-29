@@ -13,6 +13,8 @@ import IBlockReasonsRepository from '@modules/appointments/repositories/IBlockRe
 import BlockReasonsRepository from '@modules/appointments/infra/typeorm/repositories/BlockReasonsRepository';
 import IAppointmentSeriesRepository from '@modules/appointments/repositories/IAppointmentSeriesRepository';
 import AppointmentSeriesRepository from '@modules/appointments/infra/typeorm/repositories/AppointmentSeriesRepository';
+import IWaitlistRepository from '@modules/appointments/repositories/IWaitlistRepository';
+import WaitlistRepository from '@modules/appointments/infra/typeorm/repositories/WaitlistRepository';
 
 import IClientNotifier from '@modules/appointments/notifier/IClientNotifier';
 import EmailClientNotifier from '@modules/appointments/notifier/EmailClientNotifier';
@@ -46,6 +48,11 @@ container.registerSingleton<IAppointmentsRepository>(
 container.registerSingleton<ITimeBlocksRepository>(
   'TimeBlocksRepository',
   TimeBlocksRepository,
+);
+
+container.registerSingleton<IWaitlistRepository>(
+  'WaitlistRepository',
+  WaitlistRepository,
 );
 
 container.registerSingleton<IAppointmentSeriesRepository>(

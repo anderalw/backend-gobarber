@@ -7,6 +7,7 @@ import INotificationsRepository from '@modules/notifications/repositories/INotif
 import Appointment from '../infra/typeorm/entities/Appointment';
 import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
 import IClientNotifier from '../notifier/IClientNotifier';
+import NotifyWaitlistService from './NotifyWaitlistService';
 import ensureCanChangeAppointment from '../utils/ensureCanChangeAppointment';
 
 interface IRequest {
@@ -31,6 +32,9 @@ class CancelSeriesService {
 
     @inject('ClientNotifier')
     private clientNotifier: IClientNotifier,
+
+    @inject(NotifyWaitlistService)
+    private notifyWaitlist: NotifyWaitlistService,
   ) {}
 
   public async execute({
@@ -101,6 +105,13 @@ class CancelSeriesService {
     );
 
     await this.clientNotifier.seriesCanceled(canceled);
+
+    // Cada horário liberado pode servir para alguém da lista de espera
+    // eslint-disable-next-line no-restricted-syntax
+    for (const item of canceled) {
+      // eslint-disable-next-line no-await-in-loop
+      await this.notifyWaitlist.slotFreed(item);
+    }
 
     return canceled;
   }
