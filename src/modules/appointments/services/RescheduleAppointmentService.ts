@@ -126,6 +126,7 @@ class RescheduleAppointmentService {
           : `Novo agendamento de ${serviceName} para dia ${formatDate(
               newStart,
             )} (transferido de outro barbeiro)`,
+      date: newStart,
     });
 
     if (provider_id !== oldProviderId) {
@@ -134,6 +135,7 @@ class RescheduleAppointmentService {
         content: `Agendamento de ${serviceName} em ${formatDate(
           oldStart,
         )} transferido para ${provider.name}`,
+        date: oldStart,
       });
     }
 

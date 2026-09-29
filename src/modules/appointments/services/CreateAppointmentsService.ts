@@ -101,6 +101,7 @@ class CreateAppointmentsServices {
       await this.notificationsRepository.create({
         recipient_id: provider_id,
         content: `Novo agendamento de ${service.name} para dia ${dateFormatted}`,
+        date: appointmentDate,
       });
     }
 

@@ -54,6 +54,7 @@ class CancelAppointmentService {
         appointment.date,
         "dd/MM/yyyy 'às' HH:mm",
       )} cancelado ${who}`,
+      date: appointment.date,
     });
 
     await this.cacheProvider.invalidate(

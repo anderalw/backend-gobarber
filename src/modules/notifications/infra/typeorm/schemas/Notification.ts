@@ -17,8 +17,13 @@ class Notification {
   @Column('uuid')
   recipient_id: string;
 
+  // Nas notificações antigas o campo não existe: conta como não lida
   @Column({ default: false })
   read: boolean;
+
+  // Data do agendamento citado (ausente nas notificações antigas)
+  @Column({ nullable: true })
+  date?: Date;
 
   @CreateDateColumn()
   create_at: Date;
