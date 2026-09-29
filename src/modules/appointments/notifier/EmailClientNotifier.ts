@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import ptBR from 'date-fns/locale/pt-BR';
 
 import IMailProvider from '@shared/container/providers/MailProvider/models/IMailProvider';
+import BrandingService from '@modules/catalog/services/BrandingService';
 import Client from '@modules/clients/infra/typeorm/entities/Client';
 import Appointment from '../infra/typeorm/entities/Appointment';
 import IClientNotifier from './IClientNotifier';
@@ -29,6 +30,9 @@ export default class EmailClientNotifier implements IClientNotifier {
   constructor(
     @inject('MailProvider')
     private mailProvider: IMailProvider,
+
+    @inject(BrandingService)
+    private branding: BrandingService,
   ) {}
 
   public async appointmentCreated(appointment: Appointment): Promise<void> {
@@ -155,9 +159,13 @@ export default class EmailClientNotifier implements IClientNotifier {
     if (!client?.email) return;
 
     try {
+      const brand = await this.branding.get();
+
       await this.mailProvider.sendMail({
+        from: { name: `Equipe ${brand.name}`, email: 'equipe@gobarber.com.br' },
         to: { name: client.name, email: client.email },
-        subject,
+        // O nome da barbearia no lugar de [GoBarber]
+        subject: subject.replace('[GoBarber]', `[${brand.name}]`),
         templateData: {
           file: path.join(views, template),
           variables: {
@@ -166,6 +174,9 @@ export default class EmailClientNotifier implements IClientNotifier {
             provider: appointment.provider?.name || 'a barbearia',
             when: when(appointment.date),
             myAppointmentsLink: `${process.env.APP_WEB_URL}/meus-agendamentos`,
+            shopName: brand.name,
+            primaryColor: brand.primary_color,
+            onPrimaryColor: brand.on_primary_color,
             ...extra,
           },
         },

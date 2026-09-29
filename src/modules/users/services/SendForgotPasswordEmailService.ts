@@ -3,6 +3,7 @@ import { injectable, inject } from 'tsyringe';
 import path from 'path';
 import AppError from '@shared/errors/AppError';
 import IMailProvider from '@shared/container/providers/MailProvider/models/IMailProvider';
+import BrandingService from '@modules/catalog/services/BrandingService';
 import IUsersRepository from '../repositories/IUsersRepository';
 import IUserTokensRepository from '../repositories/IUserTokensRepository';
 
@@ -22,6 +23,9 @@ class SendForgotPasswordEmailService {
 
     @inject('UserTokensRepository')
     private userTokensRepository: IUserTokensRepository,
+
+    @inject(BrandingService)
+    private branding: BrandingService,
   ) {}
 
   public async execute({ email }: IRequest): Promise<void> {
@@ -40,15 +44,19 @@ class SendForgotPasswordEmailService {
       'forgot_password.hbs',
     );
 
+    const brand = await this.branding.get();
+
     await this.mailProvider.sendMail({
+      from: { name: `Equipe ${brand.name}`, email: 'equipe@gobarber.com.br' },
       to: {
         name: user.name,
         email: user.email,
       },
-      subject: '[GoBarber] Recuperação de senha',
+      subject: `[${brand.name}] Recuperação de senha`,
       templateData: {
         file: forgotPasswordTemplate,
         variables: {
+          shopName: brand.name,
           name: user.name,
           link: `${process.env.APP_WEB_URL}/barbeiro/redefinir-senha?token=${token}`,
         },

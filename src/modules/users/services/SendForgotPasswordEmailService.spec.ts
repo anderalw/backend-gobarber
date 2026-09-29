@@ -1,6 +1,9 @@
 import AppError from '@shared/errors/AppError';
 
 import FakeMailProvider from '@shared/container/providers/MailProvider/fakes/FakeMailProvider';
+import FakeStorageProvider from '@shared/container/providers/StorageProvider/fakes/FakeStorageProvider';
+import FakeSettingsRepository from '@modules/catalog/repositories/fakes/FakeSettingsRepository';
+import BrandingService from '@modules/catalog/services/BrandingService';
 import FakeUsersRepository from '../repositories/fakes/FakeUsersRepository';
 import FakeUserTokensRepository from '../repositories/fakes/FakeUserTokensRepository';
 import SendForgotPasswordEmailService from './SendForgotPasswordEmailService';
@@ -20,6 +23,10 @@ describe('SendForgotPasswordEmail', () => {
       fakeUsersRepository,
       fakeMailProvider,
       fakeUserTokensRepository,
+      new BrandingService(
+        new FakeSettingsRepository(),
+        new FakeStorageProvider(),
+      ),
     );
   });
 
