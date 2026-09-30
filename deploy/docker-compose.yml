@@ -76,6 +76,8 @@ services:
       MAIL_DRIVER: ${MAIL_DRIVER:-ethereal}
       STORAGE_DRIVE: ${STORAGE_DRIVE:-disk}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      # Painel do SaaS lê o uso em /internal/metrics (vazio = rota desligada)
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
       # Primeiro administrador (só se o banco estiver vazio)
       ADMIN_NAME: ${ADMIN_NAME:-Administrador}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}

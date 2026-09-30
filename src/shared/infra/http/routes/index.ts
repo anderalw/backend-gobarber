@@ -22,6 +22,7 @@ import profileRouter from '@modules/users/infra/http/routes/profile.routes';
 import clientsRouter from '@modules/clients/infra/http/routes/clients.routes';
 import clientsSessionsRouter from '@modules/clients/infra/http/routes/sessions.routes';
 import providerSchedulesRouter from '@modules/users/infra/http/routes/providerSchedules.routes';
+import internalRouter from './internal.routes';
 
 const routes = Router();
 
@@ -41,6 +42,8 @@ routes.use('/site', siteRouter);
 routes.use('/card-charges', cardChargesRouter);
 routes.use('/memberships', membershipsRouter);
 routes.use('/whatsapp', whatsappRouter);
+// Painel do SaaS (METRICS_TOKEN)
+routes.use('/internal', internalRouter);
 routes.use('/users', usersRouter);
 routes.use('/sessions', sessionsRouter);
 routes.use('/password', passwordRouter);
