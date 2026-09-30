@@ -10,3 +10,7 @@ coverage
 node_modules
 
 ormconfig.json
+
+# Backups (têm todos os dados)
+*.tar.gz
+.backup-*
