@@ -132,7 +132,7 @@ appointmentsRouter.patch(
         .allow(null)
         .required(),
       payment_method: Joi.string()
-        .valid('pix', 'credit', 'debit', 'cash')
+        .valid('pix', 'credit', 'debit', 'cash', 'membership')
         .allow(null),
       paid_cents: Joi.number().integer().min(0).max(1000000).allow(null),
     },

@@ -3,7 +3,10 @@ import { isBefore } from 'date-fns';
 
 import AppError from '@shared/errors/AppError';
 import IAppointmentsRepository from '@modules/appointments/repositories/IAppointmentsRepository';
-import { MAX_PAID_CENTS } from '@modules/appointments/utils/payment';
+import {
+  MAX_PAID_CENTS,
+  applyMembershipChoice,
+} from '@modules/appointments/utils/payment';
 import CardCharge from '../infra/typeorm/entities/CardCharge';
 import ICardChargesRepository from '../repositories/ICardChargesRepository';
 import ITerminalDevicesRepository from '../repositories/ITerminalDevicesRepository';
@@ -222,6 +225,12 @@ class CardChargeService {
       const paid = result.paid_cents ?? charge.amount_cents;
 
       if (appointment) {
+        // Estava incluso no plano: pago na maquininha, sai do plano
+        if (appointment.membership_id) {
+          applyMembershipChoice(appointment, result.method || 'credit');
+          await this.appointmentsRepository.save(appointment);
+        }
+
         await this.appointmentsRepository.setAttendance({
           appointment_id: appointment.id,
           attendance: 'completed',

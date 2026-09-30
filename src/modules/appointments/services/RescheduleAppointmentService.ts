@@ -13,6 +13,7 @@ import INotificationsRepository from '@modules/notifications/repositories/INotif
 import IUsersRepository from '@modules/users/repositories/IUsersRepository';
 import IProviderSchedulesRepository from '@modules/users/repositories/IProviderSchedulesRepository';
 import AgendaSettingsService from '@modules/catalog/services/AgendaSettingsService';
+import MembershipBenefitService from '@modules/memberships/services/MembershipBenefitService';
 import Appointment from '../infra/typeorm/entities/Appointment';
 import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
 import ITimeBlocksRepository from '../repositories/ITimeBlocksRepository';
@@ -64,6 +65,11 @@ class RescheduleAppointmentService {
 
     @inject(NotifyWaitlistService)
     private notifyWaitlist: NotifyWaitlistService,
+
+    // Clube: a nova data pode mudar o que o plano cobre (opcional nos
+    // testes que não envolvem o clube)
+    @inject(MembershipBenefitService)
+    private membershipBenefit?: MembershipBenefitService,
   ) {}
 
   public async execute({
@@ -127,6 +133,26 @@ class RescheduleAppointmentService {
     appointment.confirmation_requested_at = null;
     appointment.confirmed_at = null;
     appointment.confirmed_by = null;
+
+    if (
+      this.membershipBenefit &&
+      appointment.client_id &&
+      appointment.service_id
+    ) {
+      const benefit = await this.membershipBenefit.evaluate({
+        client_id: appointment.client_id,
+        service_id: appointment.service_id,
+        // O preço da marcação original, sem o benefício anterior
+        price_cents:
+          appointment.list_price_cents ?? appointment.price_cents ?? 0,
+        date: newStart,
+        except_appointment_id: appointment.id,
+      });
+
+      appointment.price_cents = benefit.price_cents;
+      appointment.membership_id = benefit.membership_id;
+      appointment.list_price_cents = benefit.list_price_cents;
+    }
 
     const rescheduled = await this.appointmentsRepository.save(appointment);
 

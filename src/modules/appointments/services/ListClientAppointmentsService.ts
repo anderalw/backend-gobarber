@@ -10,6 +10,9 @@ interface IClientAppointment {
   provider: { id: string; name: string; avatar_url: string | null };
   service: { id: string; name: string } | null;
   price_cents: number | null;
+  // Clube: incluso no plano / preço normal quando houve benefício
+  included: boolean;
+  list_price_cents: number | null;
   // Ainda dá tempo de o cliente cancelar ou remarcar sozinho
   can_change: boolean;
 }
@@ -41,6 +44,8 @@ class ListClientAppointmentsService {
         ? { id: appointment.service.id, name: appointment.service.name }
         : null,
       price_cents: appointment.price_cents,
+      included: !!appointment.membership_id,
+      list_price_cents: appointment.list_price_cents,
       can_change: clientCanChange(appointment, now),
     }));
   }

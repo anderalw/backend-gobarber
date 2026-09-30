@@ -33,6 +33,12 @@ import NotificationsRepository from '@modules/notifications/infra/typeorm/reposi
 import ICardChargesRepository from '@modules/payments/repositories/ICardChargesRepository';
 import CardChargesRepository from '@modules/payments/infra/typeorm/repositories/CardChargesRepository';
 import ITerminalDevicesRepository from '@modules/payments/repositories/ITerminalDevicesRepository';
+import IMembershipPlansRepository from '@modules/memberships/repositories/IMembershipPlansRepository';
+import MembershipPlansRepository from '@modules/memberships/infra/typeorm/repositories/MembershipPlansRepository';
+import IMembershipsRepository from '@modules/memberships/repositories/IMembershipsRepository';
+import MembershipsRepository from '@modules/memberships/infra/typeorm/repositories/MembershipsRepository';
+import IMembershipPaymentsRepository from '@modules/memberships/repositories/IMembershipPaymentsRepository';
+import MembershipPaymentsRepository from '@modules/memberships/infra/typeorm/repositories/MembershipPaymentsRepository';
 import TerminalDevicesRepository from '@modules/payments/infra/typeorm/repositories/TerminalDevicesRepository';
 import SimulatorTerminalProvider from '@modules/payments/providers/TerminalProvider/implementations/SimulatorTerminalProvider';
 import IGoogleTokenProvider from '@modules/clients/providers/GoogleTokenProvider/models/IGoogleTokenProvider';
@@ -102,6 +108,21 @@ container.registerSingleton<INotificationsRepository>(
 container.registerSingleton<ICardChargesRepository>(
   'CardChargesRepository',
   CardChargesRepository,
+);
+
+container.registerSingleton<IMembershipPlansRepository>(
+  'MembershipPlansRepository',
+  MembershipPlansRepository,
+);
+
+container.registerSingleton<IMembershipsRepository>(
+  'MembershipsRepository',
+  MembershipsRepository,
+);
+
+container.registerSingleton<IMembershipPaymentsRepository>(
+  'MembershipPaymentsRepository',
+  MembershipPaymentsRepository,
 );
 
 container.registerSingleton<ITerminalDevicesRepository>(

@@ -108,6 +108,7 @@ describe('Caixa', () => {
       credit: { count: 1, cents: 5000 },
       debit: { count: 0, cents: 0 },
       cash: { count: 2, cents: 8500 },
+      membership: { count: 0, cents: 0 },
       unknown: { count: 1, cents: 4500 },
     });
     expect(report.items).toHaveLength(5);

@@ -43,7 +43,7 @@ cashRouter.patch(
     [Segments.PARAMS]: { id: Joi.string().uuid().required() },
     [Segments.BODY]: {
       payment_method: Joi.string()
-        .valid('pix', 'credit', 'debit', 'cash')
+        .valid('pix', 'credit', 'debit', 'cash', 'membership')
         .allow(null)
         .required(),
       paid_cents: cents.allow(null),

@@ -75,6 +75,12 @@ export default interface IAppointmentsRepository {
   // Cliente fixo: agendamentos ativos da série a partir de from (inclusive),
   // em ordem, com cliente, barbeiro e serviço
   findFollowingInSeries(series_id: string, from: Date): Promise<Appointment[]>;
+  // Clube: ativos inclusos na assinatura que começam em [start, end)
+  findByMembershipInPeriod(
+    membership_id: string,
+    start: Date,
+    end: Date,
+  ): Promise<Appointment[]>;
   // Agendamentos do barbeiro que ainda não terminaram, em ordem
   findUpcomingFromProvider(
     provider_id: string,

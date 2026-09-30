@@ -3,6 +3,8 @@ import { endOfDay, format, isBefore, parseISO, startOfDay } from 'date-fns';
 
 import AppError from '@shared/errors/AppError';
 import IUsersRepository from '@modules/users/repositories/IUsersRepository';
+import IMembershipPaymentsRepository from '@modules/memberships/repositories/IMembershipPaymentsRepository';
+import MembershipPayment from '@modules/memberships/infra/typeorm/entities/MembershipPayment';
 import Appointment, {
   PaymentMethod,
 } from '../infra/typeorm/entities/Appointment';
@@ -28,6 +30,16 @@ interface ICashItem {
   payment_method: PaymentMethod | null;
 }
 
+// Mensalidade do clube recebida no dia
+interface IMembershipItem {
+  id: string;
+  paid_at: Date;
+  client_name: string;
+  plan_name: string;
+  amount_cents: number;
+  payment_method: PaymentMethod;
+}
+
 interface IClosingView {
   opening_cents: number;
   counted_cents: number;
@@ -48,6 +60,8 @@ interface IResponse {
   totals: PaymentTotals;
   // Atendimentos concluídos do dia, em ordem
   items: ICashItem[];
+  // Mensalidades do clube recebidas no dia (entram nos totais)
+  memberships: IMembershipItem[];
   // Já começaram e ninguém registrou se foi atendido
   pending: number;
   no_show: number;
@@ -75,15 +89,17 @@ class CashRegisterService {
 
     @inject('UsersRepository')
     private usersRepository: IUsersRepository,
+
+    // Opcional só para os testes que não envolvem o clube
+    @inject('MembershipPaymentsRepository')
+    private membershipPaymentsRepository?: IMembershipPaymentsRepository,
   ) {}
 
   public async show(date: string): Promise<IResponse> {
-    const { completed, pending, noShow } = await this.dayAppointments(date);
-    const totals = totalsByMethod(completed);
-    const received = completed.reduce(
-      (sum, item) => sum + receivedCents(item),
-      0,
+    const { completed, pending, noShow, payments } = await this.dayAppointments(
+      date,
     );
+    const { totals, received } = this.sum(completed, payments);
 
     const closing = await this.cashClosingsRepository.findByDate(date);
     let closingView: IClosingView | null = null;
@@ -124,6 +140,14 @@ class CashRegisterService {
         received_cents: receivedCents(item),
         payment_method: item.payment_method,
       })),
+      memberships: payments.map(payment => ({
+        id: payment.id,
+        paid_at: payment.paid_at,
+        client_name: payment.membership?.client?.name || 'Cliente removido',
+        plan_name: payment.membership?.plan?.name || 'Plano removido',
+        amount_cents: payment.amount_cents,
+        payment_method: payment.payment_method,
+      })),
       pending,
       no_show: noShow,
       closing: closingView,
@@ -151,18 +175,15 @@ class CashRegisterService {
       );
     }
 
-    const { completed } = await this.dayAppointments(date);
-    const totals = totalsByMethod(completed);
+    const { completed, payments } = await this.dayAppointments(date);
+    const { totals, received } = this.sum(completed, payments);
 
     await this.cashClosingsRepository.save({
       date,
       opening_cents,
       counted_cents,
       expected_cash_cents: opening_cents + totals.cash.cents,
-      received_cents: completed.reduce(
-        (sum, item) => sum + receivedCents(item),
-        0,
-      ),
+      received_cents: received,
       totals,
       notes: notes && notes.trim() ? notes.trim() : null,
       closed_by: user_id,
@@ -172,10 +193,31 @@ class CashRegisterService {
     return this.show(date);
   }
 
+  // Atendimentos e mensalidades somados por forma de pagamento
+  private sum(
+    completed: Appointment[],
+    payments: MembershipPayment[],
+  ): { totals: PaymentTotals; received: number } {
+    const totals = totalsByMethod(completed);
+    let received = completed.reduce(
+      (sum, item) => sum + receivedCents(item),
+      0,
+    );
+
+    payments.forEach(payment => {
+      totals[payment.payment_method].count += 1;
+      totals[payment.payment_method].cents += payment.amount_cents;
+      received += payment.amount_cents;
+    });
+
+    return { totals, received };
+  }
+
   private async dayAppointments(date: string): Promise<{
     completed: Appointment[];
     pending: number;
     noShow: number;
+    payments: MembershipPayment[];
   }> {
     const day = parseISO(date);
 
@@ -190,8 +232,15 @@ class CashRegisterService {
       )
     ).filter(item => !item.canceled_at);
     const now = new Date(Date.now());
+    const payments = this.membershipPaymentsRepository
+      ? await this.membershipPaymentsRepository.findPaidInPeriod(
+          startOfDay(day),
+          endOfDay(day),
+        )
+      : [];
 
     return {
+      payments,
       completed: appointments
         .filter(item => item.attendance === 'completed')
         .sort((a, b) => a.date.getTime() - b.date.getTime()),

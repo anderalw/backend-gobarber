@@ -265,6 +265,21 @@ class AppointmentsRepository implements IAppointmentsRepository {
       .sort((a, b) => a.date.getTime() - b.date.getTime());
   }
 
+  public async findByMembershipInPeriod(
+    membership_id: string,
+    start: Date,
+    end: Date,
+  ): Promise<Appointment[]> {
+    return this.active
+      .filter(
+        item =>
+          item.membership_id === membership_id &&
+          !isBefore(item.date, start) &&
+          isBefore(item.date, end),
+      )
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
+  }
+
   public async findAllFromClient(client_id: string): Promise<Appointment[]> {
     return this.appointments
       .filter(item => item.client_id === client_id)
@@ -301,6 +316,8 @@ class AppointmentsRepository implements IAppointmentsRepository {
     Object.assign(appointment, data, {
       id: randomUUID(),
       series_id: data.series_id ?? null,
+      membership_id: data.membership_id ?? null,
+      list_price_cents: data.list_price_cents ?? null,
       canceled_at: null,
       canceled_by: null,
       attendance: null,

@@ -15,8 +15,9 @@ import Client from '../../../../clients/infra/typeorm/entities/Client';
 // Como terminou o atendimento: o cliente foi atendido ou faltou
 export type Attendance = 'completed' | 'no_show';
 
-// Como o cliente pagou (registrado junto com "atendido")
-export type PaymentMethod = 'pix' | 'credit' | 'debit' | 'cash';
+// Como o cliente pagou (registrado junto com "atendido"); 'membership' =
+// incluso no plano do clube (nada a receber)
+export type PaymentMethod = 'pix' | 'credit' | 'debit' | 'cash' | 'membership';
 
 @Entity('appointments')
 class Appointment {
@@ -46,9 +47,19 @@ class Appointment {
   @JoinColumn({ name: 'service_id' })
   service: Service | null;
 
-  // Valor do serviço no momento da marcação (em centavos)
+  // Valor do serviço no momento da marcação (em centavos); 0 quando está
+  // incluso no plano do clube
   @Column({ type: 'int', nullable: true })
   price_cents: number | null;
+
+  // Clube: assinatura que cobre este agendamento (incluso no plano)
+  @Column({ type: 'uuid', nullable: true })
+  membership_id: string | null;
+
+  // Clube: preço normal do serviço quando o plano deixou de graça ou com
+  // desconto (null = sem benefício)
+  @Column({ type: 'int', nullable: true })
+  list_price_cents: number | null;
 
   // Início do atendimento
   @Column('timestamp with time zone')

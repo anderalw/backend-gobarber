@@ -18,6 +18,8 @@ interface IHistoryItem {
   provider: { id: string; name: string } | null;
   service: { id: string; name: string } | null;
   price_cents: number | null;
+  // Clube: coberto pelo plano (preço 0)
+  included: boolean;
   attendance: Attendance | null;
   canceled_at: Date | null;
   canceled_by: 'provider' | 'client' | null;
@@ -80,6 +82,7 @@ class ShowClientService {
           ? { id: appointment.service.id, name: appointment.service.name }
           : null,
         price_cents: appointment.price_cents,
+        included: !!appointment.membership_id,
         attendance: appointment.attendance,
         canceled_at: appointment.canceled_at,
         canceled_by: appointment.canceled_by,

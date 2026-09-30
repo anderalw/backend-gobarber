@@ -10,6 +10,7 @@ import IProviderSchedulesRepository from '@modules/users/repositories/IProviderS
 import IUsersRepository from '@modules/users/repositories/IUsersRepository';
 import IServicesRepository from '@modules/catalog/repositories/IServicesRepository';
 import AgendaSettingsService from '@modules/catalog/services/AgendaSettingsService';
+import MembershipBenefitService from '@modules/memberships/services/MembershipBenefitService';
 import Appointment from '../infra/typeorm/entities/Appointment';
 import IAppointmentsRepaository from '../repositories/IAppointmentsRepository';
 import ITimeBlocksRepository from '../repositories/ITimeBlocksRepository';
@@ -55,6 +56,11 @@ class CreateAppointmentsServices {
     private timeBlocksRepository: ITimeBlocksRepository,
     @inject('ClientNotifier')
     private clientNotifier: IClientNotifier,
+
+    // Clube: incluso no plano ou com desconto (opcional nos testes que não
+    // envolvem o clube)
+    @inject(MembershipBenefitService)
+    private membershipBenefit?: MembershipBenefitService,
   ) {}
 
   public async execute({
@@ -93,12 +99,23 @@ class CreateAppointmentsServices {
       },
     );
 
+    const benefit = this.membershipBenefit
+      ? await this.membershipBenefit.evaluate({
+          client_id,
+          service_id: service.id,
+          price_cents: service.price_cents,
+          date: appointmentDate,
+        })
+      : null;
+
     const appointment = await this.appointmentsRepository.create({
       provider_id,
       client_id,
       service_id: service.id,
       // Guarda o valor do momento: mudar o preço depois não altera o histórico
-      price_cents: service.price_cents,
+      price_cents: benefit ? benefit.price_cents : service.price_cents,
+      membership_id: benefit?.membership_id ?? null,
+      list_price_cents: benefit?.list_price_cents ?? null,
       date: appointmentDate,
       end_date: end,
       blocked_until: blockedUntil,

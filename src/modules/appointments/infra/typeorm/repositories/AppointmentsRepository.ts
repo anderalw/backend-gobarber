@@ -1,4 +1,5 @@
 import {
+  And,
   Repository,
   Between,
   IsNull,
@@ -324,6 +325,24 @@ class AppointmentsRepository implements IAppointmentsRepository {
     return this.ormRepository.find({
       where: { ...ACTIVE, series_id, date: MoreThanOrEqual(from) },
       relations: ['client', 'provider', 'service'],
+      order: { date: 'ASC' },
+    });
+  }
+
+  public async findByMembershipInPeriod(
+    membership_id: string,
+    start: Date,
+    end: Date,
+  ): Promise<Appointment[]> {
+    if (!membership_id) return [];
+
+    return this.ormRepository.find({
+      where: {
+        ...ACTIVE,
+        membership_id,
+        date: And(MoreThanOrEqual(start), LessThan(end)),
+      },
+      relations: ['service'],
       order: { date: 'ASC' },
     });
   }

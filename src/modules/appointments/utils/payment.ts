@@ -4,6 +4,7 @@ import Appointment, {
 } from '../infra/typeorm/entities/Appointment';
 import { PaymentTotals } from '../infra/typeorm/entities/CashClosing';
 
+// Formas de receber dinheiro (para escolher na tela)
 export const PAYMENT_METHODS: PaymentMethod[] = [
   'pix',
   'credit',
@@ -25,6 +26,7 @@ export function emptyTotals(): PaymentTotals {
     credit: { count: 0, cents: 0 },
     debit: { count: 0, cents: 0 },
     cash: { count: 0, cents: 0 },
+    membership: { count: 0, cents: 0 },
     unknown: { count: 0, cents: 0 },
   };
 }
@@ -43,11 +45,39 @@ export function totalsByMethod(appointments: Appointment[]): PaymentTotals {
   return totals;
 }
 
+// Clube: "incluso no plano" só vale no agendamento coberto pela assinatura.
+// Pagar de outro jeito tira o agendamento do plano (o uso volta ao saldo) e
+// traz de volta o preço normal
+export function applyMembershipChoice(
+  appointment: Appointment,
+  payment_method: PaymentMethod | null,
+): void {
+  if (payment_method === 'membership') {
+    if (!appointment.membership_id) {
+      throw new AppError('Este atendimento não está incluso em um plano.');
+    }
+
+    return;
+  }
+
+  if (appointment.membership_id && payment_method) {
+    Object.assign(appointment, {
+      membership_id: null,
+      price_cents: appointment.list_price_cents,
+      list_price_cents: null,
+    });
+  }
+}
+
 export function validatePayment(
   payment_method: PaymentMethod | null | undefined,
   paid_cents: number | null | undefined,
 ): void {
-  if (payment_method && !PAYMENT_METHODS.includes(payment_method)) {
+  if (
+    payment_method &&
+    payment_method !== 'membership' &&
+    !PAYMENT_METHODS.includes(payment_method)
+  ) {
     throw new AppError('Forma de pagamento inválida.');
   }
 

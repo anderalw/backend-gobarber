@@ -8,4 +8,7 @@ export default interface ICreateAppointmentDTO {
   blocked_until: Date;
   // Cliente fixo: série a que o horário pertence
   series_id?: string | null;
+  // Clube: incluso no plano / preço normal quando houve benefício
+  membership_id?: string | null;
+  list_price_cents?: number | null;
 }

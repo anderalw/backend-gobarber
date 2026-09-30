@@ -44,6 +44,9 @@ interface IAgendaAppointment {
   service: { id: string; name: string } | null;
   // Valor cobrado no momento da marcação, em centavos
   price_cents: number | null;
+  // Clube: incluso no plano / preço normal quando houve benefício
+  membership_id: string | null;
+  list_price_cents: number | null;
   // Concluído ou falta; null = ainda não registrado
   attendance: Attendance | null;
   // Pagamento do atendimento concluído (null = não informado)
@@ -243,6 +246,8 @@ class ListDayAgendaService {
           ? { id: appointment.service.id, name: appointment.service.name }
           : null,
         price_cents: appointment.price_cents,
+        membership_id: appointment.membership_id,
+        list_price_cents: appointment.list_price_cents,
         attendance: appointment.attendance,
         payment_method: appointment.payment_method,
         paid_cents: appointment.paid_cents,
