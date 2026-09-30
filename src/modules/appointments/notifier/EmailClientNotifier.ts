@@ -7,6 +7,7 @@ import { inject, injectable } from 'tsyringe';
 import { format } from 'date-fns';
 import ptBR from 'date-fns/locale/pt-BR';
 
+import mailConfig from '@config/mail';
 import IMailProvider from '@shared/container/providers/MailProvider/models/IMailProvider';
 import BrandingService from '@modules/catalog/services/BrandingService';
 import Client from '@modules/clients/infra/typeorm/entities/Client';
@@ -42,7 +43,7 @@ export default class EmailClientNotifier implements IClientNotifier {
   public async appointmentCreated(appointment: Appointment): Promise<void> {
     await this.send(
       appointment,
-      `[GoBarber] Horário marcado: ${format(
+      `[Pontual] Horário marcado: ${format(
         appointment.date,
         "dd/MM 'às' HH:mm",
       )}`,
@@ -56,7 +57,7 @@ export default class EmailClientNotifier implements IClientNotifier {
   ): Promise<void> {
     await this.send(
       appointment,
-      `[GoBarber] Confirme seu horário de ${format(
+      `[Pontual] Confirme seu horário de ${format(
         appointment.date,
         "dd/MM 'às' HH:mm",
       )}`,
@@ -71,7 +72,7 @@ export default class EmailClientNotifier implements IClientNotifier {
   ): Promise<void> {
     await this.send(
       appointment,
-      `[GoBarber] Horário remarcado para ${format(
+      `[Pontual] Horário remarcado para ${format(
         appointment.date,
         "dd/MM 'às' HH:mm",
       )}`,
@@ -87,7 +88,7 @@ export default class EmailClientNotifier implements IClientNotifier {
   public async appointmentCanceled(appointment: Appointment): Promise<void> {
     await this.send(
       appointment,
-      `[GoBarber] Horário cancelado: ${format(
+      `[Pontual] Horário cancelado: ${format(
         appointment.date,
         "dd/MM 'às' HH:mm",
       )}`,
@@ -104,7 +105,7 @@ export default class EmailClientNotifier implements IClientNotifier {
 
     await this.send(
       first,
-      `[GoBarber] ${appointments.length} horários marcados a partir de ${format(
+      `[Pontual] ${appointments.length} horários marcados a partir de ${format(
         first.date,
         'dd/MM',
       )}`,
@@ -125,7 +126,7 @@ export default class EmailClientNotifier implements IClientNotifier {
 
     await this.send(
       first,
-      `[GoBarber] ${appointments.length} horários cancelados`,
+      `[Pontual] ${appointments.length} horários cancelados`,
       'appointment_series_canceled.hbs',
       {
         dates: appointments.map(item => when(item.date)),
@@ -140,10 +141,7 @@ export default class EmailClientNotifier implements IClientNotifier {
   ): Promise<void> {
     await this.send(
       freed,
-      `[GoBarber] Abriu um horário em ${format(
-        freed.date,
-        "dd/MM 'às' HH:mm",
-      )}`,
+      `[Pontual] Abriu um horário em ${format(freed.date, "dd/MM 'às' HH:mm")}`,
       'waitlist_slot_freed.hbs',
       { bookLink: `${process.env.APP_WEB_URL}/agendar` },
       client,
@@ -166,10 +164,13 @@ export default class EmailClientNotifier implements IClientNotifier {
       const brand = await this.branding.get();
 
       await this.mailProvider.sendMail({
-        from: { name: `Equipe ${brand.name}`, email: 'equipe@gobarber.com.br' },
+        from: {
+          name: `Equipe ${brand.name}`,
+          email: mailConfig.defaults.from.email,
+        },
         to: { name: client.name, email: client.email },
-        // O nome da barbearia no lugar de [GoBarber]
-        subject: subject.replace('[GoBarber]', `[${brand.name}]`),
+        // O nome da barbearia no lugar de [Pontual]
+        subject: subject.replace('[Pontual]', `[${brand.name}]`),
         templateData: {
           file: path.join(views, template),
           variables: {

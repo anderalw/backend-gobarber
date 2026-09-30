@@ -16,9 +16,9 @@ describe('Identidade da barbearia', () => {
     process.env.APP_API_URL = 'http://api.test';
   });
 
-  it('should start with the GoBarber name and orange', async () => {
+  it('should start with the Pontual name and orange', async () => {
     expect(await branding.get()).toEqual({
-      name: 'GoBarber',
+      name: 'Pontual',
       primary_color: '#ff9000',
       on_primary_color: '#1b1a1f',
       logo_url: null,

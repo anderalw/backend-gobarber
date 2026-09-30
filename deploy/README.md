@@ -1,4 +1,4 @@
-# Subir o GoBarber com Docker
+# Subir o Pontual com Docker
 
 Um `docker compose` sobe tudo: site, API, Postgres, MongoDB e Redis. Só uma
 porta fica aberta (`WEB_PORT`, padrão 8080), com:
@@ -26,7 +26,7 @@ e o administrador do `.env` é criado. Entre em `/barbeiro` com o
 ## Num servidor (usando as imagens prontas)
 
 A cada push na `master`, o GitHub Actions testa e publica as imagens
-`ghcr.io/anderalw/gobarber-api` e `ghcr.io/anderalw/gobarber-web`. No
+`ghcr.io/anderalw/pontual-api` e `ghcr.io/anderalw/pontual-web`. No
 servidor basta esta pasta `deploy`:
 
 ```bash
@@ -35,8 +35,8 @@ docker login ghcr.io -u anderalw
 
 cp .env.example .env
 # no .env: APP_URL com o domínio, senhas novas e as imagens publicadas:
-#   API_IMAGE=ghcr.io/anderalw/gobarber-api:latest
-#   WEB_IMAGE=ghcr.io/anderalw/gobarber-web:latest
+#   API_IMAGE=ghcr.io/anderalw/pontual-api:latest
+#   WEB_IMAGE=ghcr.io/anderalw/pontual-web:latest
 docker compose pull
 docker compose up -d --no-build
 ```

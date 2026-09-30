@@ -1,4 +1,4 @@
-# GoBarber completo num só lugar: site + API + bancos. Tudo sai por uma
+# Pontual completo num só lugar: site + API + bancos. Tudo sai por uma
 # porta só (WEB_PORT): o site responde em "/", a API em "/api" e as fotos
 # em "/files". Os bancos não ficam expostos fora do Docker.
 #
@@ -47,7 +47,7 @@ services:
 
   api:
     build: ..
-    image: ${API_IMAGE:-gobarber-api}
+    image: ${API_IMAGE:-pontual-api}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -74,6 +74,7 @@ services:
       # O nginx do serviço web repassa o IP do cliente
       TRUST_PROXY: 1
       MAIL_DRIVER: ${MAIL_DRIVER:-ethereal}
+      MAIL_FROM: ${MAIL_FROM:-}
       STORAGE_DRIVE: ${STORAGE_DRIVE:-disk}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       # Painel do SaaS lê o uso em /internal/metrics (vazio = rota desligada)
@@ -90,7 +91,7 @@ services:
   web:
     build:
       context: ${WEB_CONTEXT:-../../front-end-gobarber}
-    image: ${WEB_IMAGE:-gobarber-web}
+    image: ${WEB_IMAGE:-pontual-web}
     restart: unless-stopped
     depends_on:
       - api

@@ -14,8 +14,9 @@ export default {
 
   defaults: {
     from: {
-      email: 'ander@andershome.com.br',
-      name: 'Anderson de casa',
+      // Remetente dos e-mails (defina MAIL_FROM com um domínio seu)
+      email: process.env.MAIL_FROM || 'equipe@pontual.com.br',
+      name: 'Equipe Pontual',
     },
   },
 } as IMailConfig;

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Gera um backup completo de uma instalação do GoBarber, no formato que o
+// Gera um backup completo de uma instalação do Pontual, no formato que o
 // painel do SaaS importa (e que ele mesmo gera): um .tar.gz com
 //
 //   manifest.json   formato, data e (opcional) o APP_SECRET

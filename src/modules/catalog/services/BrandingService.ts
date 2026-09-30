@@ -11,7 +11,7 @@ const NAME_KEY = 'shop_name';
 const COLOR_KEY = 'shop_primary_color';
 const LOGO_KEY = 'shop_logo';
 
-export const DEFAULT_NAME = 'GoBarber';
+export const DEFAULT_NAME = 'Pontual';
 export const DEFAULT_COLOR = '#ff9000';
 
 export interface IBranding {

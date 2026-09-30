@@ -1,6 +1,7 @@
 import { injectable, inject } from 'tsyringe';
 
 import path from 'path';
+import mailConfig from '@config/mail';
 import AppError from '@shared/errors/AppError';
 import IMailProvider from '@shared/container/providers/MailProvider/models/IMailProvider';
 import BrandingService from '@modules/catalog/services/BrandingService';
@@ -47,7 +48,10 @@ class SendForgotPasswordEmailService {
     const brand = await this.branding.get();
 
     await this.mailProvider.sendMail({
-      from: { name: `Equipe ${brand.name}`, email: 'equipe@gobarber.com.br' },
+      from: {
+        name: `Equipe ${brand.name}`,
+        email: mailConfig.defaults.from.email,
+      },
       to: {
         name: user.name,
         email: user.email,
