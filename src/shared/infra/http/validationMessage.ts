@@ -67,6 +67,8 @@ const FIELD_LABELS: Record<string, string> = {
   external_id: 'Identificador da maquininha',
   credentials: 'Dados da operadora',
   plan_id: 'Plano',
+  groups: 'Mensagens',
+  list: 'Lista',
   items: 'Serviços do plano',
   quantity: 'Quantidade por mês',
   min_interval_days: 'Intervalo mínimo',

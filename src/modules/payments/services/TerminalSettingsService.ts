@@ -4,13 +4,16 @@ import { injectable, inject } from 'tsyringe';
 
 import AppError from '@shared/errors/AppError';
 import ISettingsRepository from '@modules/catalog/repositories/ISettingsRepository';
+import { open, seal } from '@shared/utils/secretBox';
 import TerminalRegistry from '../providers/TerminalProvider/TerminalRegistry';
 import ITerminalProvider, {
   ITerminalCredentialField,
   ITerminalCredentials,
 } from '../providers/TerminalProvider/models/ITerminalProvider';
 import ITerminalDevicesRepository from '../repositories/ITerminalDevicesRepository';
-import { open, seal } from '../utils/secretBox';
+
+// Chave de cifra própria das credenciais das operadoras
+const PURPOSE = 'terminal-credentials';
 
 const PROVIDER_KEY = 'terminal_provider';
 // Uma por operadora: trocar de operadora e voltar não perde o cadastro
@@ -83,7 +86,7 @@ class TerminalSettingsService {
   // Credenciais salvas de uma operadora (vazio: nunca conectada)
   public async credentialsFor(provider: string): Promise<ITerminalCredentials> {
     const sealed = await this.settingsRepository.get(credentialsKey(provider));
-    const json = sealed ? open(sealed) : undefined;
+    const json = sealed ? open(sealed, PURPOSE) : undefined;
 
     if (!json) return {};
 
@@ -197,7 +200,7 @@ class TerminalSettingsService {
 
     await this.settingsRepository.set(
       credentialsKey(provider.key),
-      seal(JSON.stringify(credentials)),
+      seal(JSON.stringify(credentials), PURPOSE),
     );
     await this.settingsRepository.set(PROVIDER_KEY, provider.key);
 

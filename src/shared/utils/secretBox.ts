@@ -7,15 +7,15 @@ import {
 
 import authConfig from '@config/auth';
 
-// Chaves das operadoras ficam cifradas no banco (AES-256-GCM), com uma chave
-// derivada do APP_SECRET: quem ler só o banco não consegue usá-las
-const key = createHash('sha256')
-  .update(`${authConfig.jwt.secret}:terminal-credentials`)
-  .digest();
+// Segredos de integrações (operadora da maquininha, WhatsApp...) ficam
+// cifrados no banco (AES-256-GCM), com uma chave derivada do APP_SECRET e
+// do uso: quem ler só o banco não consegue usá-los
+const keyFor = (purpose: string): Buffer =>
+  createHash('sha256').update(`${authConfig.jwt.secret}:${purpose}`).digest();
 
-export function seal(text: string): string {
+export function seal(text: string, purpose: string): string {
   const iv = randomBytes(12);
-  const cipher = createCipheriv('aes-256-gcm', key, iv);
+  const cipher = createCipheriv('aes-256-gcm', keyFor(purpose), iv);
   const data = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
 
   return [
@@ -27,7 +27,7 @@ export function seal(text: string): string {
 }
 
 // undefined: corrompido ou cifrado com outro APP_SECRET
-export function open(sealed: string): string | undefined {
+export function open(sealed: string, purpose: string): string | undefined {
   const [version, iv, tag, data] = sealed.split(':');
 
   if (version !== 'v1' || !iv || !tag || !data) return undefined;
@@ -35,7 +35,7 @@ export function open(sealed: string): string | undefined {
   try {
     const decipher = createDecipheriv(
       'aes-256-gcm',
-      key,
+      keyFor(purpose),
       Buffer.from(iv, 'base64'),
     );
 

@@ -19,7 +19,11 @@ import CashClosingsRepository from '@modules/appointments/infra/typeorm/reposito
 import WaitlistRepository from '@modules/appointments/infra/typeorm/repositories/WaitlistRepository';
 
 import IClientNotifier from '@modules/appointments/notifier/IClientNotifier';
-import EmailClientNotifier from '@modules/appointments/notifier/EmailClientNotifier';
+import CompositeClientNotifier from '@modules/appointments/notifier/CompositeClientNotifier';
+import IWhatsAppMessagesRepository from '@modules/messaging/repositories/IWhatsAppMessagesRepository';
+import WhatsAppMessagesRepository from '@modules/messaging/infra/typeorm/repositories/WhatsAppMessagesRepository';
+import ManualWhatsAppProvider from '@modules/messaging/providers/WhatsAppProvider/implementations/ManualWhatsAppProvider';
+import SimulatorWhatsAppProvider from '@modules/messaging/providers/WhatsAppProvider/implementations/SimulatorWhatsAppProvider';
 
 import IUsersRepository from '@modules/users/repositories/IUsersRepository';
 import UsersRepository from '@modules/users/infra/typeorm/repositories/UsersRepository';
@@ -87,7 +91,8 @@ container.registerSingleton<IBlockReasonsRepository>(
 
 container.registerSingleton<IClientNotifier>(
   'ClientNotifier',
-  EmailClientNotifier,
+  // E-mail e WhatsApp
+  CompositeClientNotifier,
 );
 
 container.registerSingleton<IUsersRepository>(
@@ -123,6 +128,19 @@ container.registerSingleton<IMembershipsRepository>(
 container.registerSingleton<IMembershipPaymentsRepository>(
   'MembershipPaymentsRepository',
   MembershipPaymentsRepository,
+);
+
+container.registerSingleton<IWhatsAppMessagesRepository>(
+  'WhatsAppMessagesRepository',
+  WhatsAppMessagesRepository,
+);
+
+container.registerSingleton('ManualWhatsAppProvider', ManualWhatsAppProvider);
+
+// Uma instância só: as mensagens simuladas ficam na memória dela
+container.registerSingleton(
+  'SimulatorWhatsAppProvider',
+  SimulatorWhatsAppProvider,
 );
 
 container.registerSingleton<ITerminalDevicesRepository>(

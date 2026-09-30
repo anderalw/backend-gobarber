@@ -1,11 +1,14 @@
 import Client from '@modules/clients/infra/typeorm/entities/Client';
 import Appointment from '../infra/typeorm/entities/Appointment';
 
-// Avisos ao cliente sobre o agendamento. Hoje por e-mail; outros canais
-// (ex: WhatsApp) entram numa nova implementação, sem mudar quem avisa.
+// Avisos ao cliente sobre o agendamento, por e-mail e WhatsApp (um canal
+// novo entra numa nova implementação, sem mudar quem avisa).
 // Os agendamentos chegam com cliente, barbeiro e serviço carregados. Falhas
 // no envio não interrompem a operação (são só registradas)
 export default interface IClientNotifier {
+  // Este canal consegue avisar o cliente (e-mail cadastrado, WhatsApp
+  // ligado com telefone válido...)
+  reaches(client: Client): Promise<boolean>;
   // Informativo: o horário foi marcado
   appointmentCreated(appointment: Appointment): Promise<void>;
   // Na véspera: pede para o cliente confirmar pelo link

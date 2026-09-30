@@ -39,7 +39,12 @@ class SendConfirmationRequestsService {
           appointment.created_at,
         );
 
-        if (!appointment.client?.email || bookedAhead < MIN_NOTICE_HOURS) {
+        // Sem canal que alcance o cliente (e-mail ou WhatsApp), não pede
+        if (
+          !appointment.client ||
+          bookedAhead < MIN_NOTICE_HOURS ||
+          !(await this.clientNotifier.reaches(appointment.client))
+        ) {
           return false;
         }
 

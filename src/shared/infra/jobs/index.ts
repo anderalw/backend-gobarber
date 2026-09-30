@@ -3,6 +3,8 @@ import { container } from 'tsyringe';
 
 import SendConfirmationRequestsService from '@modules/appointments/services/SendConfirmationRequestsService';
 import CardChargeService from '@modules/payments/services/CardChargeService';
+import WhatsAppService from '@modules/messaging/services/WhatsAppService';
+import MembershipRemindersService from '@modules/messaging/services/MembershipRemindersService';
 
 // De quanto em quanto tempo a tarefa procura agendamentos da véspera
 const CONFIRMATION_INTERVAL = 10 * 60 * 1000;
@@ -35,9 +37,39 @@ async function refreshCardCharges(): Promise<void> {
   }
 }
 
+// WhatsApp: vence as mensagens que perderam o sentido, tenta de novo as
+// falhas do envio automático e avisa os vencimentos do clube
+const WHATSAPP_INTERVAL = 5 * 60 * 1000;
+const MEMBERSHIP_REMINDERS_INTERVAL = 60 * 60 * 1000;
+
+async function maintainWhatsApp(): Promise<void> {
+  try {
+    await container.resolve(WhatsAppService).maintain();
+  } catch (err) {
+    console.error('Falha na manutenção das mensagens de WhatsApp:', err);
+  }
+}
+
+async function remindMemberships(): Promise<void> {
+  try {
+    const queued = await container
+      .resolve(MembershipRemindersService)
+      .execute();
+
+    if (queued > 0) {
+      console.log(`Avisos de mensalidade do clube: ${queued}`);
+    }
+  } catch (err) {
+    console.error('Falha ao avisar os vencimentos do clube:', err);
+  }
+}
+
 // Tarefas periódicas do servidor
 export default function startJobs(): void {
   setTimeout(sendConfirmationRequests, FIRST_RUN_DELAY);
   setInterval(sendConfirmationRequests, CONFIRMATION_INTERVAL);
   setInterval(refreshCardCharges, CARD_CHARGES_INTERVAL);
+  setInterval(maintainWhatsApp, WHATSAPP_INTERVAL);
+  setTimeout(remindMemberships, FIRST_RUN_DELAY);
+  setInterval(remindMemberships, MEMBERSHIP_REMINDERS_INTERVAL);
 }

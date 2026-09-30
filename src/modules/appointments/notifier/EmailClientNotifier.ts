@@ -35,6 +35,10 @@ export default class EmailClientNotifier implements IClientNotifier {
     private branding: BrandingService,
   ) {}
 
+  public async reaches(client: Client): Promise<boolean> {
+    return !!client.email;
+  }
+
   public async appointmentCreated(appointment: Appointment): Promise<void> {
     await this.send(
       appointment,

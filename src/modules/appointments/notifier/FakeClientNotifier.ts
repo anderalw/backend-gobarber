@@ -23,6 +23,11 @@ interface ISentNotice {
 export default class FakeClientNotifier implements IClientNotifier {
   public sent: ISentNotice[] = [];
 
+  // Como o e-mail: só quem tem e-mail recebe
+  public async reaches(client: Client): Promise<boolean> {
+    return !!client.email;
+  }
+
   public async appointmentCreated(appointment: Appointment): Promise<void> {
     this.sent.push({ kind: 'created', appointment_id: appointment.id });
   }
