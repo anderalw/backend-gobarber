@@ -1,0 +1,13 @@
+node_modules
+coverage
+build
+tmp
+.env
+.env.*
+!.env.example
+.git
+.github
+.vscode
+.idea
+ormconfig.json
+docker-compose.yml

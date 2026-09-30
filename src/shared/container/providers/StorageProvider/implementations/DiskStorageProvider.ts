@@ -8,10 +8,19 @@ class DiskStorageProvider implements IStorageProvider {
     // tmp/ não vai para o Git, então a pasta pode não existir numa cópia nova
     await fs.promises.mkdir(uploadConfig.uploadsFolder, { recursive: true });
 
-    await fs.promises.rename(
-      path.resolve(uploadConfig.tmpFolder, file),
-      path.resolve(uploadConfig.uploadsFolder, file),
-    );
+    const from = path.resolve(uploadConfig.tmpFolder, file);
+    const to = path.resolve(uploadConfig.uploadsFolder, file);
+
+    try {
+      await fs.promises.rename(from, to);
+    } catch (err) {
+      // Pastas em discos diferentes (ex.: uploads num volume do Docker):
+      // não dá para mover, então copia e apaga o temporário
+      if ((err as NodeJS.ErrnoException).code !== 'EXDEV') throw err;
+
+      await fs.promises.copyFile(from, to);
+      await fs.promises.unlink(from);
+    }
 
     return file;
   }

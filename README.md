@@ -73,3 +73,8 @@
 - Use Node 20 ou mais novo;
 - Copie `.env.example` para `.env` e preencha as variáveis (`APP_SECRET` é obrigatório; as conexões com o Postgres e o MongoDB ficam em `DB_*` e `MONGO_URL`, com padrões para os contêineres Docker de desenvolvimento);
 - Rode as migrations com `yarn typeorm migration:run` e suba a API com `yarn dev:server`.
+
+# Subir com Docker
+
+Site, API e bancos juntos com um `docker compose`, e a pipeline do GitHub
+Actions que testa e publica as imagens: veja [deploy/README.md](deploy/README.md).

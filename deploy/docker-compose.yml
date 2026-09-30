@@ -1,0 +1,101 @@
+# GoBarber completo num só lugar: site + API + bancos. Tudo sai por uma
+# porta só (WEB_PORT): o site responde em "/", a API em "/api" e as fotos
+# em "/files". Os bancos não ficam expostos fora do Docker.
+#
+#   cd deploy
+#   cp .env.example .env      # e troque as senhas
+#   docker compose up -d --build
+#
+# O front-end é construído a partir da pasta ao lado (WEB_CONTEXT)
+name: gobarber
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASS:?defina DB_PASS no .env}
+      POSTGRES_DB: gostack_gobarber
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d gostack_gobarber']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', 'db.runCommand({ ping: 1 })']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build: ..
+    image: ${API_IMAGE:-gobarber-api}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      APP_SECRET: ${APP_SECRET:?defina APP_SECRET no .env}
+      # Fuso da barbearia: a agenda e os lembretes seguem esse horário
+      TZ: ${TZ:-America/Sao_Paulo}
+      # Endereço público: links dos e-mails/WhatsApp e das fotos
+      APP_API_URL: ${APP_URL:-http://localhost:8080}
+      APP_WEB_URL: ${APP_URL:-http://localhost:8080}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASS: ${DB_PASS}
+      DB_NAME: gostack_gobarber
+      MONGO_URL: mongodb://mongo:27017/gostack_gobarber
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      # O nginx do serviço web repassa o IP do cliente
+      TRUST_PROXY: 1
+      MAIL_DRIVER: ${MAIL_DRIVER:-ethereal}
+      STORAGE_DRIVE: ${STORAGE_DRIVE:-disk}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      # Primeiro administrador (só se o banco estiver vazio)
+      ADMIN_NAME: ${ADMIN_NAME:-Administrador}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    volumes:
+      # Fotos enviadas (a pasta tmp inteira: o upload chega nela e vai para
+      # tmp/uploads)
+      - files:/app/tmp
+
+  web:
+    build:
+      context: ${WEB_CONTEXT:-../../front-end-gobarber}
+    image: ${WEB_IMAGE:-gobarber-web}
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - '${WEB_PORT:-8080}:80'
+
+volumes:
+  postgres-data:
+  mongo-data:
+  files:
