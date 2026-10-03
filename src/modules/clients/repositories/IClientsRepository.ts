@@ -1,5 +1,6 @@
 import Client from '../infra/typeorm/entities/Client';
 import ICreateClientDTO from '../dtos/ICreateClientDTO';
+import IListClientsDTO from '../dtos/IListClientsDTO';
 
 export default interface IClientsRepository {
   create(data: ICreateClientDTO): Promise<Client>;
@@ -12,10 +13,6 @@ export default interface IClientsRepository {
   findByIds(ids: string[]): Promise<Client[]>;
   // Busca por nome, e-mail ou telefone (para o barbeiro marcar pela agenda)
   search(term: string, limit: number): Promise<Client[]>;
-  // Página da lista de clientes em ordem de nome; search vazio = todos
-  list(options: {
-    search: string;
-    offset: number;
-    limit: number;
-  }): Promise<{ clients: Client[]; total: number }>;
+  // Página da lista de clientes, com busca, recorte e ordem
+  list(options: IListClientsDTO): Promise<{ clients: Client[]; total: number }>;
 }

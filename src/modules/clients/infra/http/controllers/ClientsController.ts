@@ -4,6 +4,12 @@ import CreateClientService from '@modules/clients/services/CreateClientService';
 import SearchClientsService from '@modules/clients/services/SearchClientsService';
 import CreateClientByProviderService from '@modules/clients/services/CreateClientByProviderService';
 import ListClientsService from '@modules/clients/services/ListClientsService';
+import {
+  ClientFilter,
+  ClientSort,
+  SortDirection,
+} from '@modules/clients/dtos/IListClientsDTO';
+import clientsCsv from '@modules/clients/utils/clientsCsv';
 import ShowClientService from '@modules/clients/services/ShowClientService';
 import UpdateClientService from '@modules/clients/services/UpdateClientService';
 import UpdateOwnClientService from '@modules/clients/services/UpdateOwnClientService';
@@ -42,6 +48,22 @@ function contact(client: Client) {
     address: client.address ?? null,
     created_at: client.created_at,
     updated_at: client.updated_at,
+  };
+}
+
+// Busca, recorte e ordem da lista (já validados nas rotas)
+function listOptions(request: Request) {
+  const { query } = request;
+
+  return {
+    search: query.search ? String(query.search) : '',
+    filter: query.filter as ClientFilter | undefined,
+    sort: query.sort as ClientSort | undefined,
+    direction: query.direction as SortDirection | undefined,
+    inactive_days: query.inactive_days
+      ? Number(query.inactive_days)
+      : undefined,
+    month: query.month ? Number(query.month) : undefined,
   };
 }
 
@@ -88,10 +110,24 @@ export default class ClientsController {
 
     return response.json(
       await listClients.execute({
-        search: request.query.search ? String(request.query.search) : '',
+        ...listOptions(request),
         page: request.query.page ? Number(request.query.page) : 1,
       }),
     );
+  }
+
+  // A lista (com o mesmo recorte) em planilha, para abrir no Excel
+  public async export(request: Request, response: Response): Promise<Response> {
+    const listClients = container.resolve(ListClientsService);
+    const clients = await listClients.all(listOptions(request));
+
+    response.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    response.setHeader(
+      'Content-Disposition',
+      'attachment; filename="clientes.csv"',
+    );
+
+    return response.send(clientsCsv(clients));
   }
 
   // Ficha do cliente

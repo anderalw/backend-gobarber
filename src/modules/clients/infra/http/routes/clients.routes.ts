@@ -4,6 +4,10 @@ import { celebrate, Segments, Joi } from 'celebrate';
 import ensureAuthenticated from '@modules/users/infra/http/middlewares/ensureAuthenticated';
 import ensureRole from '@shared/infra/http/middlewares/ensureRole';
 import ensurePermission from '@shared/infra/http/middlewares/ensurePermission';
+import {
+  CLIENT_FILTERS,
+  CLIENT_SORTS,
+} from '@modules/clients/dtos/IListClientsDTO';
 import profileExtras from '@shared/infra/http/profileExtrasSchema';
 import ClientsController from '../controllers/ClientsController';
 
@@ -68,18 +72,39 @@ clientsRouter.put(
   clientsController.updateMe,
 );
 
+// Busca, recorte e ordem da lista de clientes
+const listQuery = {
+  search: Joi.string().trim().max(100).allow(''),
+  filter: Joi.string().valid(...CLIENT_FILTERS),
+  sort: Joi.string().valid(...CLIENT_SORTS),
+  direction: Joi.string().valid('asc', 'desc'),
+  inactive_days: Joi.number().integer().min(1).max(3650),
+  month: Joi.number().integer().min(1).max(12),
+};
+
 // Ficha e lista de clientes (barbearia)
 clientsRouter.get(
   '/directory',
   ensureAuthenticated,
   ensureRole('provider'),
+  ensurePermission('clients'),
   celebrate({
     [Segments.QUERY]: {
-      search: Joi.string().trim().max(100).allow(''),
+      ...listQuery,
       page: Joi.number().integer().min(1).max(10000),
     },
   }),
   clientsController.directory,
+);
+
+// A mesma lista em planilha (CSV)
+clientsRouter.get(
+  '/directory/export',
+  ensureAuthenticated,
+  ensureRole('provider'),
+  ensurePermission('clients'),
+  celebrate({ [Segments.QUERY]: listQuery }),
+  clientsController.export,
 );
 
 const clientId = {

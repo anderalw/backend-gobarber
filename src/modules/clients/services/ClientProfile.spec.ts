@@ -117,6 +117,26 @@ describe('Ficha do cliente', () => {
     expect(found.clients.map(client => client.name)).toEqual(['Rafael']);
   });
 
+  it('should list the birthdays of the month by day', async () => {
+    const late = await newClient('Tarde');
+    const early = await newClient('Cedo');
+    const other = await newClient('Outro');
+
+    late.birth_date = '1990-09-28';
+    early.birth_date = '1985-09-02';
+    other.birth_date = '1990-10-01';
+
+    const { clients } = await listClients.execute({
+      filter: 'birthdays',
+      month: 9,
+    });
+
+    expect(clients.map(client => client.name).sort()).toEqual([
+      'Cedo',
+      'Tarde',
+    ]);
+  });
+
   it('should show the full history, newest first', async () => {
     const rafael = await newClient('Rafael');
     await visit(rafael, at(8, 1), 'completed');

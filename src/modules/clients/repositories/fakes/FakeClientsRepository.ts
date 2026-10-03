@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import IListClientsDTO from '@modules/clients/dtos/IListClientsDTO';
 
 import IClientsRepository from '@modules/clients/repositories/IClientsRepository';
 import ICreateClientDTO from '@modules/clients/dtos/ICreateClientDTO';
@@ -45,18 +46,35 @@ class FakeClientsRepository implements IClientsRepository {
     return this.clients.filter(client => ids.includes(client.id));
   }
 
+  // Sem os agendamentos, o fake só recorta pelo que está no cliente
+  // (aniversariantes e novos) e ordena por nome
   public async list({
     search,
+    filter,
+    month,
+    now,
     offset,
     limit,
-  }: {
-    search: string;
-    offset: number;
-    limit: number;
-  }): Promise<{ clients: Client[]; total: number }> {
-    const all = search
+  }: IListClientsDTO): Promise<{ clients: Client[]; total: number }> {
+    let all = search
       ? await this.search(search, Number.MAX_SAFE_INTEGER)
       : [...this.clients].sort((a, b) => a.name.localeCompare(b.name));
+
+    if (filter === 'birthdays') {
+      all = all.filter(
+        client =>
+          !!client.birth_date &&
+          Number(client.birth_date.slice(5, 7)) === month,
+      );
+    }
+
+    if (filter === 'new') {
+      const since = now.getTime() - 30 * 24 * 60 * 60 * 1000;
+
+      all = all.filter(
+        client => client.created_at && client.created_at.getTime() >= since,
+      );
+    }
 
     return { clients: all.slice(offset, offset + limit), total: all.length };
   }
