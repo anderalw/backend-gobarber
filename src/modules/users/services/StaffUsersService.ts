@@ -92,6 +92,10 @@ class StaffUsersService {
       );
   }
 
+  public async show(id: string): Promise<IStaffView> {
+    return StaffUsersService.view(await this.findUser(id));
+  }
+
   public async create({
     name,
     email,

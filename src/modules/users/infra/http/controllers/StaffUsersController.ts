@@ -10,6 +10,12 @@ export default class StaffUsersController {
     return response.json(await container.resolve(StaffUsersService).list());
   }
 
+  public async show(request: Request, response: Response): Promise<Response> {
+    return response.json(
+      await container.resolve(StaffUsersService).show(request.params.id),
+    );
+  }
+
   public async create(request: Request, response: Response): Promise<Response> {
     const { name, email, role_id, permissions } = request.body;
 

@@ -31,6 +31,7 @@ usersRouter.use(ensurePermission('team'));
 const userId = { [Segments.PARAMS]: { id: Joi.string().uuid().required() } };
 
 usersRouter.get('/', staffUsersController.index);
+usersRouter.get('/:id', celebrate(userId), staffUsersController.show);
 
 usersRouter.post(
   '/',
