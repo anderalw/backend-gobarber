@@ -5,6 +5,11 @@ import ensureAuthenticated from '@modules/users/infra/http/middlewares/ensureAut
 import ensureRole from '@shared/infra/http/middlewares/ensureRole';
 import AppointmentsController from '../controllers/AppointmentsController';
 import ProviderAppointmentsController from '../controllers/ProviderAppointmentsController';
+import {
+  forAppointment,
+  forBodyProvider,
+  forPayment,
+} from '../middlewares/agendaAccess';
 
 const appointmentsRouter = Router();
 const appointmentsController = new AppointmentsController();
@@ -53,6 +58,7 @@ appointmentsRouter.post(
       client_id: Joi.string().uuid().required(),
     },
   }),
+  forBodyProvider,
   appointmentsController.createByProvider,
 );
 // Cliente fixo: o mesmo horário a cada N semanas
@@ -70,6 +76,7 @@ appointmentsRouter.post(
       dry_run: Joi.boolean(),
     },
   }),
+  forBodyProvider,
   appointmentsController.createSeries,
 );
 appointmentsRouter.get(
@@ -83,17 +90,20 @@ appointmentsRouter.get(
   appointmentsController.mine,
 );
 
-// Barbeiros alteram qualquer agendamento; clientes só os próprios, com
-// antecedência (regras em ensureCanChangeAppointment)
+// Barbeiros alteram os próprios agendamentos (os dos outros, com a
+// permissão agenda.manage); clientes só os próprios, com antecedência
+// (regras em ensureCanChangeAppointment)
 appointmentsRouter.patch(
   '/:id/cancel',
   celebrate(appointmentId),
+  forAppointment,
   appointmentsController.cancel,
 );
 appointmentsRouter.patch(
   '/:id/cancel-series',
   ensureRole('provider'),
   celebrate(appointmentId),
+  forAppointment,
   appointmentsController.cancelSeries,
 );
 appointmentsRouter.patch(
@@ -105,6 +115,7 @@ appointmentsRouter.patch(
       date: Joi.date().required(),
     },
   }),
+  forAppointment,
   appointmentsController.reschedule,
 );
 
@@ -117,6 +128,7 @@ appointmentsRouter.patch(
     ...appointmentId,
     [Segments.BODY]: { confirmed: Joi.boolean().required() },
   }),
+  forAppointment,
   appointmentsController.confirmation,
 );
 
@@ -137,6 +149,8 @@ appointmentsRouter.patch(
       paid_cents: Joi.number().integer().min(0).max(1000000).allow(null),
     },
   }),
+  forAppointment,
+  forPayment,
   appointmentsController.attendance,
 );
 

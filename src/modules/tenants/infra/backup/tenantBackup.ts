@@ -15,6 +15,7 @@ import { runWithTenant } from '@shared/tenancy/TenantContext';
 import { reseal } from '@shared/utils/secretBox';
 import Notification from '@modules/notifications/infra/typeorm/schemas/Notification';
 import TenantsService from '@modules/tenants/services/TenantsService';
+import SeedTenantDefaultsService from '@modules/tenants/services/SeedTenantDefaultsService';
 import ITenantsRepository from '@modules/tenants/repositories/ITenantsRepository';
 import ISettingsRepository from '@modules/catalog/repositories/ISettingsRepository';
 import Tenant from '../typeorm/entities/Tenant';
@@ -429,6 +430,8 @@ export async function importTenant(
       );
     }
 
+    await runWithTenant(tenant, () => fixAccess(rows.get('users') || []));
+
     await copyNotifications(tenant, work);
     await copyFiles(work);
 
@@ -486,6 +489,29 @@ async function copyRows(
       await queryRunner.release();
     }
   });
+}
+
+// Backup de antes dos perfis de acesso: sem perfis e sem a marca de
+// barbeiro. Todo mundo atendia, e o is_admin vira o perfil Administrador
+async function fixAccess(users: Record<string, unknown>[]): Promise<void> {
+  await container.resolve(SeedTenantDefaultsService).seedRoles();
+
+  if (users.length > 0 && !('is_barber' in users[0])) {
+    await dataSource.query('UPDATE users SET is_barber = true');
+  }
+
+  const admins = users
+    .filter(user => user.is_admin === true || user.is_admin === 't')
+    .map(user => String(user.id));
+
+  await dataSource.query(
+    `UPDATE users u
+        SET role_id = r.id
+       FROM roles r
+      WHERE u.role_id IS NULL
+        AND r.system_key = CASE WHEN u.id::text = ANY($1) THEN 'admin' ELSE 'barber' END`,
+    [admins],
+  );
 }
 
 async function copyNotifications(tenant: Tenant, work: string): Promise<void> {

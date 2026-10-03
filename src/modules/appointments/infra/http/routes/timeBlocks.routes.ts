@@ -4,6 +4,7 @@ import { celebrate, Segments, Joi } from 'celebrate';
 import ensureAuthenticated from '@modules/users/infra/http/middlewares/ensureAuthenticated';
 import ensureRole from '@shared/infra/http/middlewares/ensureRole';
 import TimeBlocksController from '../controllers/TimeBlocksController';
+import { forBodyProviders, forTimeBlock } from '../middlewares/agendaAccess';
 
 const timeBlocksRouter = Router();
 const timeBlocksController = new TimeBlocksController();
@@ -23,6 +24,7 @@ timeBlocksRouter.post(
       reason_id: Joi.string().uuid().required(),
     },
   }),
+  forBodyProviders,
   timeBlocksController.create,
 );
 // Repete nos dias da semana escolhidos, com ou sem data de fim
@@ -45,6 +47,7 @@ timeBlocksRouter.post(
       reason_id: Joi.string().uuid().required(),
     },
   }),
+  forBodyProviders,
   timeBlocksController.createRecurring,
 );
 // Remove um bloqueio avulso ou uma repetição inteira
@@ -53,6 +56,7 @@ timeBlocksRouter.delete(
   celebrate({
     [Segments.PARAMS]: { id: Joi.string().uuid().required() },
   }),
+  forTimeBlock,
   timeBlocksController.delete,
 );
 

@@ -3,6 +3,7 @@ import { celebrate, Segments, Joi } from 'celebrate';
 
 import ensureAuthenticated from '@modules/users/infra/http/middlewares/ensureAuthenticated';
 import ensureRole from '@shared/infra/http/middlewares/ensureRole';
+import ensurePermission from '@shared/infra/http/middlewares/ensurePermission';
 import CashController from '../controllers/CashController';
 
 const cashRouter = Router();
@@ -19,12 +20,14 @@ cashRouter.use(ensureRole('provider'));
 
 cashRouter.get(
   '/',
+  ensurePermission('cash', 'cash.close'),
   celebrate({ [Segments.QUERY]: { date: day } }),
   cashController.show,
 );
 
 cashRouter.post(
   '/close',
+  ensurePermission('cash.close'),
   celebrate({
     [Segments.BODY]: {
       date: day,
@@ -39,6 +42,7 @@ cashRouter.post(
 // Completar ou corrigir a forma de pagamento de um atendimento
 cashRouter.patch(
   '/payments/:id',
+  ensurePermission('cash'),
   celebrate({
     [Segments.PARAMS]: { id: Joi.string().uuid().required() },
     [Segments.BODY]: {

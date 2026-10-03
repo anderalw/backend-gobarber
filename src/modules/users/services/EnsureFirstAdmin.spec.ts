@@ -1,5 +1,6 @@
 import FakeUsersRepository from '../repositories/fakes/FakeUsersRepository';
 import FakeHashProvider from '../providers/HashProvider/fakes/FakeHashProvider';
+import FakeRolesRepository from '../repositories/fakes/FakeRolesRepository';
 import EnsureFirstAdminService from './EnsureFirstAdminService';
 
 let usersRepository: FakeUsersRepository;
@@ -11,6 +12,7 @@ describe('Primeiro administrador', () => {
     ensureFirstAdmin = new EnsureFirstAdminService(
       usersRepository,
       new FakeHashProvider(),
+      new FakeRolesRepository(),
     );
   });
 
@@ -25,7 +27,7 @@ describe('Primeiro administrador', () => {
 
     const user = await usersRepository.findByEmail('dono@barbearia.com.br');
 
-    expect(user).toMatchObject({ name: 'Dono', is_admin: true });
+    expect(user).toMatchObject({ name: 'Dono', isAdmin: true });
     // A senha fica só o hash
     expect(user?.password).not.toBe('');
   });

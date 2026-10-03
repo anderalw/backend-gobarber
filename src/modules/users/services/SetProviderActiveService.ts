@@ -13,9 +13,10 @@ interface IRequest {
   active: boolean;
 }
 
-// Ativa ou desativa um barbeiro. Para desativar, ele não pode ter
-// agendamentos futuros: o administrador remarca ou cancela antes, para
-// nenhum cliente ficar com um horário que não vai acontecer
+// Ativa ou desativa um usuário da equipe (desativado não entra no sistema).
+// Barbeiro, para desativar, não pode ter agendamentos futuros: o
+// administrador remarca ou cancela antes, para nenhum cliente ficar com um
+// horário que não vai acontecer. E sempre fica algum administrador ativo
 @injectable()
 class SetProviderActiveService {
   constructor(
@@ -37,7 +38,7 @@ class SetProviderActiveService {
     const provider = await this.usersRepository.findById(provider_id);
 
     if (!provider) {
-      throw new AppError('Barbeiro não encontrado.', 404);
+      throw new AppError('Usuário não encontrado.', 404);
     }
 
     if (!active) {
@@ -45,11 +46,24 @@ class SetProviderActiveService {
         throw new AppError('Você não pode desativar a sua própria conta.');
       }
 
-      const upcoming =
-        await this.appointmentsRepository.countUpcomingFromProvider(
-          provider_id,
-          new Date(),
+      if (provider.role?.isAdmin) {
+        const others = (await this.usersRepository.findAllStaff()).filter(
+          user => user.id !== provider_id && user.active && user.role?.isAdmin,
         );
+
+        if (others.length === 0) {
+          throw new AppError(
+            'A barbearia precisa de pelo menos um administrador ativo.',
+          );
+        }
+      }
+
+      const upcoming = provider.is_barber
+        ? await this.appointmentsRepository.countUpcomingFromProvider(
+            provider_id,
+            new Date(),
+          )
+        : 0;
 
       if (upcoming > 0) {
         throw new AppError(

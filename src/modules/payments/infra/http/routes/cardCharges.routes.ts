@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { celebrate, Segments, Joi } from 'celebrate';
 
 import ensureAuthenticated from '@modules/users/infra/http/middlewares/ensureAuthenticated';
-import ensureAdmin from '@shared/infra/http/middlewares/ensureAdmin';
+import ensurePermission from '@shared/infra/http/middlewares/ensurePermission';
 import ensureRole from '@shared/infra/http/middlewares/ensureRole';
 import CardChargesController from '../controllers/CardChargesController';
 import TerminalSimulatorController from '../controllers/TerminalSimulatorController';
@@ -18,10 +18,14 @@ cardChargesRouter.use(ensureRole('provider'));
 cardChargesRouter.get('/settings', controller.settings);
 
 // Configuração (admin): conta da operadora e cadastro das maquininhas
-cardChargesRouter.get('/settings/admin', ensureAdmin, controller.adminSettings);
+cardChargesRouter.get(
+  '/settings/admin',
+  ensurePermission('settings'),
+  controller.adminSettings,
+);
 cardChargesRouter.put(
   '/settings',
-  ensureAdmin,
+  ensurePermission('settings'),
   celebrate({
     [Segments.BODY]: {
       provider: Joi.string().max(40).allow('', null),
@@ -34,7 +38,7 @@ cardChargesRouter.put(
 );
 cardChargesRouter.post(
   '/settings/test',
-  ensureAdmin,
+  ensurePermission('settings'),
   controller.testConnection,
 );
 
@@ -44,12 +48,12 @@ const deviceId = {
 
 cardChargesRouter.get(
   '/devices/discover',
-  ensureAdmin,
+  ensurePermission('settings'),
   controller.discoverDevices,
 );
 cardChargesRouter.post(
   '/devices',
-  ensureAdmin,
+  ensurePermission('settings'),
   celebrate({
     [Segments.BODY]: {
       external_id: Joi.string().trim().max(100).required(),
@@ -60,7 +64,7 @@ cardChargesRouter.post(
 );
 cardChargesRouter.put(
   '/devices/:id',
-  ensureAdmin,
+  ensurePermission('settings'),
   celebrate({
     ...deviceId,
     [Segments.BODY]: {
@@ -72,15 +76,20 @@ cardChargesRouter.put(
 );
 cardChargesRouter.delete(
   '/devices/:id',
-  ensureAdmin,
+  ensurePermission('settings'),
   celebrate(deviceId),
   controller.deleteDevice,
 );
 
 // Maquininha simulada (testes sem operadora)
-cardChargesRouter.get('/simulator', simulatorController.show);
+cardChargesRouter.get(
+  '/simulator',
+  ensurePermission('cash'),
+  simulatorController.show,
+);
 cardChargesRouter.post(
   '/simulator/:external_id',
+  ensurePermission('cash'),
   celebrate({
     [Segments.PARAMS]: { external_id: Joi.string().max(100).required() },
     [Segments.BODY]: {
@@ -95,6 +104,7 @@ cardChargesRouter.post(
 // Cobrar um atendimento na maquininha
 cardChargesRouter.post(
   '/',
+  ensurePermission('cash'),
   celebrate({
     [Segments.BODY]: {
       appointment_id: Joi.string().uuid().required(),
@@ -109,7 +119,17 @@ const chargeId = {
   [Segments.PARAMS]: { id: Joi.string().uuid().required() },
 };
 
-cardChargesRouter.get('/:id', celebrate(chargeId), controller.show);
-cardChargesRouter.post('/:id/cancel', celebrate(chargeId), controller.cancel);
+cardChargesRouter.get(
+  '/:id',
+  ensurePermission('cash'),
+  celebrate(chargeId),
+  controller.show,
+);
+cardChargesRouter.post(
+  '/:id/cancel',
+  ensurePermission('cash'),
+  celebrate(chargeId),
+  controller.cancel,
+);
 
 export default cardChargesRouter;

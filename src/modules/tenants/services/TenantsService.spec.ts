@@ -6,6 +6,7 @@ import FakeUsersRepository from '@modules/users/repositories/fakes/FakeUsersRepo
 import FakeHashProvider from '@modules/users/providers/HashProvider/fakes/FakeHashProvider';
 import EnsureFirstAdminService from '@modules/users/services/EnsureFirstAdminService';
 import FakeBlockReasonsRepository from '@modules/appointments/repositories/fakes/FakeBlockReasonsRepository';
+import FakeRolesRepository from '@modules/users/repositories/fakes/FakeRolesRepository';
 import FakeTenantsRepository from '../repositories/fakes/FakeTenantsRepository';
 import SeedTenantDefaultsService from './SeedTenantDefaultsService';
 import TenantsService from './TenantsService';
@@ -14,6 +15,7 @@ import ResolveTenantService from './ResolveTenantService';
 let tenantsRepository: FakeTenantsRepository;
 let settingsRepository: FakeSettingsRepository;
 let blockReasonsRepository: FakeBlockReasonsRepository;
+let rolesRepository: FakeRolesRepository;
 let usersRepository: FakeUsersRepository;
 let ensureFirstAdmin: EnsureFirstAdminService;
 let tenants: TenantsService;
@@ -29,14 +31,20 @@ describe('Cadastro das barbearias', () => {
     tenantsRepository = new FakeTenantsRepository();
     settingsRepository = new FakeSettingsRepository();
     blockReasonsRepository = new FakeBlockReasonsRepository();
+    rolesRepository = new FakeRolesRepository();
     usersRepository = new FakeUsersRepository();
     ensureFirstAdmin = new EnsureFirstAdminService(
       usersRepository,
       new FakeHashProvider(),
+      rolesRepository,
     );
     tenants = new TenantsService(
       tenantsRepository,
-      new SeedTenantDefaultsService(settingsRepository, blockReasonsRepository),
+      new SeedTenantDefaultsService(
+        settingsRepository,
+        blockReasonsRepository,
+        rolesRepository,
+      ),
       new FakeNotificationsRepository(),
       ensureFirstAdmin,
     );
@@ -68,8 +76,15 @@ describe('Cadastro das barbearias', () => {
       expect.arrayContaining(['Almoço', 'Consulta', 'Folga', 'Férias']),
     );
     expect(await usersRepository.findByEmail(admin.email)).toMatchObject({
-      is_admin: true,
+      isAdmin: true,
+      is_barber: true,
     });
+    // Começa com os três perfis
+    expect((await rolesRepository.findAll()).map(role => role.name)).toEqual([
+      'Administrador',
+      'Barbeiro',
+      'Recepção',
+    ]);
   });
 
   it('should reject invalid, reserved and repeated identifiers', async () => {

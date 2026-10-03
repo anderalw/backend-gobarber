@@ -5,70 +5,66 @@ import { keepTenant } from '@shared/tenancy/TenantContext';
 import { celebrate, Segments, Joi } from 'celebrate';
 
 import ensureAuthenticated from '@modules/users/infra/http/middlewares/ensureAuthenticated';
-import ensureAdmin from '@shared/infra/http/middlewares/ensureAdmin';
+import ensurePermission from '@shared/infra/http/middlewares/ensurePermission';
 import ensureRole from '@shared/infra/http/middlewares/ensureRole';
-import UsersController from '../controllers/UsersController';
 import UserAvatarController from '../controllers/UserAvatarController';
-import TeamController from '../controllers/TeamController';
+import StaffUsersController from '../controllers/StaffUsersController';
 
 const usersRouter = Router();
-const usersController = new UsersController();
 const userAvatarController = new UserAvatarController();
-const teamController = new TeamController();
+const staffUsersController = new StaffUsersController();
 const upload = multer(uploadConfig.multer);
 
-usersRouter.post(
-  '/',
-  ensureAuthenticated,
-  ensureRole('provider'),
-  ensureAdmin,
-  celebrate({
-    [Segments.BODY]: {
-      name: Joi.string().required(),
-      email: Joi.string().email().required(),
-      password: Joi.string().required(),
-    },
-  }),
-  usersController.create,
-);
+usersRouter.use(ensureAuthenticated, ensureRole('provider'));
 
+// A própria foto
 usersRouter.patch(
   '/avatar',
-  ensureAuthenticated,
-  ensureRole('provider'),
   keepTenant(upload.single('avatar')),
   userAvatarController.update,
 );
 
-// Administração da equipe: lista com horários, edição e ativar/desativar
-const onlyAdmin = [ensureAuthenticated, ensureRole('provider'), ensureAdmin];
-const providerIdParam = {
-  [Segments.PARAMS]: { provider_id: Joi.string().uuid().required() },
-};
+// Usuários da equipe: quem entra no sistema e com qual perfil
+usersRouter.use(ensurePermission('team'));
 
-usersRouter.get('/', ...onlyAdmin, teamController.index);
+const userId = { [Segments.PARAMS]: { id: Joi.string().uuid().required() } };
 
-usersRouter.put(
-  '/:provider_id',
-  ...onlyAdmin,
+usersRouter.get('/', staffUsersController.index);
+
+usersRouter.post(
+  '/',
   celebrate({
-    ...providerIdParam,
     [Segments.BODY]: {
-      name: Joi.string().trim().required(),
+      name: Joi.string().trim().max(100).required(),
       email: Joi.string().trim().email().required(),
+      password: Joi.string().min(6).max(100).required(),
+      role_id: Joi.string().uuid().required(),
     },
   }),
-  teamController.update,
+  staffUsersController.create,
+);
+
+usersRouter.put(
+  '/:id',
+  celebrate({
+    ...userId,
+    [Segments.BODY]: {
+      name: Joi.string().trim().max(100).required(),
+      email: Joi.string().trim().email().required(),
+      role_id: Joi.string().uuid().required(),
+      password: Joi.string().min(6).max(100).allow(''),
+    },
+  }),
+  staffUsersController.update,
 );
 
 usersRouter.patch(
-  '/:provider_id/active',
-  ...onlyAdmin,
+  '/:id/active',
   celebrate({
-    ...providerIdParam,
+    ...userId,
     [Segments.BODY]: { active: Joi.boolean().required() },
   }),
-  teamController.setActive,
+  staffUsersController.setActive,
 );
 
 export default usersRouter;

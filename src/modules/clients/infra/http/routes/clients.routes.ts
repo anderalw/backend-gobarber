@@ -3,6 +3,7 @@ import { celebrate, Segments, Joi } from 'celebrate';
 
 import ensureAuthenticated from '@modules/users/infra/http/middlewares/ensureAuthenticated';
 import ensureRole from '@shared/infra/http/middlewares/ensureRole';
+import ensurePermission from '@shared/infra/http/middlewares/ensurePermission';
 import ClientsController from '../controllers/ClientsController';
 
 const clientsRouter = Router();
@@ -42,6 +43,7 @@ clientsRouter.get(
   '/',
   ensureAuthenticated,
   ensureRole('provider'),
+  ensurePermission('clients'),
   celebrate({
     [Segments.QUERY]: { search: Joi.string().max(100).required() },
   }),
@@ -84,6 +86,7 @@ clientsRouter.get(
   '/:id',
   ensureAuthenticated,
   ensureRole('provider'),
+  ensurePermission('clients'),
   celebrate(clientId),
   clientsController.show,
 );
@@ -92,6 +95,7 @@ clientsRouter.put(
   '/:id',
   ensureAuthenticated,
   ensureRole('provider'),
+  ensurePermission('clients'),
   celebrate({
     ...clientId,
     [Segments.BODY]: {

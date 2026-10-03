@@ -28,6 +28,9 @@ import SimulatorWhatsAppProvider from '@modules/messaging/providers/WhatsAppProv
 import ITenantsRepository from '@modules/tenants/repositories/ITenantsRepository';
 import TenantsRepository from '@modules/tenants/infra/typeorm/repositories/TenantsRepository';
 
+import IRolesRepository from '@modules/users/repositories/IRolesRepository';
+import RolesRepository from '@modules/users/infra/typeorm/repositories/RolesRepository';
+
 import IUsersRepository from '@modules/users/repositories/IUsersRepository';
 import UsersRepository from '@modules/users/infra/typeorm/repositories/UsersRepository';
 
@@ -184,4 +187,9 @@ container.registerSingleton<ISettingsRepository>(
 container.registerSingleton<ITenantsRepository>(
   'TenantsRepository',
   TenantsRepository,
+);
+
+container.registerSingleton<IRolesRepository>(
+  'RolesRepository',
+  RolesRepository,
 );

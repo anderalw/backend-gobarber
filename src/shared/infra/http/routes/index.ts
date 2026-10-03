@@ -16,6 +16,8 @@ import cardChargesRouter from '@modules/payments/infra/http/routes/cardCharges.r
 import membershipsRouter from '@modules/memberships/infra/http/routes/memberships.routes';
 import whatsappRouter from '@modules/messaging/infra/http/routes/whatsapp.routes';
 import usersRouter from '@modules/users/infra/http/routes/users.routes';
+import rolesRouter from '@modules/users/infra/http/routes/roles.routes';
+import barbersRouter from '@modules/users/infra/http/routes/barbers.routes';
 import sessionsRouter from '@modules/users/infra/http/routes/sessions.routes';
 import passwordRouter from '@modules/users/infra/http/routes/password.routes';
 import profileRouter from '@modules/users/infra/http/routes/profile.routes';
@@ -42,6 +44,8 @@ routes.use('/card-charges', cardChargesRouter);
 routes.use('/memberships', membershipsRouter);
 routes.use('/whatsapp', whatsappRouter);
 routes.use('/users', usersRouter);
+routes.use('/roles', rolesRouter);
+routes.use('/barbers', barbersRouter);
 routes.use('/sessions', sessionsRouter);
 routes.use('/password', passwordRouter);
 routes.use('/profile', profileRouter);

@@ -2,14 +2,14 @@ import { Router } from 'express';
 import { celebrate, Segments, Joi } from 'celebrate';
 
 import ensureAuthenticated from '@modules/users/infra/http/middlewares/ensureAuthenticated';
-import ensureAdmin from '@shared/infra/http/middlewares/ensureAdmin';
 import ensureRole from '@shared/infra/http/middlewares/ensureRole';
+import ensurePermission from '@shared/infra/http/middlewares/ensurePermission';
 import ServicesController from '../controllers/ServicesController';
 
 const servicesRouter = Router();
 const servicesController = new ServicesController();
 
-const onlyAdmin = [ensureRole('provider'), ensureAdmin];
+const onlyAdmin = [ensureRole('provider'), ensurePermission('catalog')];
 
 const serviceBody = {
   name: Joi.string().required(),

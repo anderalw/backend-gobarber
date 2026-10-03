@@ -25,14 +25,31 @@ class FakeUsersRepository implements IUsersRepository {
     include_inactive = false,
   }: IFindAllProvidersDTO): Promise<User[]> {
     return this.users.filter(
-      user => user.id !== except_user_id && (include_inactive || user.active),
+      user =>
+        user.is_barber &&
+        user.id !== except_user_id &&
+        (include_inactive || user.active),
     );
+  }
+
+  public async findAllStaff(): Promise<User[]> {
+    return [...this.users];
+  }
+
+  public async countByRole(role_id: string): Promise<number> {
+    return this.users.filter(user => user.role_id === role_id).length;
   }
 
   public async create(userData: ICreateUserDTO): Promise<User> {
     const user = new User();
 
-    Object.assign(user, { id: randomUUID(), active: true }, userData);
+    // Nos testes, quem é criado atende (como antes da separação), salvo
+    // quando o teste diz o contrário
+    Object.assign(
+      user,
+      { id: randomUUID(), active: true, is_barber: true, role_id: null },
+      userData,
+    );
 
     this.users.push(user);
 

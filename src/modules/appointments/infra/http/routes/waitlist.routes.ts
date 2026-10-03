@@ -3,6 +3,7 @@ import { celebrate, Segments, Joi } from 'celebrate';
 
 import ensureAuthenticated from '@modules/users/infra/http/middlewares/ensureAuthenticated';
 import ensureRole from '@shared/infra/http/middlewares/ensureRole';
+import ensurePermission from '@shared/infra/http/middlewares/ensurePermission';
 import WaitlistController from '../controllers/WaitlistController';
 
 const waitlistRouter = Router();
@@ -51,13 +52,19 @@ waitlistRouter.post(
       notes: Joi.string().max(200).allow('', null),
     },
   }),
+  ensurePermission('agenda.manage'),
   waitlistController.create,
 );
 
-// Tirar da lista (o cliente só os próprios pedidos)
+// Tirar da lista (o cliente só os próprios pedidos; a equipe, com a
+// permissão de mexer na agenda de todos)
 waitlistRouter.delete(
   '/:id',
   celebrate({ [Segments.PARAMS]: { id: Joi.string().uuid().required() } }),
+  (request, response, next) =>
+    request.user.role === 'provider'
+      ? ensurePermission('agenda.manage')(request, response, next)
+      : next(),
   waitlistController.delete,
 );
 

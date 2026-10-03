@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { celebrate, Segments, Joi } from 'celebrate';
 
 import ensureAuthenticated from '@modules/users/infra/http/middlewares/ensureAuthenticated';
-import ensureAdmin from '@shared/infra/http/middlewares/ensureAdmin';
+import ensurePermission from '@shared/infra/http/middlewares/ensurePermission';
 import ensureRole from '@shared/infra/http/middlewares/ensureRole';
 import BlockReasonsController from '../controllers/BlockReasonsController';
 
@@ -20,19 +20,19 @@ const reasonBody = { [Segments.BODY]: { name: Joi.string().required() } };
 blockReasonsRouter.get('/', blockReasonsController.index);
 blockReasonsRouter.post(
   '/',
-  ensureAdmin,
+  ensurePermission('catalog'),
   celebrate(reasonBody),
   blockReasonsController.create,
 );
 blockReasonsRouter.put(
   '/:id',
-  ensureAdmin,
+  ensurePermission('catalog'),
   celebrate({ ...reasonId, ...reasonBody }),
   blockReasonsController.update,
 );
 blockReasonsRouter.delete(
   '/:id',
-  ensureAdmin,
+  ensurePermission('catalog'),
   celebrate(reasonId),
   blockReasonsController.delete,
 );

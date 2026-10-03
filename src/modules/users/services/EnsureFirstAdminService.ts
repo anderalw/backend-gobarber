@@ -2,6 +2,8 @@ import { injectable, inject } from 'tsyringe';
 
 import IUsersRepository from '../repositories/IUsersRepository';
 import IHashProvider from '../providers/HashProvider/models/IHashProvider';
+import IRolesRepository from '../repositories/IRolesRepository';
+import { ADMIN_ROLE, DEFAULT_ROLES } from '../permissions';
 
 interface IRequest {
   name?: string;
@@ -21,6 +23,9 @@ class EnsureFirstAdminService {
 
     @inject('HashProvider')
     private hashProvider: IHashProvider,
+
+    @inject('RolesRepository')
+    private rolesRepository: IRolesRepository,
   ) {}
 
   // O e-mail do admin criado, ou null se não precisou (ou faltam dados)
@@ -31,9 +36,7 @@ class EnsureFirstAdminService {
   }: IRequest): Promise<string | null> {
     if (!email || !password) return null;
 
-    const existing = await this.usersRepository.findAllProviders({
-      include_inactive: true,
-    });
+    const existing = await this.usersRepository.findAllStaff();
 
     if (existing.length > 0) return null;
 
@@ -47,7 +50,17 @@ class EnsureFirstAdminService {
       password: await this.hashProvider.generateHash(password),
     });
 
-    user.is_admin = true;
+    // Perfil Administrador (criado aqui se a barbearia ainda não tiver) e,
+    // como o dono costuma atender, já entra como barbeiro
+    const role =
+      (await this.rolesRepository.findBySystemKey(ADMIN_ROLE)) ||
+      (await this.rolesRepository.create(
+        DEFAULT_ROLES.find(item => item.system_key === ADMIN_ROLE)!,
+      ));
+
+    user.role_id = role.id;
+    user.role = role;
+    user.is_barber = true;
     await this.usersRepository.save(user);
 
     return user.email;

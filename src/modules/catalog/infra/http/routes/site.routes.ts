@@ -2,9 +2,9 @@ import { Router } from 'express';
 import { celebrate, Segments, Joi } from 'celebrate';
 
 import ensureAuthenticated from '@modules/users/infra/http/middlewares/ensureAuthenticated';
-import ensureAdmin from '@shared/infra/http/middlewares/ensureAdmin';
 import ensureRole from '@shared/infra/http/middlewares/ensureRole';
 import receiveImage from '@shared/infra/http/middlewares/receiveImage';
+import ensurePermission from '@shared/infra/http/middlewares/ensurePermission';
 import SiteController from '../controllers/SiteController';
 
 const siteRouter = Router();
@@ -13,7 +13,11 @@ const siteController = new SiteController();
 // Página inicial: pública (visitantes, antes de entrar)
 siteRouter.get('/', siteController.show);
 
-const onlyAdmin = [ensureAuthenticated, ensureRole('provider'), ensureAdmin];
+const onlyAdmin = [
+  ensureAuthenticated,
+  ensureRole('provider'),
+  ensurePermission('settings'),
+];
 
 siteRouter.put(
   '/',

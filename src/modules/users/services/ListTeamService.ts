@@ -41,7 +41,7 @@ class ListTeamService {
           name: user.name,
           email: user.email,
           avatar_url: user.getAvatarUrl(),
-          is_admin: user.is_admin,
+          is_admin: user.isAdmin,
           active: user.active,
           schedules: schedules
             .map(({ day_of_week, start_time, end_time }) => ({

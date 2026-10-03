@@ -2,8 +2,8 @@ import { Router } from 'express';
 import { celebrate, Segments, Joi } from 'celebrate';
 
 import ensureAuthenticated from '@modules/users/infra/http/middlewares/ensureAuthenticated';
-import ensureAdmin from '@shared/infra/http/middlewares/ensureAdmin';
 import ensureRole from '@shared/infra/http/middlewares/ensureRole';
+import ensurePermission from '@shared/infra/http/middlewares/ensurePermission';
 import ProviderSchedulesController from '../controllers/ProviderSchedulesController';
 
 const providerSchedulesRouter = Router();
@@ -12,7 +12,7 @@ const providerSchedulesController = new ProviderSchedulesController();
 // Todas as rotas deste arquivo vão exigir autenticação e perfil de administrador
 providerSchedulesRouter.use(ensureAuthenticated);
 providerSchedulesRouter.use(ensureRole('provider'));
-providerSchedulesRouter.use(ensureAdmin);
+providerSchedulesRouter.use(ensurePermission('team'));
 
 providerSchedulesRouter.post(
   '/:provider_id',

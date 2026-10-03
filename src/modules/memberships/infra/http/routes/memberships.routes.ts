@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { celebrate, Segments, Joi } from 'celebrate';
 
 import ensureAuthenticated from '@modules/users/infra/http/middlewares/ensureAuthenticated';
-import ensureAdmin from '@shared/infra/http/middlewares/ensureAdmin';
+import ensurePermission from '@shared/infra/http/middlewares/ensurePermission';
 import ensureRole from '@shared/infra/http/middlewares/ensureRole';
 import MembershipsController from '../controllers/MembershipsController';
 
@@ -72,17 +72,23 @@ membershipsRouter.get(
 // Barbearia
 membershipsRouter.use(ensureRole('provider'));
 
-membershipsRouter.get('/', controller.overview);
-membershipsRouter.get('/plans', controller.plans);
+const club = ensurePermission('club');
+
+membershipsRouter.get('/', club, controller.overview);
+membershipsRouter.get(
+  '/plans',
+  ensurePermission('club', 'catalog'),
+  controller.plans,
+);
 membershipsRouter.post(
   '/plans',
-  ensureAdmin,
+  ensurePermission('catalog'),
   celebrate({ [Segments.BODY]: plan }),
   controller.createPlan,
 );
 membershipsRouter.put(
   '/plans/:id',
-  ensureAdmin,
+  ensurePermission('catalog'),
   celebrate({ ...id, [Segments.BODY]: plan }),
   controller.updatePlan,
 );
@@ -98,6 +104,7 @@ membershipsRouter.get(
 );
 membershipsRouter.get(
   '/client/:client_id',
+  club,
   celebrate({
     [Segments.PARAMS]: { client_id: Joi.string().uuid().required() },
   }),
@@ -105,6 +112,7 @@ membershipsRouter.get(
 );
 membershipsRouter.post(
   '/',
+  club,
   celebrate({
     [Segments.BODY]: {
       client_id: Joi.string().uuid().required(),
@@ -116,14 +124,16 @@ membershipsRouter.post(
 );
 membershipsRouter.post(
   '/:id/confirm',
+  club,
   celebrate({ ...id, [Segments.BODY]: payment }),
   controller.confirm,
 );
 membershipsRouter.post(
   '/:id/payments',
+  club,
   celebrate({ ...id, [Segments.BODY]: payment }),
   controller.pay,
 );
-membershipsRouter.post('/:id/cancel', celebrate(id), controller.cancel);
+membershipsRouter.post('/:id/cancel', club, celebrate(id), controller.cancel);
 
 export default membershipsRouter;
