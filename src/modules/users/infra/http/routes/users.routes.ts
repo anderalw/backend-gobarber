@@ -24,7 +24,8 @@ usersRouter.patch(
   userAvatarController.update,
 );
 
-// Usuários da equipe: quem entra no sistema e com qual perfil
+// Usuários da equipe: quem entra no sistema e o que pode fazer (perfil
+// opcional + permissões próprias). A senha provisória é o próprio e-mail
 usersRouter.use(ensurePermission('team'));
 
 const userId = { [Segments.PARAMS]: { id: Joi.string().uuid().required() } };
@@ -37,8 +38,8 @@ usersRouter.post(
     [Segments.BODY]: {
       name: Joi.string().trim().max(100).required(),
       email: Joi.string().trim().email().required(),
-      password: Joi.string().min(6).max(100).required(),
-      role_id: Joi.string().uuid().required(),
+      role_id: Joi.string().uuid().allow(null),
+      permissions: Joi.array().items(Joi.string().max(40)),
     },
   }),
   staffUsersController.create,
@@ -51,11 +52,18 @@ usersRouter.put(
     [Segments.BODY]: {
       name: Joi.string().trim().max(100).required(),
       email: Joi.string().trim().email().required(),
-      role_id: Joi.string().uuid().required(),
-      password: Joi.string().min(6).max(100).allow(''),
+      role_id: Joi.string().uuid().allow(null).required(),
+      permissions: Joi.array().items(Joi.string().max(40)).required(),
     },
   }),
   staffUsersController.update,
+);
+
+// Senha provisória de novo (o e-mail), com troca no próximo acesso
+usersRouter.post(
+  '/:id/reset-password',
+  celebrate(userId),
+  staffUsersController.resetPassword,
 );
 
 usersRouter.patch(

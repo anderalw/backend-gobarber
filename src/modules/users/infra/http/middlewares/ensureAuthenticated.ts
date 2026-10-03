@@ -13,7 +13,15 @@ interface ITokenPayLoad {
   role?: 'provider' | 'client';
   // Barbearia em que o login foi feito
   tid?: string;
+  // Ainda com a senha provisória
+  pwd?: boolean;
 }
+
+// Com a senha provisória, só dá para ver o próprio perfil e trocar a senha
+const FIRST_ACCESS = [
+  { method: 'GET', path: '/profile' },
+  { method: 'PUT', path: '/profile/password' },
+];
 
 export default function ensureAuthenticated(
   request: Request,
@@ -41,7 +49,7 @@ export default function ensureAuthenticated(
     );
   }
 
-  const { sub, role, tid } = payload;
+  const { sub, role, tid, pwd } = payload;
 
   // Tokens emitidos antes da separação cliente/barbeiro não têm role:
   // são recusados para obrigar um novo login
@@ -59,6 +67,17 @@ export default function ensureAuthenticated(
       'Sessão inválida ou expirada, faça login novamente.',
       401,
     );
+  }
+
+  if (pwd) {
+    const path = request.originalUrl.split('?')[0].replace(/\/+$/, '');
+    const allowed = FIRST_ACCESS.some(
+      item => item.method === request.method && item.path === path,
+    );
+
+    if (!allowed) {
+      throw new AppError('Troque a sua senha provisória para continuar.', 403);
+    }
   }
 
   request.user = {

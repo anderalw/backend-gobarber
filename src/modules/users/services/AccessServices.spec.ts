@@ -1,3 +1,5 @@
+import { decode } from 'jsonwebtoken';
+
 import AppError from '@shared/errors/AppError';
 import FakeCacheProvider from '@shared/container/providers/CacheProvider/fakes/FakeCacheProvider';
 import FakeAppointmentsRepository from '@modules/appointments/repositories/fakes/FakeAppointmentsRepository';
@@ -10,10 +12,13 @@ import RolesService from './RolesService';
 import StaffUsersService from './StaffUsersService';
 import BarbersService from './BarbersService';
 import SetProviderActiveService from './SetProviderActiveService';
+import AuthenticateUserService from './AuthenticateUserService';
+import ChangeFirstPasswordService from './ChangeFirstPasswordService';
 
 let usersRepository: FakeUsersRepository;
 let rolesRepository: FakeRolesRepository;
 let appointmentsRepository: FakeAppointmentsRepository;
+let hashProvider: FakeHashProvider;
 let roles: RolesService;
 let staff: StaffUsersService;
 let barbers: BarbersService;
@@ -27,13 +32,14 @@ describe('Usuários, perfis e barbeiros', () => {
     usersRepository = new FakeUsersRepository();
     rolesRepository = new FakeRolesRepository();
     appointmentsRepository = new FakeAppointmentsRepository();
+    hashProvider = new FakeHashProvider();
     const cache = new FakeCacheProvider();
 
     roles = new RolesService(rolesRepository, usersRepository);
     staff = new StaffUsersService(
       usersRepository,
       rolesRepository,
-      new FakeHashProvider(),
+      hashProvider,
       cache,
     );
     barbers = new BarbersService(
@@ -64,6 +70,9 @@ describe('Usuários, perfis e barbeiros', () => {
 
     return user;
   }
+
+  const maria = (data = {}) =>
+    staff.create({ name: 'Maria', email: 'maria@barbearia.com.br', ...data });
 
   it('should give every permission to the admin role', () => {
     expect(admin.allowed).toEqual(ALL_PERMISSIONS);
@@ -106,156 +115,205 @@ describe('Usuários, perfis e barbeiros', () => {
   });
 
   it('should not delete a role in use', async () => {
-    await staff.create({
-      name: 'Maria',
-      email: 'maria@barbearia.com.br',
-      password: 'segredo',
-      role_id: reception.id,
-    });
+    await maria({ role_id: reception.id });
 
     await expect(roles.remove(reception.id)).rejects.toBeInstanceOf(AppError);
     await expect(roles.remove(barber.id)).resolves.toBeUndefined();
   });
 
-  it('should create users that are not barbers', async () => {
-    const maria = await staff.create({
+  it('should create users without a role, with the e-mail as password', async () => {
+    const generateHash = jest.spyOn(hashProvider, 'generateHash');
+
+    const user = await staff.create({
       name: ' Maria ',
       email: 'Maria@Barbearia.com.br',
-      password: 'segredo',
-      role_id: reception.id,
     });
 
-    expect(maria).toMatchObject({
+    expect(user).toMatchObject({
       name: 'Maria',
       email: 'maria@barbearia.com.br',
       is_barber: false,
-      role: { name: 'Recepção', is_admin: false },
+      must_change_password: true,
+      role: null,
+      permissions: [],
     });
+    expect(generateHash).toHaveBeenCalledWith('maria@barbearia.com.br');
 
     await expect(
-      staff.create({
-        name: 'Outra',
-        email: 'maria@barbearia.com.br',
-        password: 'segredo',
-        role_id: reception.id,
-      }),
+      staff.create({ name: 'Outra', email: 'maria@barbearia.com.br' }),
     ).rejects.toBeInstanceOf(AppError);
+  });
+
+  it('should add the user own permissions to the role ones', async () => {
+    const owner = await createAdmin();
+    const created = await maria({ role_id: barber.id, permissions: ['cash'] });
+
+    expect(created.permissions).toEqual(['cash']);
+
+    const updated = await staff.update(owner.id, created.id, {
+      name: 'Maria',
+      email: 'maria@barbearia.com.br',
+      role_id: reception.id,
+      permissions: ['reports', 'clients'],
+    });
+
+    // Recepção + as próprias, sem repetir
+    expect(updated.own_permissions).toEqual(['reports', 'clients']);
+    expect(updated.permissions).toEqual(
+      expect.arrayContaining([...reception.allowed, 'reports']),
+    );
+    expect(new Set(updated.permissions).size).toBe(updated.permissions.length);
+
     await expect(
-      staff.create({
-        name: 'Curta',
-        email: 'curta@barbearia.com.br',
-        password: '123',
-        role_id: reception.id,
+      staff.update(owner.id, created.id, {
+        name: 'Maria',
+        email: 'maria@barbearia.com.br',
+        role_id: null,
+        permissions: ['voar'],
       }),
     ).rejects.toBeInstanceOf(AppError);
   });
 
-  it('should keep at least one admin and not let users change their own role', async () => {
+  it('should keep at least one admin and not let users change their own access', async () => {
     const owner = await createAdmin();
+    const same = {
+      name: 'Dono',
+      email: owner.email,
+      role_id: admin.id,
+      permissions: [],
+    };
 
+    // O próprio nome pode; o próprio acesso, não
+    await expect(staff.update(owner.id, owner.id, same)).resolves.toBeTruthy();
     await expect(
-      staff.update(owner.id, owner.id, {
-        name: 'Dono',
-        email: owner.email,
-        role_id: barber.id,
-      }),
+      staff.update(owner.id, owner.id, { ...same, role_id: barber.id }),
+    ).rejects.toBeInstanceOf(AppError);
+    await expect(
+      staff.update(owner.id, owner.id, { ...same, permissions: ['cash'] }),
     ).rejects.toBeInstanceOf(AppError);
 
-    const maria = await staff.create({
-      name: 'Maria',
-      email: 'maria@barbearia.com.br',
-      password: 'segredo',
-      role_id: reception.id,
-    });
+    const other = await maria({ role_id: reception.id });
 
-    // Único admin: outro admin não consegue rebaixá-lo
+    // Único admin: não pode ser rebaixado nem desativado
     await expect(
-      staff.update(maria.id, owner.id, {
-        name: 'Dono',
-        email: owner.email,
-        role_id: barber.id,
-      }),
+      staff.update(other.id, owner.id, { ...same, role_id: barber.id }),
     ).rejects.toBeInstanceOf(AppError);
     await expect(
       setActive.execute({
-        requester_id: maria.id,
+        requester_id: other.id,
         provider_id: owner.id,
         active: false,
       }),
     ).rejects.toBeInstanceOf(AppError);
 
     // Com outro admin, pode
-    await staff.update(owner.id, maria.id, {
+    await staff.update(owner.id, other.id, {
       name: 'Maria',
       email: 'maria@barbearia.com.br',
       role_id: admin.id,
-      password: 'nova-senha',
+      permissions: [],
     });
 
     await expect(
-      staff.update(maria.id, owner.id, {
-        name: 'Dono',
-        email: owner.email,
-        role_id: barber.id,
-      }),
+      staff.update(other.id, owner.id, { ...same, role_id: barber.id }),
     ).resolves.toMatchObject({ role: { name: 'Barbeiro' } });
   });
 
-  it('should turn users into barbers and back', async () => {
-    const maria = await staff.create({
-      name: 'Maria',
+  it('should reset the password to the e-mail', async () => {
+    const owner = await createAdmin();
+    const created = await maria();
+    const user = await usersRepository.findById(created.id);
+
+    if (user) user.must_change_password = false;
+
+    await expect(
+      staff.resetPassword(owner.id, owner.id),
+    ).rejects.toBeInstanceOf(AppError);
+    await expect(
+      staff.resetPassword(owner.id, created.id),
+    ).resolves.toMatchObject({ must_change_password: true });
+  });
+
+  it('should force the first password change', async () => {
+    const created = await maria();
+    const authenticate = new AuthenticateUserService(
+      usersRepository,
+      hashProvider,
+    );
+    const changePassword = new ChangeFirstPasswordService(
+      usersRepository,
+      hashProvider,
+    );
+
+    // Entra com o e-mail (até com maiúsculas), com o token restrito
+    const first = await authenticate.execute({
       email: 'maria@barbearia.com.br',
-      password: 'segredo',
-      role_id: reception.id,
+      password: 'Maria@Barbearia.com.br',
     });
+
+    expect(decode(first.token)).toMatchObject({ pwd: true });
+
+    await expect(
+      changePassword.execute(created.id, 'maria@barbearia.com.br'),
+    ).rejects.toBeInstanceOf(AppError);
+    await expect(
+      changePassword.execute(created.id, '123'),
+    ).rejects.toBeInstanceOf(AppError);
+
+    const changed = await changePassword.execute(created.id, 'senha-nova');
+
+    expect(changed.user.must_change_password).toBe(false);
+    expect(decode(changed.token)).not.toHaveProperty('pwd');
+
+    // A senha provisória não vale mais
+    await expect(
+      authenticate.execute({
+        email: 'maria@barbearia.com.br',
+        password: 'maria@barbearia.com.br',
+      }),
+    ).rejects.toBeInstanceOf(AppError);
+  });
+
+  it('should turn users into barbers and back', async () => {
+    const created = await maria();
 
     expect(await usersRepository.findAllProviders({})).toHaveLength(0);
 
-    await barbers.add(maria.id);
+    await barbers.add(created.id);
 
     expect(
       (await usersRepository.findAllProviders({})).map(user => user.id),
-    ).toEqual([maria.id]);
-    await expect(barbers.add(maria.id)).rejects.toBeInstanceOf(AppError);
+    ).toEqual([created.id]);
+    await expect(barbers.add(created.id)).rejects.toBeInstanceOf(AppError);
 
-    await barbers.remove(maria.id);
+    await barbers.remove(created.id);
 
     expect(await usersRepository.findAllProviders({})).toHaveLength(0);
-    await expect(barbers.remove(maria.id)).rejects.toBeInstanceOf(AppError);
+    await expect(barbers.remove(created.id)).rejects.toBeInstanceOf(AppError);
   });
 
   it('should not remove a barber with upcoming appointments', async () => {
-    const maria = await staff.create({
-      name: 'Maria',
-      email: 'maria@barbearia.com.br',
-      password: 'segredo',
-      role_id: reception.id,
-    });
+    const created = await maria();
 
-    await barbers.add(maria.id);
+    await barbers.add(created.id);
 
     jest
       .spyOn(appointmentsRepository, 'countUpcomingFromProvider')
       .mockResolvedValue(2);
 
-    await expect(barbers.remove(maria.id)).rejects.toBeInstanceOf(AppError);
+    await expect(barbers.remove(created.id)).rejects.toBeInstanceOf(AppError);
   });
 
   it('should not make an inactive user a barber', async () => {
     const owner = await createAdmin();
-    const maria = await staff.create({
-      name: 'Maria',
-      email: 'maria@barbearia.com.br',
-      password: 'segredo',
-      role_id: reception.id,
-    });
+    const created = await maria();
 
     await setActive.execute({
       requester_id: owner.id,
-      provider_id: maria.id,
+      provider_id: created.id,
       active: false,
     });
 
-    await expect(barbers.add(maria.id)).rejects.toBeInstanceOf(AppError);
+    await expect(barbers.add(created.id)).rejects.toBeInstanceOf(AppError);
   });
 });

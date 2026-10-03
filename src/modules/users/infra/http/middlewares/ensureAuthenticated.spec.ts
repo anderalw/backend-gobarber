@@ -23,9 +23,15 @@ function tokenFor(payload: object): string {
   return sign(payload, authConfig.jwt.secret, { subject: 'user-1' });
 }
 
-function authenticate(token: string): Request {
+function authenticate(
+  token: string,
+  method = 'GET',
+  originalUrl = '/agenda/day',
+): Request {
   const request = {
     headers: { authorization: `Bearer ${token}` },
+    method,
+    originalUrl,
   } as unknown as Request;
 
   ensureAuthenticated(request, {} as Response, jest.fn());
@@ -60,5 +66,24 @@ describe('Login preso à barbearia', () => {
     expect(() => runWithTenant(ze, () => authenticate(token))).toThrow(
       AppError,
     );
+  });
+
+  it('should only allow changing the password while it is provisional', () => {
+    const token = runWithTenant(ze, () =>
+      tokenFor({ role: 'provider', pwd: true, ...tenantClaim() }),
+    );
+
+    expect(() =>
+      runWithTenant(ze, () => authenticate(token, 'GET', '/profile')),
+    ).not.toThrow();
+    expect(() =>
+      runWithTenant(ze, () => authenticate(token, 'PUT', '/profile/password')),
+    ).not.toThrow();
+    expect(() =>
+      runWithTenant(ze, () => authenticate(token, 'GET', '/agenda/day?day=1')),
+    ).toThrow(AppError);
+    expect(() =>
+      runWithTenant(ze, () => authenticate(token, 'PUT', '/profile')),
+    ).toThrow(AppError);
   });
 });

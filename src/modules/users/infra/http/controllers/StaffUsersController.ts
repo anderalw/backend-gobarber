@@ -11,17 +11,17 @@ export default class StaffUsersController {
   }
 
   public async create(request: Request, response: Response): Promise<Response> {
-    const { name, email, password, role_id } = request.body;
+    const { name, email, role_id, permissions } = request.body;
 
     const user = await container
       .resolve(StaffUsersService)
-      .create({ name, email, password, role_id });
+      .create({ name, email, role_id, permissions });
 
     return response.status(201).json(user);
   }
 
   public async update(request: Request, response: Response): Promise<Response> {
-    const { name, email, role_id, password } = request.body;
+    const { name, email, role_id, permissions } = request.body;
 
     const user = await container
       .resolve(StaffUsersService)
@@ -29,8 +29,20 @@ export default class StaffUsersController {
         name,
         email,
         role_id,
-        password,
+        permissions,
       });
+
+    return response.json(user);
+  }
+
+  // Volta para a senha provisória (o e-mail)
+  public async resetPassword(
+    request: Request,
+    response: Response,
+  ): Promise<Response> {
+    const user = await container
+      .resolve(StaffUsersService)
+      .resetPassword(request.user.id, request.params.id);
 
     return response.json(user);
   }

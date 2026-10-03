@@ -1,13 +1,11 @@
-import { sign } from 'jsonwebtoken';
-import authConfig from '@config/auth';
 import { injectable, inject } from 'tsyringe';
 
 import AppError from '@shared/errors/AppError';
-import { tenantClaim } from '@shared/tenancy/TenantContext';
 import IUsersRepository from '../repositories/IUsersRepository';
 import IHashProvider from '../providers/HashProvider/models/IHashProvider';
 
 import User from '../infra/typeorm/entities/User';
+import staffToken from '../utils/staffToken';
 
 interface IRequest {
   email: string;
@@ -35,10 +33,18 @@ class AuthenticateUserService {
       throw new AppError('E-mail ou senha incorretos.', 401);
     }
 
-    const passwordMatched = await this.hashProvider.compareHash(
+    let passwordMatched = await this.hashProvider.compareHash(
       password,
       user.password,
     );
+
+    // Senha provisória é o e-mail: aceita digitado com maiúsculas
+    if (!passwordMatched && user.must_change_password) {
+      passwordMatched = await this.hashProvider.compareHash(
+        password.trim().toLowerCase(),
+        user.password,
+      );
+    }
 
     if (!passwordMatched) {
       throw new AppError('E-mail ou senha incorretos.', 401);
@@ -52,12 +58,8 @@ class AuthenticateUserService {
       );
     }
 
-    const { secret, expiresIn } = authConfig.jwt;
+    const token = staffToken(user);
 
-    const token = sign({ role: 'provider', ...tenantClaim() }, secret, {
-      subject: user.id,
-      expiresIn,
-    });
     return {
       user,
       token,

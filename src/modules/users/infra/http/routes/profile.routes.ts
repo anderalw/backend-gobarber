@@ -27,4 +27,16 @@ profileRouter.put(
   profileController.update,
 );
 
+// Senha provisória: o único caminho liberado além de ver o perfil
+profileRouter.put(
+  '/password',
+  celebrate({
+    [Segments.BODY]: {
+      password: Joi.string().min(6).max(100).required(),
+      password_confirmation: Joi.string().valid(Joi.ref('password')).required(),
+    },
+  }),
+  profileController.changePassword,
+);
+
 export default profileRouter;

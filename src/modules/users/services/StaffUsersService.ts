@@ -7,6 +7,7 @@ import Role from '../infra/typeorm/entities/Role';
 import IUsersRepository from '../repositories/IUsersRepository';
 import IRolesRepository from '../repositories/IRolesRepository';
 import IHashProvider from '../providers/HashProvider/models/IHashProvider';
+import { isPermission, Permission } from '../permissions';
 
 export interface IStaffView {
   id: string;
@@ -15,28 +16,33 @@ export interface IStaffView {
   avatar_url: string | null;
   active: boolean;
   is_barber: boolean;
+  // Ainda com a senha provisória (o e-mail)
+  must_change_password: boolean;
   role: { id: string; name: string; is_admin: boolean } | null;
+  // Dadas só a este usuário
+  own_permissions: Permission[];
+  // Tudo o que ele pode (perfil + próprias)
+  permissions: Permission[];
 }
 
 interface ICreate {
   name: string;
   email: string;
-  password: string;
-  role_id: string;
+  role_id?: string | null;
+  permissions?: string[];
 }
 
 interface IUpdate {
   name: string;
   email: string;
-  role_id: string;
-  // Vazio: mantém a senha
-  password?: string;
+  role_id: string | null;
+  permissions: string[];
 }
 
-const MIN_PASSWORD = 6;
-
-// Usuários da equipe (quem entra no sistema), com o perfil de acesso. Ser
-// barbeiro é à parte (BarbersService)
+// Usuários da equipe (quem entra no sistema) e o que cada um pode fazer:
+// um perfil opcional mais as permissões dele. A senha provisória é o
+// próprio e-mail, trocada no primeiro acesso. Ser barbeiro é à parte
+// (BarbersService)
 @injectable()
 class StaffUsersService {
   constructor(
@@ -61,6 +67,7 @@ class StaffUsersService {
       avatar_url: user.getAvatarUrl(),
       active: user.active,
       is_barber: user.is_barber,
+      must_change_password: !!user.must_change_password,
       role: user.role
         ? {
             id: user.role.id,
@@ -68,6 +75,8 @@ class StaffUsersService {
             is_admin: user.role.isAdmin,
           }
         : null,
+      own_permissions: user.own_permissions || [],
+      permissions: user.allowed,
     };
   }
 
@@ -86,24 +95,21 @@ class StaffUsersService {
   public async create({
     name,
     email,
-    password,
-    role_id,
+    role_id = null,
+    permissions = [],
   }: ICreate): Promise<IStaffView> {
     const cleanName = this.cleanName(name);
     const cleanEmail = await this.availableEmail(email);
     const role = await this.findRole(role_id);
 
-    if (password.length < MIN_PASSWORD) {
-      throw new AppError(
-        `A senha precisa de pelo menos ${MIN_PASSWORD} caracteres.`,
-      );
-    }
-
     const user = await this.usersRepository.create({
       name: cleanName,
       email: cleanEmail,
-      password: await this.hashProvider.generateHash(password),
-      role_id: role.id,
+      // Senha provisória: o próprio e-mail
+      password: await this.hashProvider.generateHash(cleanEmail),
+      must_change_password: true,
+      role_id: role?.id ?? null,
+      own_permissions: this.validPermissions(permissions),
       is_barber: false,
     });
 
@@ -115,41 +121,59 @@ class StaffUsersService {
   public async update(
     requester_id: string,
     id: string,
-    { name, email, role_id, password }: IUpdate,
+    { name, email, role_id, permissions }: IUpdate,
   ): Promise<IStaffView> {
     const user = await this.findUser(id);
     const role = await this.findRole(role_id);
+    const own = this.validPermissions(permissions);
 
-    if (role.id !== user.role_id) {
-      // Quem troca o próprio perfil pode perder o acesso a esta tela
+    const accessChanged =
+      (role?.id ?? null) !== (user.role_id ?? null) ||
+      own.slice().sort().join() !==
+        (user.own_permissions || []).slice().sort().join();
+
+    if (accessChanged) {
+      // Quem mexe no próprio acesso pode perder o acesso a esta tela
       if (id === requester_id) {
-        throw new AppError('Você não pode trocar o seu próprio perfil.');
+        throw new AppError(
+          'Você não pode mudar o seu próprio perfil ou permissões.',
+        );
       }
 
-      if (user.role?.isAdmin && !role.isAdmin) {
+      if (user.role?.isAdmin && !role?.isAdmin) {
         await this.ensureAnotherAdmin(user);
       }
     }
 
     user.name = this.cleanName(name);
     user.email = await this.availableEmail(email, id);
-    user.role_id = role.id;
+    user.role_id = role?.id ?? null;
     user.role = role;
-
-    if (password) {
-      if (password.length < MIN_PASSWORD) {
-        throw new AppError(
-          `A senha precisa de pelo menos ${MIN_PASSWORD} caracteres.`,
-        );
-      }
-
-      user.password = await this.hashProvider.generateHash(password);
-    }
+    user.own_permissions = own;
 
     await this.usersRepository.save(user);
 
     // O nome aparece na lista de barbeiros, que fica em cache
     await this.cacheProvider.invalidatePrefix('providers-list');
+
+    return StaffUsersService.view(user);
+  }
+
+  // Volta para a senha provisória (o e-mail), com troca no próximo acesso
+  public async resetPassword(
+    requester_id: string,
+    id: string,
+  ): Promise<IStaffView> {
+    if (id === requester_id) {
+      throw new AppError('Para trocar a sua senha, use Meu perfil.');
+    }
+
+    const user = await this.findUser(id);
+
+    user.password = await this.hashProvider.generateHash(user.email);
+    user.must_change_password = true;
+
+    await this.usersRepository.save(user);
 
     return StaffUsersService.view(user);
   }
@@ -166,6 +190,14 @@ class StaffUsersService {
         'A barbearia precisa de pelo menos um administrador ativo.',
       );
     }
+  }
+
+  private validPermissions(permissions: string[]): Permission[] {
+    const invalid = permissions.find(permission => !isPermission(permission));
+
+    if (invalid) throw new AppError(`Permissão desconhecida: ${invalid}.`);
+
+    return Array.from(new Set(permissions)) as Permission[];
   }
 
   private cleanName(name: string): string {
@@ -198,7 +230,10 @@ class StaffUsersService {
     return user;
   }
 
-  private async findRole(id: string): Promise<Role> {
+  // Sem perfil é permitido (null)
+  private async findRole(id: string | null): Promise<Role | null> {
+    if (!id) return null;
+
     const role = await this.rolesRepository.findById(id);
 
     if (!role) throw new AppError('Escolha um perfil válido.');

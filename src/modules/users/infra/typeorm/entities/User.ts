@@ -32,13 +32,22 @@ class User {
   @Column()
   avatar: string;
 
-  // Perfil de acesso (o que a pessoa pode fazer no sistema)
+  // Perfil de acesso, opcional: um conjunto de permissões pronto
   @Column({ type: 'uuid', nullable: true })
   role_id: string | null;
 
   @ManyToOne(() => Role, { eager: true, nullable: true })
   @JoinColumn({ name: 'role_id' })
   role: Role | null;
+
+  // Permissões dadas só a este usuário (somam às do perfil)
+  @Column('text', { name: 'permissions', array: true, default: '{}' })
+  @Exclude()
+  own_permissions: Permission[];
+
+  // Senha provisória (o e-mail): troca obrigatória no próximo acesso
+  @Column({ default: false })
+  must_change_password: boolean;
 
   // Atende clientes: aparece na agenda e no agendamento do site
   @Column({ default: false })
@@ -58,8 +67,11 @@ class User {
     return !!this.role?.isAdmin;
   }
 
+  // O que a pessoa pode fazer: as do perfil mais as próprias
   get allowed(): Permission[] {
-    return this.role?.allowed || [];
+    return Array.from(
+      new Set([...(this.role?.allowed || []), ...(this.own_permissions || [])]),
+    );
   }
 
   @Expose({ name: 'is_admin' })
@@ -70,6 +82,11 @@ class User {
   @Expose({ name: 'permissions' })
   exposePermissions(): Permission[] {
     return this.allowed;
+  }
+
+  @Expose({ name: 'own_permissions' })
+  exposeOwnPermissions(): Permission[] {
+    return this.own_permissions || [];
   }
 
   public can(permission: Permission): boolean {
