@@ -5,12 +5,15 @@ import FakeNotificationsRepository from '@modules/notifications/repositories/fak
 import FakeUsersRepository from '@modules/users/repositories/fakes/FakeUsersRepository';
 import FakeHashProvider from '@modules/users/providers/HashProvider/fakes/FakeHashProvider';
 import EnsureFirstAdminService from '@modules/users/services/EnsureFirstAdminService';
+import FakeBlockReasonsRepository from '@modules/appointments/repositories/fakes/FakeBlockReasonsRepository';
 import FakeTenantsRepository from '../repositories/fakes/FakeTenantsRepository';
+import SeedTenantDefaultsService from './SeedTenantDefaultsService';
 import TenantsService from './TenantsService';
 import ResolveTenantService from './ResolveTenantService';
 
 let tenantsRepository: FakeTenantsRepository;
 let settingsRepository: FakeSettingsRepository;
+let blockReasonsRepository: FakeBlockReasonsRepository;
 let usersRepository: FakeUsersRepository;
 let ensureFirstAdmin: EnsureFirstAdminService;
 let tenants: TenantsService;
@@ -25,6 +28,7 @@ describe('Cadastro das barbearias', () => {
   beforeEach(() => {
     tenantsRepository = new FakeTenantsRepository();
     settingsRepository = new FakeSettingsRepository();
+    blockReasonsRepository = new FakeBlockReasonsRepository();
     usersRepository = new FakeUsersRepository();
     ensureFirstAdmin = new EnsureFirstAdminService(
       usersRepository,
@@ -32,7 +36,7 @@ describe('Cadastro das barbearias', () => {
     );
     tenants = new TenantsService(
       tenantsRepository,
-      settingsRepository,
+      new SeedTenantDefaultsService(settingsRepository, blockReasonsRepository),
       new FakeNotificationsRepository(),
       ensureFirstAdmin,
     );
@@ -57,6 +61,12 @@ describe('Cadastro das barbearias', () => {
     // O administrador e o nome são gravados dentro da barbearia nova
     expect(tenantDuringSetup).toBe(tenant.id);
     expect(await settingsRepository.get('shop_name')).toBe('Barbearia do Zé');
+    // Começa com os motivos de bloqueio padrão
+    expect(
+      (await blockReasonsRepository.findAll()).map(reason => reason.name),
+    ).toEqual(
+      expect.arrayContaining(['Almoço', 'Consulta', 'Folga', 'Férias']),
+    );
     expect(await usersRepository.findByEmail(admin.email)).toMatchObject({
       is_admin: true,
     });

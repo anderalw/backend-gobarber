@@ -9,12 +9,12 @@ import {
   normalizeHost,
 } from '@shared/tenancy/hosts';
 import { runWithTenant } from '@shared/tenancy/TenantContext';
-import ISettingsRepository from '@modules/catalog/repositories/ISettingsRepository';
 import EnsureFirstAdminService from '@modules/users/services/EnsureFirstAdminService';
 import INotificationsRepository from '@modules/notifications/repositories/INotificationsRepository';
 import ITenantsRepository from '../repositories/ITenantsRepository';
 import Tenant, { TenantStatus } from '../infra/typeorm/entities/Tenant';
 import ResolveTenantService from './ResolveTenantService';
+import SeedTenantDefaultsService from './SeedTenantDefaultsService';
 
 interface ICreate {
   slug: string;
@@ -36,8 +36,8 @@ class TenantsService {
     @inject('TenantsRepository')
     private tenantsRepository: ITenantsRepository,
 
-    @inject('SettingsRepository')
-    private settingsRepository: ISettingsRepository,
+    @inject(SeedTenantDefaultsService)
+    private seedDefaults: SeedTenantDefaultsService,
 
     @inject('NotificationsRepository')
     private notificationsRepository: INotificationsRepository,
@@ -58,7 +58,8 @@ class TenantsService {
     return tenant;
   }
 
-  // Cria a barbearia já com o nome no site e o primeiro administrador
+  // Cria a barbearia já com o nome no site, os cadastros padrão e o
+  // primeiro administrador
   public async create({
     slug,
     name,
@@ -80,7 +81,7 @@ class TenantsService {
 
     try {
       await runWithTenant(tenant, async () => {
-        await this.settingsRepository.set('shop_name', tenant.name);
+        await this.seedDefaults.execute(tenant.name);
         await this.ensureFirstAdmin.execute(admin);
       });
     } catch (err) {

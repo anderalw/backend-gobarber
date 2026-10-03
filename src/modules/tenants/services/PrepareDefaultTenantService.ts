@@ -3,10 +3,10 @@ import { injectable, inject } from 'tsyringe';
 import tenancyConfig from '@config/tenancy';
 import { runWithTenant } from '@shared/tenancy/TenantContext';
 import EnsureFirstAdminService from '@modules/users/services/EnsureFirstAdminService';
-import ISettingsRepository from '@modules/catalog/repositories/ISettingsRepository';
 import ITenantsRepository from '../repositories/ITenantsRepository';
 import Tenant from '../infra/typeorm/entities/Tenant';
 import ResolveTenantService from './ResolveTenantService';
+import SeedTenantDefaultsService from './SeedTenantDefaultsService';
 
 interface IAdmin {
   name?: string;
@@ -23,8 +23,8 @@ class PrepareDefaultTenantService {
     @inject('TenantsRepository')
     private tenantsRepository: ITenantsRepository,
 
-    @inject('SettingsRepository')
-    private settingsRepository: ISettingsRepository,
+    @inject(SeedTenantDefaultsService)
+    private seedDefaults: SeedTenantDefaultsService,
 
     @inject(EnsureFirstAdminService)
     private ensureFirstAdmin: EnsureFirstAdminService,
@@ -44,9 +44,7 @@ class PrepareDefaultTenantService {
 
       tenant = await this.tenantsRepository.create({ slug, name });
 
-      await runWithTenant(tenant, () =>
-        this.settingsRepository.set('shop_name', name),
-      );
+      await runWithTenant(tenant, () => this.seedDefaults.execute(name));
 
       ResolveTenantService.forget();
     }

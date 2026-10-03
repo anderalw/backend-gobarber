@@ -63,6 +63,10 @@ export default class MultiTenancy1790850000000 implements MigrationInterface {
     }
 
     for (const table of TABLES) {
+      // Banco novo: o que houver são só os cadastros padrão das migrations
+      // (ex.: motivos de bloqueio), que agora nascem com cada barbearia
+      if (!fill) await queryRunner.query(`DELETE FROM "${table}"`);
+
       await enableTenancy(queryRunner, table, fill);
     }
 

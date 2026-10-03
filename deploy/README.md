@@ -44,20 +44,16 @@ docker compose up -d --no-build
 Para atualizar, repita `pull` e `up -d --no-build`: as migrations novas rodam
 ao subir.
 
-## Um ambiente por barbearia (SaaS)
+## Várias barbearias (SaaS)
 
-Cada barbearia é uma cópia desta pasta com o próprio `.env`, que define:
+Uma instalação atende todas as barbearias. Cada uma abre em
+`<identificador>.BASE_DOMAIN` ou no domínio próprio, e o próprio Postgres
+isola os dados (RLS). Quem abre o `APP_URL` direto cai na `DEFAULT_TENANT`,
+que é a instalação de uma barbearia só.
 
-- `APP_URL`;
-- `WEB_PORT`;
-- as senhas;
-- o admin;
-- o fuso `TZ`.
-
-A cópia também precisa de outro nome de projeto (`docker compose -p barbearia-x`). Os volumes
-ficam separados por projeto, então os dados de uma não se misturam com os
-da outra. Na frente, um proxy (Caddy, Traefik ou nginx) liga cada domínio à
-porta do cliente e cuida do HTTPS.
+Para o SaaS completo, use o servidor do painel (pasta `infra` do repositório
+`gobarber-painel`). Ele junta esta instalação, o Caddy com HTTPS sob demanda
+e o painel que cadastra e cobra as barbearias.
 
 ## Variáveis importantes
 
@@ -66,8 +62,11 @@ porta do cliente e cuida do HTTPS.
 | `APP_URL` | Endereço público; vai nos links dos e-mails e do WhatsApp |
 | `APP_SECRET` | Assina os logins; trocar desconecta todo mundo e exige reconectar a maquininha |
 | `DB_PASS` | Senha do Postgres |
-| `ADMIN_*` | Primeiro administrador, criado só com o banco vazio |
-| `TZ` | Fuso da barbearia (a agenda segue esse horário) |
+| `ADMIN_*` | Primeiro administrador da `DEFAULT_TENANT`, criado só se ela não tiver ninguém |
+| `BASE_DOMAIN` | Domínio das barbearias (`<identificador>.BASE_DOMAIN`) |
+| `DEFAULT_TENANT` | Barbearia de quem abre o `APP_URL` direto |
+| `PLATFORM_TOKEN` | Token do painel do SaaS (rotas `/internal`) |
+| `TZ` | Fuso de todas as barbearias da instalação (a agenda segue esse horário) |
 | `MAIL_DRIVER` | `ethereal` (testes) ou `ses` |
 | `GOOGLE_CLIENT_ID` | Login com Google (vazio = sem o botão) |
 
