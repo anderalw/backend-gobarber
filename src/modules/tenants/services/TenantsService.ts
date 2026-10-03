@@ -94,6 +94,27 @@ class TenantsService {
     return tenant;
   }
 
+  // Só o cadastro, sem dados (a importação traz a equipe e o resto). Um
+  // domínio que já é de outra barbearia fica de fora
+  public async register({
+    slug,
+    name,
+    custom_domain,
+  }: Omit<ICreate, 'admin'>): Promise<Tenant> {
+    const cleanSlug = await this.validSlug(slug);
+    const domain = await this.validDomain(custom_domain).catch(() => null);
+
+    const tenant = await this.tenantsRepository.create({
+      slug: cleanSlug,
+      name: name.trim(),
+      custom_domain: domain,
+    });
+
+    ResolveTenantService.forget();
+
+    return tenant;
+  }
+
   public async update(id: string, data: IUpdate): Promise<Tenant> {
     const tenant = await this.show(id);
 

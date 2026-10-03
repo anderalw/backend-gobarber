@@ -2,6 +2,10 @@ import { Router, Request, Response } from 'express';
 import { celebrate, Segments, Joi } from 'celebrate';
 import { container } from 'tsyringe';
 import { subDays } from 'date-fns';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import { pipeline } from 'stream/promises';
 
 import dataSource from '@shared/infra/typeorm/dataSource';
 import { runWithTenant } from '@shared/tenancy/TenantContext';
@@ -9,6 +13,10 @@ import { tenantHost } from '@shared/tenancy/hosts';
 import TenantsService from '@modules/tenants/services/TenantsService';
 import ResolveTenantService from '@modules/tenants/services/ResolveTenantService';
 import Tenant from '@modules/tenants/infra/typeorm/entities/Tenant';
+import {
+  exportTenant,
+  importTenant,
+} from '@modules/tenants/infra/backup/tenantBackup';
 import ensureMetricsToken from '../middlewares/ensureMetricsToken';
 
 // Rotas da plataforma, usadas pelo painel do SaaS: cadastro das barbearias
@@ -175,6 +183,53 @@ internalRouter.get(
       .show(request.params.id);
 
     return response.json(await runWithTenant(tenant, metrics));
+  },
+);
+
+// Backup só desta barbearia (.tar.gz)
+internalRouter.get(
+  '/tenants/:id/export',
+  idParam,
+  async (request: Request, response: Response) => {
+    const tenant = await container
+      .resolve(TenantsService)
+      .show(request.params.id);
+    const archive = await exportTenant(tenant);
+    const stamp = new Date().toISOString().slice(0, 16).replace(/[T:]/g, '-');
+
+    response.download(archive, `${tenant.slug}-${stamp}.tar.gz`, () => {
+      fs.promises.rm(archive, { force: true });
+    });
+  },
+);
+
+// Cria uma barbearia a partir de um backup (o corpo é o .tar.gz)
+internalRouter.post(
+  '/tenants/import',
+  celebrate({
+    [Segments.QUERY]: {
+      slug: Joi.string().max(40).allow(''),
+      name: Joi.string().trim().max(80).allow(''),
+    },
+  }),
+  async (request: Request, response: Response) => {
+    const archive = path.join(
+      os.tmpdir(),
+      `pontual-upload-${Date.now()}.tar.gz`,
+    );
+
+    try {
+      await pipeline(request, fs.createWriteStream(archive));
+
+      const tenant = await importTenant(archive, {
+        slug: request.query.slug as string | undefined,
+        name: request.query.name as string | undefined,
+      });
+
+      return response.status(201).json(present(tenant));
+    } finally {
+      await fs.promises.rm(archive, { force: true });
+    }
   },
 );
 

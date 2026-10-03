@@ -10,8 +10,8 @@ import authConfig from '@config/auth';
 // Segredos de integrações (operadora da maquininha, WhatsApp...) ficam
 // cifrados no banco (AES-256-GCM), com uma chave derivada do APP_SECRET e
 // do uso: quem ler só o banco não consegue usá-los
-const keyFor = (purpose: string): Buffer =>
-  createHash('sha256').update(`${authConfig.jwt.secret}:${purpose}`).digest();
+const keyFor = (purpose: string, secret = authConfig.jwt.secret): Buffer =>
+  createHash('sha256').update(`${secret}:${purpose}`).digest();
 
 export function seal(text: string, purpose: string): string {
   const iv = randomBytes(12);
@@ -27,7 +27,11 @@ export function seal(text: string, purpose: string): string {
 }
 
 // undefined: corrompido ou cifrado com outro APP_SECRET
-export function open(sealed: string, purpose: string): string | undefined {
+export function open(
+  sealed: string,
+  purpose: string,
+  secret?: string,
+): string | undefined {
   const [version, iv, tag, data] = sealed.split(':');
 
   if (version !== 'v1' || !iv || !tag || !data) return undefined;
@@ -35,7 +39,7 @@ export function open(sealed: string, purpose: string): string | undefined {
   try {
     const decipher = createDecipheriv(
       'aes-256-gcm',
-      keyFor(purpose),
+      keyFor(purpose, secret),
       Buffer.from(iv, 'base64'),
     );
 
@@ -48,4 +52,16 @@ export function open(sealed: string, purpose: string): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+// Segredo cifrado em outra instalação (outro APP_SECRET): cifra de novo com
+// o desta. undefined se não abrir com o segredo de lá
+export function reseal(
+  sealed: string,
+  purpose: string,
+  fromSecret: string,
+): string | undefined {
+  const text = open(sealed, purpose, fromSecret);
+
+  return text === undefined ? undefined : seal(text, purpose);
 }
