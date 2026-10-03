@@ -16,6 +16,7 @@ import { reseal } from '@shared/utils/secretBox';
 import Notification from '@modules/notifications/infra/typeorm/schemas/Notification';
 import TenantsService from '@modules/tenants/services/TenantsService';
 import ITenantsRepository from '@modules/tenants/repositories/ITenantsRepository';
+import ISettingsRepository from '@modules/catalog/repositories/ISettingsRepository';
 import Tenant from '../typeorm/entities/Tenant';
 
 // Backup de UMA barbearia (formato gobarber-backup, versão 2): um .tar.gz
@@ -417,6 +418,15 @@ export async function importTenant(
       }
 
       throw err;
+    }
+
+    // Instalação antiga que nunca definiu o nome: o site mostra o da barbearia
+    if (!shopName) {
+      await runWithTenant(tenant, () =>
+        container
+          .resolve<ISettingsRepository>('SettingsRepository')
+          .set('shop_name', tenant.name),
+      );
     }
 
     await copyNotifications(tenant, work);
