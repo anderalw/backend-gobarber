@@ -7,6 +7,7 @@ import uploadConfig from '@config/upload';
 import IStorageProvider from '@shared/container/providers/StorageProvider/models/IStorageProvider';
 import IUsersRepository from '@modules/users/repositories/IUsersRepository';
 import IProviderSchedulesRepository from '@modules/users/repositories/IProviderSchedulesRepository';
+import { apiUrl } from '@shared/tenancy/hosts';
 import ISettingsRepository from '../repositories/ISettingsRepository';
 import IServicesRepository from '../repositories/IServicesRepository';
 
@@ -51,7 +52,7 @@ export interface ISite extends ISiteContent {
 function fileUrl(filename: string): string {
   return uploadConfig.driver === 's3'
     ? `https://${uploadConfig.config.aws.bucket}.s3.amazonaws.com/${filename}`
-    : `${process.env.APP_API_URL}/files/${filename}`;
+    : `${apiUrl()}/files/${filename}`;
 }
 
 // Aceita "@barbearia", "barbearia" ou o link do perfil

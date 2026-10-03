@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import uploadConfig from '@config/upload';
+import { keepTenant } from '@shared/tenancy/TenantContext';
 import { celebrate, Segments, Joi } from 'celebrate';
 
 import ensureAuthenticated from '@modules/users/infra/http/middlewares/ensureAuthenticated';
@@ -35,7 +36,7 @@ usersRouter.patch(
   '/avatar',
   ensureAuthenticated,
   ensureRole('provider'),
-  upload.single('avatar'),
+  keepTenant(upload.single('avatar')),
   userAvatarController.update,
 );
 

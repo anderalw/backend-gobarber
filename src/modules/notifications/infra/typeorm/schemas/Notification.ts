@@ -14,6 +14,10 @@ class Notification {
   @Column()
   content: string;
 
+  // Barbearia dona da notificação
+  @Column('uuid')
+  tenant_id: string;
+
   @Column('uuid')
   recipient_id: string;
 

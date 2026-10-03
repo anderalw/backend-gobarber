@@ -69,5 +69,9 @@ class NotificationsRepository implements INotificationsRepository {
         item.read = true;
       });
   }
+
+  public async removeAll(): Promise<void> {
+    this.notifications = [];
+  }
 }
 export default NotificationsRepository;

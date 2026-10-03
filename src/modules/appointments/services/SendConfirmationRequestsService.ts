@@ -2,6 +2,7 @@ import { injectable, inject } from 'tsyringe';
 import { randomBytes } from 'crypto';
 import { addHours, differenceInHours } from 'date-fns';
 
+import { webUrl } from '@shared/tenancy/hosts';
 import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
 import IClientNotifier from '../notifier/IClientNotifier';
 
@@ -61,7 +62,7 @@ class SendConfirmationRequestsService {
 
         await this.clientNotifier.confirmationRequested(
           appointment,
-          `${process.env.APP_WEB_URL}/confirmar-agendamento?token=${token}`,
+          `${webUrl()}/confirmar-agendamento?token=${token}`,
         );
 
         return true;

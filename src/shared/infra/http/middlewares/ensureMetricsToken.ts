@@ -3,14 +3,14 @@ import { timingSafeEqual } from 'crypto';
 
 import AppError from '@shared/errors/AppError';
 
-// Rotas internas (lidas pelo painel do SaaS): só com o METRICS_TOKEN do
-// ambiente. Sem ele configurado, as rotas nem existem (404)
+// Rotas internas (usadas pelo painel do SaaS): só com o PLATFORM_TOKEN do
+// ambiente (antes METRICS_TOKEN). Sem ele, as rotas nem existem (404)
 export default function ensureMetricsToken(
   request: Request,
   response: Response,
   next: NextFunction,
 ): void {
-  const expected = process.env.METRICS_TOKEN;
+  const expected = process.env.PLATFORM_TOKEN || process.env.METRICS_TOKEN;
 
   if (!expected) {
     throw new AppError('Não encontrado.', 404);

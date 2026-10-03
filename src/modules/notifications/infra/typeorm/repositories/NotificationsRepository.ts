@@ -2,6 +2,7 @@ import { MongoRepository } from 'typeorm';
 import { ObjectId } from 'mongodb';
 
 import mongoDataSource from '@shared/infra/typeorm/mongoDataSource';
+import { requireTenant } from '@shared/tenancy/TenantContext';
 
 import INotificationsRepository from '@modules/notifications/repositories/INotificationsRepository';
 import ICreateNotificationDTO from '@modules/notifications/dtos/ICreateNotificationDTO';
@@ -10,6 +11,12 @@ import Notification from '../schemas/Notification';
 
 // Não lida: read false ou ausente (notificações criadas antes do campo)
 const UNREAD = { read: { $ne: true } };
+
+// O MongoDB não tem o isolamento do Postgres: toda consulta leva a
+// barbearia atual no filtro
+function scope(): { tenant_id: string } {
+  return { tenant_id: requireTenant().id };
+}
 
 class NotificationsRepository implements INotificationsRepository {
   private ormRepository: MongoRepository<Notification>;
@@ -24,6 +31,7 @@ class NotificationsRepository implements INotificationsRepository {
     date,
   }: ICreateNotificationDTO): Promise<Notification> {
     const notification = this.ormRepository.create({
+      ...scope(),
       content,
       recipient_id,
       read: false,
@@ -40,21 +48,21 @@ class NotificationsRepository implements INotificationsRepository {
     { limit, only_unread }: { limit: number; only_unread: boolean },
   ): Promise<Notification[]> {
     return this.ormRepository.find({
-      where: { recipient_id, ...(only_unread && UNREAD) },
+      where: { ...scope(), recipient_id, ...(only_unread && UNREAD) },
       order: { _id: 'DESC' },
       take: limit,
     } as object);
   }
 
   public async countUnread(recipient_id: string): Promise<number> {
-    return this.ormRepository.count({ recipient_id, ...UNREAD });
+    return this.ormRepository.count({ ...scope(), recipient_id, ...UNREAD });
   }
 
   public async markAsRead(id: string, recipient_id: string): Promise<boolean> {
     if (!ObjectId.isValid(id)) return false;
 
     const result = await this.ormRepository.updateOne(
-      { _id: new ObjectId(id), recipient_id },
+      { ...scope(), _id: new ObjectId(id), recipient_id },
       { $set: { read: true, updated_at: new Date() } },
     );
 
@@ -63,9 +71,13 @@ class NotificationsRepository implements INotificationsRepository {
 
   public async markAllAsRead(recipient_id: string): Promise<void> {
     await this.ormRepository.updateMany(
-      { recipient_id, ...UNREAD },
+      { ...scope(), recipient_id, ...UNREAD },
       { $set: { read: true, updated_at: new Date() } },
     );
+  }
+
+  public async removeAll(): Promise<void> {
+    await this.ormRepository.deleteMany(scope());
   }
 }
 export default NotificationsRepository;

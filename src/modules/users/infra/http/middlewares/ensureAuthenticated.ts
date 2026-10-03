@@ -4,12 +4,15 @@ import { verify } from 'jsonwebtoken';
 import AppError from '@shared/errors/AppError';
 
 import authConfig from '@config/auth';
+import { currentTenant } from '@shared/tenancy/TenantContext';
 
 interface ITokenPayLoad {
   iat: number;
   exp: number;
   sub: string;
   role?: 'provider' | 'client';
+  // Barbearia em que o login foi feito
+  tid?: string;
 }
 
 export default function ensureAuthenticated(
@@ -38,11 +41,20 @@ export default function ensureAuthenticated(
     );
   }
 
-  const { sub, role } = payload;
+  const { sub, role, tid } = payload;
 
   // Tokens emitidos antes da separação cliente/barbeiro não têm role:
   // são recusados para obrigar um novo login
   if (role !== 'provider' && role !== 'client') {
+    throw new AppError(
+      'Sessão inválida ou expirada, faça login novamente.',
+      401,
+    );
+  }
+
+  // Token de outra barbearia (ou de antes das várias barbearias): o
+  // usuário não existe aqui
+  if (tid !== currentTenant()?.id) {
     throw new AppError(
       'Sessão inválida ou expirada, faça login novamente.',
       401,

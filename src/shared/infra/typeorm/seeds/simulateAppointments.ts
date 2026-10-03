@@ -13,6 +13,8 @@ import {
 } from 'date-fns';
 
 import dataSource from '@shared/infra/typeorm/dataSource';
+import { installTenancy } from '@shared/infra/typeorm/tenancy';
+import { runWithTenant } from '@shared/tenancy/TenantContext';
 import RecurringTimeBlock from '@modules/appointments/infra/typeorm/entities/RecurringTimeBlock';
 import expandRecurringBlocks from '@modules/appointments/utils/expandRecurringBlocks';
 import workWindow from '@modules/appointments/utils/workWindow';
@@ -24,6 +26,7 @@ import workWindow from '@modules/appointments/utils/workWindow';
 //
 //   yarn simular            apaga a simulação anterior e cria outra
 //   yarn simular --limpar   só apaga o que a simulação criou
+//   --barbearia <ident.>    em qual barbearia (padrão: DEFAULT_TENANT)
 //
 // Nada que não seja da simulação é alterado.
 
@@ -329,19 +332,46 @@ async function simulate(): Promise<void> {
   );
 }
 
+async function simulateIn(): Promise<void> {
+  const removed = await clean();
+
+  if (removed > 0) {
+    console.log(`Simulação anterior apagada: ${removed} agendamentos.`);
+  }
+
+  if (!process.argv.includes('--limpar')) {
+    await simulate();
+  }
+}
+
+// Barbearia da simulação: --barbearia <identificador>, ou a DEFAULT_TENANT
+function tenantSlug(): string {
+  const index = process.argv.indexOf('--barbearia');
+  const slug =
+    index >= 0 ? process.argv[index + 1] : process.env.DEFAULT_TENANT;
+
+  if (!slug) {
+    throw new Error(
+      'Informe a barbearia: yarn simular --barbearia <identificador>',
+    );
+  }
+
+  return slug.toLowerCase();
+}
+
 async function run(): Promise<void> {
+  installTenancy();
   await dataSource.initialize();
 
   try {
-    const removed = await clean();
+    const [tenant] = await dataSource.query(
+      'SELECT * FROM tenants WHERE slug = $1',
+      [tenantSlug()],
+    );
 
-    if (removed > 0) {
-      console.log(`Simulação anterior apagada: ${removed} agendamentos.`);
-    }
+    if (!tenant) throw new Error('Barbearia não encontrada.');
 
-    if (!process.argv.includes('--limpar')) {
-      await simulate();
-    }
+    await runWithTenant(tenant, () => simulateIn());
   } finally {
     await dataSource.destroy();
   }

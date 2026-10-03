@@ -3,6 +3,7 @@ import { injectable, inject } from 'tsyringe';
 
 import authConfig from '@config/auth';
 import AppError from '@shared/errors/AppError';
+import { tenantClaim } from '@shared/tenancy/TenantContext';
 import Client from '../infra/typeorm/entities/Client';
 import IClientsRepository from '../repositories/IClientsRepository';
 import IGoogleTokenProvider from '../providers/GoogleTokenProvider/models/IGoogleTokenProvider';
@@ -65,7 +66,7 @@ class AuthenticateClientWithGoogleService {
 
     const { secret, expiresIn } = authConfig.jwt;
 
-    const token = sign({ role: 'client' }, secret, {
+    const token = sign({ role: 'client', ...tenantClaim() }, secret, {
       subject: client.id,
       expiresIn,
     });

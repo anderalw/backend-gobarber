@@ -12,4 +12,6 @@ export default interface INotificationsRepository {
   // false se a notificação não existe ou é de outra pessoa
   markAsRead(id: string, recipient_id: string): Promise<boolean>;
   markAllAsRead(recipient_id: string): Promise<void>;
+  // Todas as da barbearia atual (ao excluir a barbearia)
+  removeAll(): Promise<void>;
 }

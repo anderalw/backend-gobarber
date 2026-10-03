@@ -11,6 +11,7 @@ import mailConfig from '@config/mail';
 import IMailProvider from '@shared/container/providers/MailProvider/models/IMailProvider';
 import BrandingService from '@modules/catalog/services/BrandingService';
 import Client from '@modules/clients/infra/typeorm/entities/Client';
+import { webUrl } from '@shared/tenancy/hosts';
 import Appointment from '../infra/typeorm/entities/Appointment';
 import IClientNotifier from './IClientNotifier';
 
@@ -143,7 +144,7 @@ export default class EmailClientNotifier implements IClientNotifier {
       freed,
       `[Pontual] Abriu um horário em ${format(freed.date, "dd/MM 'às' HH:mm")}`,
       'waitlist_slot_freed.hbs',
-      { bookLink: `${process.env.APP_WEB_URL}/agendar` },
+      { bookLink: `${webUrl()}/agendar` },
       client,
     );
   }
@@ -178,7 +179,7 @@ export default class EmailClientNotifier implements IClientNotifier {
             service: appointment.service?.name || 'Atendimento',
             provider: appointment.provider?.name || 'a barbearia',
             when: when(appointment.date),
-            myAppointmentsLink: `${process.env.APP_WEB_URL}/meus-agendamentos`,
+            myAppointmentsLink: `${webUrl()}/meus-agendamentos`,
             shopName: brand.name,
             primaryColor: brand.primary_color,
             onPrimaryColor: brand.on_primary_color,

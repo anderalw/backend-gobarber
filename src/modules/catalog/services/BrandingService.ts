@@ -5,6 +5,7 @@ import { injectable, inject } from 'tsyringe';
 import AppError from '@shared/errors/AppError';
 import uploadConfig from '@config/upload';
 import IStorageProvider from '@shared/container/providers/StorageProvider/models/IStorageProvider';
+import { apiUrl } from '@shared/tenancy/hosts';
 import ISettingsRepository from '../repositories/ISettingsRepository';
 
 const NAME_KEY = 'shop_name';
@@ -42,7 +43,7 @@ export function onColor(hex: string): string {
 function fileUrl(filename: string): string {
   return uploadConfig.driver === 's3'
     ? `https://${uploadConfig.config.aws.bucket}.s3.amazonaws.com/${filename}`
-    : `${process.env.APP_API_URL}/files/${filename}`;
+    : `${apiUrl()}/files/${filename}`;
 }
 
 // Identidade da barbearia (nome, cor e logo), definida pelo admin e usada

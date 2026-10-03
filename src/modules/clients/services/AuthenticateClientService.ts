@@ -4,6 +4,7 @@ import { injectable, inject } from 'tsyringe';
 import authConfig from '@config/auth';
 import AppError from '@shared/errors/AppError';
 import IHashProvider from '@modules/users/providers/HashProvider/models/IHashProvider';
+import { tenantClaim } from '@shared/tenancy/TenantContext';
 import Client from '../infra/typeorm/entities/Client';
 import IClientsRepository from '../repositories/IClientsRepository';
 
@@ -50,7 +51,7 @@ class AuthenticateClientService {
     const { secret, expiresIn } = authConfig.jwt;
 
     // Gera o Token JWT para o cliente
-    const token = sign({ role: 'client' }, secret, {
+    const token = sign({ role: 'client', ...tenantClaim() }, secret, {
       subject: client.id,
       expiresIn,
     });

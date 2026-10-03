@@ -5,6 +5,7 @@ import mailConfig from '@config/mail';
 import AppError from '@shared/errors/AppError';
 import IMailProvider from '@shared/container/providers/MailProvider/models/IMailProvider';
 import BrandingService from '@modules/catalog/services/BrandingService';
+import { webUrl } from '@shared/tenancy/hosts';
 import IUsersRepository from '../repositories/IUsersRepository';
 import IUserTokensRepository from '../repositories/IUserTokensRepository';
 
@@ -62,7 +63,7 @@ class SendForgotPasswordEmailService {
         variables: {
           shopName: brand.name,
           name: user.name,
-          link: `${process.env.APP_WEB_URL}/barbeiro/redefinir-senha?token=${token}`,
+          link: `${webUrl()}/barbeiro/redefinir-senha?token=${token}`,
         },
       },
     });

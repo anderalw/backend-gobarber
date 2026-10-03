@@ -25,6 +25,9 @@ import WhatsAppMessagesRepository from '@modules/messaging/infra/typeorm/reposit
 import ManualWhatsAppProvider from '@modules/messaging/providers/WhatsAppProvider/implementations/ManualWhatsAppProvider';
 import SimulatorWhatsAppProvider from '@modules/messaging/providers/WhatsAppProvider/implementations/SimulatorWhatsAppProvider';
 
+import ITenantsRepository from '@modules/tenants/repositories/ITenantsRepository';
+import TenantsRepository from '@modules/tenants/infra/typeorm/repositories/TenantsRepository';
+
 import IUsersRepository from '@modules/users/repositories/IUsersRepository';
 import UsersRepository from '@modules/users/infra/typeorm/repositories/UsersRepository';
 
@@ -176,4 +179,9 @@ container.registerSingleton<IServicesRepository>(
 container.registerSingleton<ISettingsRepository>(
   'SettingsRepository',
   SettingsRepository,
+);
+
+container.registerSingleton<ITenantsRepository>(
+  'TenantsRepository',
+  TenantsRepository,
 );

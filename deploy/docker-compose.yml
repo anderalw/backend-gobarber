@@ -77,9 +77,16 @@ services:
       MAIL_FROM: ${MAIL_FROM:-}
       STORAGE_DRIVE: ${STORAGE_DRIVE:-disk}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      # Painel do SaaS lê o uso em /internal/metrics (vazio = rota desligada)
-      METRICS_TOKEN: ${METRICS_TOKEN:-}
-      # Primeiro administrador (só se o banco estiver vazio)
+      # Várias barbearias: cada uma em <identificador>.BASE_DOMAIN ou no
+      # domínio próprio. Quem abre o APP_URL direto cai na DEFAULT_TENANT
+      BASE_DOMAIN: ${BASE_DOMAIN:-localhost}
+      DEFAULT_TENANT: ${DEFAULT_TENANT:-principal}
+      DEFAULT_TENANT_NAME: ${DEFAULT_TENANT_NAME:-}
+      # Links dos e-mails/WhatsApp ({host} = endereço da barbearia)
+      TENANT_WEB_URL: ${TENANT_WEB_URL:-${APP_URL:-http://localhost:8080}}
+      # Painel do SaaS: cadastro das barbearias e uso (vazio = rotas desligadas)
+      PLATFORM_TOKEN: ${PLATFORM_TOKEN:-}
+      # Primeiro administrador da DEFAULT_TENANT (só se ela não tiver ninguém)
       ADMIN_NAME: ${ADMIN_NAME:-Administrador}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}

@@ -11,10 +11,13 @@ import uploadConfig from '@config/upload';
 import AppError from '@shared/errors/AppError';
 import connectDatabases from '@shared/infra/typeorm';
 import startJobs from '@shared/infra/jobs';
-import EnsureFirstAdminService from '@modules/users/services/EnsureFirstAdminService';
+import PrepareDefaultTenantService from '@modules/tenants/services/PrepareDefaultTenantService';
+import resolveTenant from '@modules/tenants/infra/http/middlewares/resolveTenant';
+import adoptOrphanNotifications from '@modules/notifications/infra/typeorm/adoptOrphanNotifications';
 import rateLimiter from './middlewares/rateLimiter';
 import validationMessage from './validationMessage';
 import routes from './routes';
+import internalRouter from './routes/internal.routes';
 import '@shared/container';
 
 const app = express();
@@ -30,6 +33,10 @@ app.use(cors());
 app.use(express.json());
 app.use('/files', express.static(uploadConfig.uploadsFolder));
 app.use(rateLimiter);
+// Plataforma (painel do SaaS, PLATFORM_TOKEN): fora das barbearias
+app.use('/internal', internalRouter);
+// Todo o resto é de uma barbearia, descoberta pelo endereço
+app.use(resolveTenant);
 app.use(routes);
 
 app.use((err: Error, request: Request, response: Response, _: NextFunction) => {
@@ -64,21 +71,29 @@ app.use((err: Error, request: Request, response: Response, _: NextFunction) => {
 // Só aceita requisições depois de conectar aos bancos
 connectDatabases()
   .then(async () => {
-    // Ambiente novo: cria o primeiro administrador (ADMIN_* no .env). O
-    // e-mail passa pela mesma regra do login, senão ele não conseguiria entrar
+    // Instalação de uma barbearia só (DEFAULT_TENANT): garante a barbearia
+    // e o primeiro administrador (ADMIN_* no .env). O e-mail passa pela
+    // mesma regra do login, senão ele não conseguiria entrar
     const adminEmail = process.env.ADMIN_EMAIL;
 
     if (adminEmail && Joi.string().email().validate(adminEmail).error) {
       throw new Error(`ADMIN_EMAIL inválido: ${adminEmail}`);
     }
 
-    const admin = await container.resolve(EnsureFirstAdminService).execute({
-      name: process.env.ADMIN_NAME,
-      email: adminEmail,
-      password: process.env.ADMIN_PASSWORD,
-    });
+    const prepared = await container
+      .resolve(PrepareDefaultTenantService)
+      .execute({
+        name: process.env.ADMIN_NAME,
+        email: adminEmail,
+        password: process.env.ADMIN_PASSWORD,
+      });
 
-    if (admin) console.log(` Primeiro administrador criado: ${admin}`);
+    if (prepared?.admin) {
+      console.log(` Primeiro administrador criado: ${prepared.admin}`);
+    }
+
+    // Notificações de antes das várias barbearias
+    await adoptOrphanNotifications(prepared?.tenant);
 
     const port = Number(process.env.PORT || 3333);
 

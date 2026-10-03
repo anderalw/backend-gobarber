@@ -3,6 +3,7 @@ import authConfig from '@config/auth';
 import { injectable, inject } from 'tsyringe';
 
 import AppError from '@shared/errors/AppError';
+import { tenantClaim } from '@shared/tenancy/TenantContext';
 import IUsersRepository from '../repositories/IUsersRepository';
 import IHashProvider from '../providers/HashProvider/models/IHashProvider';
 
@@ -53,7 +54,7 @@ class AuthenticateUserService {
 
     const { secret, expiresIn } = authConfig.jwt;
 
-    const token = sign({ role: 'provider' }, secret, {
+    const token = sign({ role: 'provider', ...tenantClaim() }, secret, {
       subject: user.id,
       expiresIn,
     });

@@ -5,10 +5,9 @@ import { format, isTomorrow, isToday, parseISO } from 'date-fns';
 import ptBR from 'date-fns/locale/pt-BR';
 
 import Appointment from '@modules/appointments/infra/typeorm/entities/Appointment';
+import { webUrl } from '@shared/tenancy/hosts';
 
 // Textos das mensagens de WhatsApp: curtos, com o essencial e um link
-
-const site = (): string => process.env.APP_WEB_URL || '';
 
 const firstName = (name: string): string => name.split(' ')[0];
 
@@ -55,7 +54,7 @@ export function createdText(appointment: Appointment, shop: string): string {
   return [
     hello(appointment, shop),
     `Seu horário está marcado: ${details(appointment)}.`,
-    `Seus agendamentos: ${site()}/meus-agendamentos`,
+    `Seus agendamentos: ${webUrl()}/meus-agendamentos`,
   ].join('\n\n');
 }
 
@@ -66,7 +65,7 @@ export function rescheduledText(
   return [
     hello(appointment, shop),
     `Seu horário foi remarcado para: ${details(appointment)}.`,
-    `Seus agendamentos: ${site()}/meus-agendamentos`,
+    `Seus agendamentos: ${webUrl()}/meus-agendamentos`,
   ].join('\n\n');
 }
 
@@ -77,7 +76,7 @@ export function canceledText(appointment: Appointment, shop: string): string {
       appointment.date,
       "dd/MM 'às' HH:mm",
     )} foi cancelado.`,
-    `Para marcar outro: ${site()}/agendar`,
+    `Para marcar outro: ${webUrl()}/agendar`,
   ].join('\n\n');
 }
 
@@ -96,7 +95,7 @@ export function seriesCreatedText(
     appointments
       .map(item => `• ${format(item.date, "dd/MM 'às' HH:mm")}`)
       .join('\n'),
-    `Seus agendamentos: ${site()}/meus-agendamentos`,
+    `Seus agendamentos: ${webUrl()}/meus-agendamentos`,
   ].join('\n\n');
 }
 
@@ -112,7 +111,7 @@ export function seriesCanceledText(
     appointments
       .map(item => `• ${format(item.date, "dd/MM 'às' HH:mm")}`)
       .join('\n'),
-    `Para marcar outros: ${site()}/agendar`,
+    `Para marcar outros: ${webUrl()}/agendar`,
   ].join('\n\n');
 }
 
@@ -124,7 +123,7 @@ export function waitlistText(
   return [
     `Olá, ${firstName(clientName)}! Aqui é da ${shop}.`,
     `Abriu um horário ${when(freed.date)}, no dia que você estava esperando.`,
-    `Garanta a vaga: ${site()}/agendar`,
+    `Garanta a vaga: ${webUrl()}/agendar`,
   ].join('\n\n');
 }
 
