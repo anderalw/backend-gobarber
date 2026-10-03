@@ -1,5 +1,12 @@
 import { injectable, inject } from 'tsyringe';
-import { endOfDay, format, isBefore, parseISO, startOfDay } from 'date-fns';
+import {
+  endOfDay,
+  format,
+  isBefore,
+  parseISO,
+  startOfDay,
+  subDays,
+} from 'date-fns';
 
 import AppError from '@shared/errors/AppError';
 import IUsersRepository from '@modules/users/repositories/IUsersRepository';
@@ -29,6 +36,28 @@ interface ICashItem {
   received_cents: number;
   payment_method: PaymentMethod | null;
 }
+
+// Já começou e ninguém registrou se o cliente foi atendido ou faltou
+interface IPendingItem {
+  id: string;
+  date: Date;
+  client_name: string;
+  provider_id: string;
+  provider_name: string;
+  service_name: string;
+  price_cents: number | null;
+  // Coberto pelo plano do clube (pode fechar como "incluso no plano")
+  included: boolean;
+}
+
+// Dias anteriores com atendimentos sem registro
+interface IPendingDay {
+  date: string;
+  count: number;
+}
+
+// Até quantos dias para trás o caixa avisa de pendências
+const PENDING_LOOKBACK_DAYS = 60;
 
 // Mensalidade do clube recebida no dia
 interface IMembershipItem {
@@ -64,6 +93,9 @@ interface IResponse {
   memberships: IMembershipItem[];
   // Já começaram e ninguém registrou se foi atendido
   pending: number;
+  pending_items: IPendingItem[];
+  // Outros dias (antes deste) com atendimentos sem registro
+  pending_days: IPendingDay[];
   no_show: number;
   closing: IClosingView | null;
 }
@@ -148,7 +180,18 @@ class CashRegisterService {
         amount_cents: payment.amount_cents,
         payment_method: payment.payment_method,
       })),
-      pending,
+      pending: pending.length,
+      pending_items: pending.map(item => ({
+        id: item.id,
+        date: item.date,
+        client_name: item.client?.name || 'Cliente removido',
+        provider_id: item.provider_id,
+        provider_name: item.provider?.name || 'Barbeiro removido',
+        service_name: item.service?.name || 'Serviço não informado',
+        price_cents: item.price_cents,
+        included: !!item.membership_id,
+      })),
+      pending_days: await this.pendingDays(date),
       no_show: noShow,
       closing: closingView,
     };
@@ -193,6 +236,28 @@ class CashRegisterService {
     return this.show(date);
   }
 
+  // Dias anteriores (até PENDING_LOOKBACK_DAYS) com atendimentos sem registro
+  private async pendingDays(date: string): Promise<IPendingDay[]> {
+    const day = startOfDay(parseISO(date));
+    const appointments = await this.appointmentsRepository.findAllInPeriod(
+      subDays(day, PENDING_LOOKBACK_DAYS),
+      new Date(day.getTime() - 1),
+    );
+    const counts = new Map<string, number>();
+
+    appointments
+      .filter(item => !item.canceled_at && !item.attendance)
+      .forEach(item => {
+        const key = format(item.date, 'yyyy-MM-dd');
+
+        counts.set(key, (counts.get(key) || 0) + 1);
+      });
+
+    return Array.from(counts, ([key, count]) => ({ date: key, count })).sort(
+      (a, b) => (a.date < b.date ? 1 : -1),
+    );
+  }
+
   // Atendimentos e mensalidades somados por forma de pagamento
   private sum(
     completed: Appointment[],
@@ -215,7 +280,7 @@ class CashRegisterService {
 
   private async dayAppointments(date: string): Promise<{
     completed: Appointment[];
-    pending: number;
+    pending: Appointment[];
     noShow: number;
     payments: MembershipPayment[];
   }> {
@@ -246,7 +311,7 @@ class CashRegisterService {
         .sort((a, b) => a.date.getTime() - b.date.getTime()),
       pending: appointments.filter(
         item => !item.attendance && !isBefore(now, item.date),
-      ).length,
+      ),
       noShow: appointments.filter(item => item.attendance === 'no_show').length,
     };
   }

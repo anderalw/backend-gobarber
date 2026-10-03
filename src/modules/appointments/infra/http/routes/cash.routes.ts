@@ -39,6 +39,31 @@ cashRouter.post(
   cashController.close,
 );
 
+// Fechar o dia: atendido (com a forma de pagamento) ou faltou, vários de uma vez
+cashRouter.post(
+  '/attendances',
+  ensurePermission('cash'),
+  celebrate({
+    [Segments.BODY]: {
+      items: Joi.array()
+        .items(
+          Joi.object({
+            id: Joi.string().uuid().required(),
+            attendance: Joi.string().valid('completed', 'no_show').required(),
+            payment_method: Joi.string()
+              .valid('pix', 'credit', 'debit', 'cash', 'membership')
+              .allow(null),
+            paid_cents: cents.allow(null),
+          }),
+        )
+        .min(1)
+        .max(100)
+        .required(),
+    },
+  }),
+  cashController.attendances,
+);
+
 // Completar ou corrigir a forma de pagamento de um atendimento
 cashRouter.patch(
   '/payments/:id',

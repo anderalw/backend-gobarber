@@ -10,6 +10,7 @@ import CashRegisterService from './CashRegisterService';
 import SetAttendanceService from './SetAttendanceService';
 import SetPaymentService from './SetPaymentService';
 import RevenueReportService from './RevenueReportService';
+import RegisterAttendancesService from './RegisterAttendancesService';
 
 let fakeAppointmentsRepository: FakeAppointmentsRepository;
 let cash: CashRegisterService;
@@ -224,5 +225,97 @@ describe('Caixa', () => {
     expect(report.totals.revenue_cents).toBe(8500);
     expect(report.methods.pix).toEqual({ count: 1, cents: 4000 });
     expect(report.methods.unknown).toEqual({ count: 1, cents: 4500 });
+  });
+
+  describe('Fechar o dia', () => {
+    const open = (hours: number, day = 29): Promise<Appointment> =>
+      fakeAppointmentsRepository.create(
+        makeAppointmentData({
+          provider_id: barberId,
+          client_id: 'client',
+          date: at(hours, day),
+        }),
+      );
+
+    it('should list the pending appointments and earlier days', async () => {
+      const pending = await open(9);
+      await open(20); // ainda não começou
+      await open(10, 27);
+      await open(11, 27);
+      await done(12, 'pix');
+
+      const day = await cash.show(DAY);
+
+      expect(day.pending).toBe(1);
+      expect(day.pending_items).toEqual([
+        expect.objectContaining({ id: pending.id, included: false }),
+      ]);
+      expect(day.pending_days).toEqual([{ date: '2026-09-27', count: 2 }]);
+    });
+
+    it('should register several appointments at once', async () => {
+      const first = await open(9);
+      const second = await open(10);
+      const third = await open(11);
+
+      const register = new RegisterAttendancesService(
+        fakeAppointmentsRepository,
+      );
+
+      await register.execute({
+        requester_id: barberId,
+        items: [
+          { id: first.id, attendance: 'completed', payment_method: 'pix' },
+          {
+            id: second.id,
+            attendance: 'completed',
+            payment_method: 'cash',
+            paid_cents: 3000,
+          },
+          { id: third.id, attendance: 'no_show', payment_method: 'pix' },
+        ],
+      });
+
+      const day = await cash.show(DAY);
+
+      expect(day.pending).toBe(0);
+      expect(day.no_show).toBe(1);
+      expect(day.received_cents).toBe(7500);
+      expect(day.totals.cash).toEqual({ count: 1, cents: 3000 });
+    });
+
+    it('should not register anything when one is invalid', async () => {
+      const first = await open(9);
+      const upcoming = await open(20);
+
+      await expect(
+        new RegisterAttendancesService(fakeAppointmentsRepository).execute({
+          requester_id: barberId,
+          items: [
+            { id: first.id, attendance: 'completed', payment_method: 'pix' },
+            { id: upcoming.id, attendance: 'completed' },
+          ],
+        }),
+      ).rejects.toBeInstanceOf(AppError);
+
+      expect((await cash.show(DAY)).pending).toBe(1);
+    });
+
+    it('should not accept "included in the plan" without a plan', async () => {
+      const first = await open(9);
+
+      await expect(
+        new RegisterAttendancesService(fakeAppointmentsRepository).execute({
+          requester_id: barberId,
+          items: [
+            {
+              id: first.id,
+              attendance: 'completed',
+              payment_method: 'membership',
+            },
+          ],
+        }),
+      ).rejects.toBeInstanceOf(AppError);
+    });
   });
 });

@@ -3,6 +3,7 @@ import { container } from 'tsyringe';
 
 import CashRegisterService from '@modules/appointments/services/CashRegisterService';
 import SetPaymentService from '@modules/appointments/services/SetPaymentService';
+import RegisterAttendancesService from '@modules/appointments/services/RegisterAttendancesService';
 
 export default class CashController {
   public async show(request: Request, response: Response): Promise<Response> {
@@ -25,6 +26,20 @@ export default class CashController {
         user_id: request.user.id,
       }),
     );
+  }
+
+  public async attendances(
+    request: Request,
+    response: Response,
+  ): Promise<Response> {
+    const register = container.resolve(RegisterAttendancesService);
+
+    const count = await register.execute({
+      items: request.body.items,
+      requester_id: request.user.id,
+    });
+
+    return response.json({ count });
   }
 
   public async payment(
