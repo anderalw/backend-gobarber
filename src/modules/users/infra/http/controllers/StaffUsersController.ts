@@ -3,6 +3,7 @@ import { container } from 'tsyringe';
 
 import StaffUsersService from '@modules/users/services/StaffUsersService';
 import SetProviderActiveService from '@modules/users/services/SetProviderActiveService';
+import ProfileFieldsService from '@modules/catalog/services/ProfileFieldsService';
 
 // Usuários da equipe (menu Usuários)
 export default class StaffUsersController {
@@ -28,15 +29,18 @@ export default class StaffUsersController {
 
   public async update(request: Request, response: Response): Promise<Response> {
     const { name, email, role_id, permissions } = request.body;
+    const extras = await container
+      .resolve(ProfileFieldsService)
+      .check('staff', request.body);
 
     const user = await container
       .resolve(StaffUsersService)
-      .update(request.user.id, request.params.id, {
-        name,
-        email,
-        role_id,
-        permissions,
-      });
+      .update(
+        request.user.id,
+        request.params.id,
+        { name, email, role_id, permissions },
+        extras,
+      );
 
     return response.json(user);
   }

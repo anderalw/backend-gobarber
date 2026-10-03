@@ -25,6 +25,10 @@ class FakeClientsRepository implements IClientsRepository {
     return client;
   }
 
+  public async findByCpf(cpf: string): Promise<Client | undefined> {
+    return this.clients.find(client => !!cpf && client.cpf === cpf);
+  }
+
   public async findByEmail(email: string): Promise<Client | undefined> {
     return this.clients.find(client => client.email === email);
   }

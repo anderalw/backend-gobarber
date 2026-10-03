@@ -8,7 +8,8 @@ interface IRequest {
   client_id: string;
   name: string;
   phone: string;
-  // Vazio ou null remove (só para quem não tem conta no site)
+  // Vazio ou null remove (só para quem não tem conta no site); sem vir
+  // (campo escondido nas configurações), fica o que já estava
   email?: string | null;
   notes?: string | null;
 }
@@ -35,7 +36,8 @@ class UpdateClientService {
     }
 
     // Sem mudar maiúsculas: o login do site compara o e-mail como foi salvo
-    const newEmail = email && email.trim() ? email.trim() : null;
+    const newEmail =
+      email === undefined ? client.email : (email && email.trim()) || null;
 
     // O e-mail é o login de quem tem conta no site
     if (!newEmail && client.password) {

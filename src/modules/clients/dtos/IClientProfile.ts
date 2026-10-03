@@ -1,4 +1,5 @@
 import IClientSummaryDTO from '@modules/appointments/dtos/IClientSummaryDTO';
+import { IAddress } from '@shared/utils/documents';
 import Client from '../infra/typeorm/entities/Client';
 
 // Cliente como a barbearia vê: contatos, observações e resumo do histórico
@@ -8,6 +9,10 @@ export default interface IClientProfile {
   email: string | null;
   phone: string;
   notes: string | null;
+  cpf: string | null;
+  // 'yyyy-MM-dd'
+  birth_date: string | null;
+  address: IAddress | null;
   // Criou a conta no site (tem senha)
   has_account: boolean;
   created_at: Date;
@@ -27,6 +32,9 @@ export function toClientProfile(
     email: client.email,
     phone: client.phone,
     notes: client.notes ?? null,
+    cpf: client.cpf ?? null,
+    birth_date: client.birth_date ?? null,
+    address: client.address ?? null,
     has_account: !!client.password,
     created_at: client.created_at,
     summary: {

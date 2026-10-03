@@ -11,6 +11,7 @@ import uploadConfig from '@config/upload';
 
 import { Exclude, Expose } from 'class-transformer';
 import { apiUrl } from '@shared/tenancy/hosts';
+import { IAddress } from '@shared/utils/documents';
 import { Permission } from '../../../permissions';
 import Role from './Role';
 
@@ -52,6 +53,22 @@ class User {
   // Atende clientes: aparece na agenda e no agendamento do site
   @Column({ default: false })
   is_barber: boolean;
+
+  // Telefone de contato
+  @Column({ type: 'varchar', nullable: true })
+  phone: string | null;
+
+  // Só os números
+  @Column({ type: 'varchar', nullable: true })
+  cpf: string | null;
+
+  // 'yyyy-MM-dd'
+  @Column({ type: 'date', nullable: true })
+  birth_date: string | null;
+
+  // CEP, rua, número, complemento, bairro, cidade e UF
+  @Column({ type: 'jsonb', nullable: true })
+  address: IAddress | null;
 
   // false = desativado pelo administrador (ver AddActiveToUsers)
   @Column({ default: true })

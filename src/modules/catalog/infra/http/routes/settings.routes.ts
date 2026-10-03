@@ -8,14 +8,19 @@ import receiveImage from '@shared/infra/http/middlewares/receiveImage';
 import AgendaSettingsController from '../controllers/AgendaSettingsController';
 import NoShowPolicyController from '../controllers/NoShowPolicyController';
 import BrandingController from '../controllers/BrandingController';
+import ProfileFieldsController from '../controllers/ProfileFieldsController';
 
 const settingsRouter = Router();
 const agendaSettingsController = new AgendaSettingsController();
 const noShowPolicyController = new NoShowPolicyController();
 const brandingController = new BrandingController();
+const profileFieldsController = new ProfileFieldsController();
 
 // Identidade da barbearia: pública (o site e o login usam antes de entrar)
 settingsRouter.get('/branding', brandingController.show);
+
+// Campos dos cadastros: públicos também (o cadastro do site usa)
+settingsRouter.get('/profile-fields', profileFieldsController.show);
 
 settingsRouter.use(ensureAuthenticated);
 
@@ -79,6 +84,32 @@ settingsRouter.put(
     },
   }),
   noShowPolicyController.update,
+);
+
+const fieldRules = (fields: string[]) =>
+  Joi.object(
+    Object.fromEntries(
+      fields.map(field => [
+        field,
+        Joi.object({
+          show: Joi.boolean().required(),
+          required: Joi.boolean().required(),
+        }),
+      ]),
+    ),
+  ).required();
+
+settingsRouter.put(
+  '/profile-fields',
+  ...onlyAdmin,
+  celebrate({
+    [Segments.BODY]: {
+      client_site: fieldRules(['cpf', 'birth_date', 'address']),
+      client_counter: fieldRules(['email', 'cpf', 'birth_date', 'address']),
+      staff: fieldRules(['phone', 'cpf', 'birth_date', 'address']),
+    },
+  }),
+  profileFieldsController.update,
 );
 
 export default settingsRouter;

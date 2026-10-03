@@ -4,6 +4,7 @@ import { celebrate, Segments, Joi } from 'celebrate';
 import ensureAuthenticated from '@modules/users/infra/http/middlewares/ensureAuthenticated';
 import ensureRole from '@shared/infra/http/middlewares/ensureRole';
 import ensurePermission from '@shared/infra/http/middlewares/ensurePermission';
+import profileExtras from '@shared/infra/http/profileExtrasSchema';
 import ClientsController from '../controllers/ClientsController';
 
 const clientsRouter = Router();
@@ -18,6 +19,7 @@ clientsRouter.post(
       email: Joi.string().trim().email().max(100).required(),
       password: Joi.string().min(6).max(100).required(),
       phone: Joi.string().trim().max(30).required(),
+      ...profileExtras,
     },
   }),
   clientsController.create,
@@ -32,6 +34,7 @@ clientsRouter.post(
     [Segments.BODY]: {
       name: Joi.string().trim().max(100).required(),
       phone: Joi.string().trim().max(30).required(),
+      ...profileExtras,
       email: Joi.string().trim().email().max(100).allow('', null),
     },
   }),
@@ -59,6 +62,7 @@ clientsRouter.put(
     [Segments.BODY]: {
       name: Joi.string().trim().max(100).required(),
       phone: Joi.string().trim().max(30).required(),
+      ...profileExtras,
     },
   }),
   clientsController.updateMe,
@@ -101,6 +105,7 @@ clientsRouter.put(
     [Segments.BODY]: {
       name: Joi.string().trim().max(100).required(),
       phone: Joi.string().trim().max(30).required(),
+      ...profileExtras,
       email: Joi.string().trim().email().max(100).allow('', null),
       notes: Joi.string().max(2000).allow('', null),
     },

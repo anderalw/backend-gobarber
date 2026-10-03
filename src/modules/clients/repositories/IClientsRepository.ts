@@ -5,6 +5,8 @@ export default interface IClientsRepository {
   create(data: ICreateClientDTO): Promise<Client>;
   save(client: Client): Promise<Client>;
   findByEmail(email: string): Promise<Client | undefined>;
+  // Só os números
+  findByCpf(cpf: string): Promise<Client | undefined>;
   findById(id: string): Promise<Client | undefined>;
   findByGoogleId(google_id: string): Promise<Client | undefined>;
   findByIds(ids: string[]): Promise<Client[]>;

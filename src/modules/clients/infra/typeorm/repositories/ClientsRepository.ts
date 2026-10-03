@@ -11,6 +11,12 @@ class ClientsRepository implements IClientsRepository {
     this.ormRepository = dataSource.getRepository(Client);
   }
 
+  public async findByCpf(cpf: string): Promise<Client | undefined> {
+    if (!cpf) return undefined;
+
+    return (await this.ormRepository.findOneBy({ cpf })) ?? undefined;
+  }
+
   public async findByEmail(email: string): Promise<Client | undefined> {
     const client = await this.ormRepository.findOneBy({ email });
     return client ?? undefined;

@@ -7,6 +7,7 @@ import { celebrate, Segments, Joi } from 'celebrate';
 import ensureAuthenticated from '@modules/users/infra/http/middlewares/ensureAuthenticated';
 import ensurePermission from '@shared/infra/http/middlewares/ensurePermission';
 import ensureRole from '@shared/infra/http/middlewares/ensureRole';
+import profileExtras from '@shared/infra/http/profileExtrasSchema';
 import UserAvatarController from '../controllers/UserAvatarController';
 import StaffUsersController from '../controllers/StaffUsersController';
 
@@ -55,6 +56,8 @@ usersRouter.put(
       email: Joi.string().trim().email().required(),
       role_id: Joi.string().uuid().allow(null).required(),
       permissions: Joi.array().items(Joi.string().max(40)).required(),
+      phone: Joi.string().trim().max(30).allow('', null),
+      ...profileExtras,
     },
   }),
   staffUsersController.update,

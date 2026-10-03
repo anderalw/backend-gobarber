@@ -2,6 +2,8 @@ import { injectable, inject } from 'tsyringe';
 
 import AppError from '@shared/errors/AppError';
 import ICacheProvider from '@shared/container/providers/CacheProvider/models/ICacheProvider';
+import { IAddress } from '@shared/utils/documents';
+import { IProfileValues } from '@modules/catalog/services/ProfileFieldsService';
 import User from '../infra/typeorm/entities/User';
 import Role from '../infra/typeorm/entities/Role';
 import IUsersRepository from '../repositories/IUsersRepository';
@@ -23,6 +25,10 @@ export interface IStaffView {
   own_permissions: Permission[];
   // Tudo o que ele pode (perfil + próprias)
   permissions: Permission[];
+  phone: string | null;
+  cpf: string | null;
+  birth_date: string | null;
+  address: IAddress | null;
 }
 
 interface ICreate {
@@ -77,6 +83,10 @@ class StaffUsersService {
         : null,
       own_permissions: user.own_permissions || [],
       permissions: user.allowed,
+      phone: user.phone ?? null,
+      cpf: user.cpf ?? null,
+      birth_date: user.birth_date ?? null,
+      address: user.address ?? null,
     };
   }
 
@@ -126,6 +136,9 @@ class StaffUsersService {
     requester_id: string,
     id: string,
     { name, email, role_id, permissions }: IUpdate,
+    // Telefone, CPF, nascimento e endereço já conferidos pelas regras da
+    // barbearia (ProfileFieldsService); só muda o que veio
+    extras: IProfileValues = {},
   ): Promise<IStaffView> {
     const user = await this.findUser(id);
     const role = await this.findRole(role_id);
@@ -154,6 +167,12 @@ class StaffUsersService {
     user.role_id = role?.id ?? null;
     user.role = role;
     user.own_permissions = own;
+
+    (['phone', 'cpf', 'birth_date', 'address'] as const).forEach(field => {
+      if (extras[field] !== undefined) {
+        Object.assign(user, { [field]: extras[field] });
+      }
+    });
 
     await this.usersRepository.save(user);
 

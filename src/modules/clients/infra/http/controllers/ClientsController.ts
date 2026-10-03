@@ -7,6 +7,43 @@ import ListClientsService from '@modules/clients/services/ListClientsService';
 import ShowClientService from '@modules/clients/services/ShowClientService';
 import UpdateClientService from '@modules/clients/services/UpdateClientService';
 import UpdateOwnClientService from '@modules/clients/services/UpdateOwnClientService';
+import SaveClientExtrasService from '@modules/clients/services/SaveClientExtrasService';
+import ProfileFieldsService, {
+  ProfileContext,
+} from '@modules/catalog/services/ProfileFieldsService';
+import Client from '@modules/clients/infra/typeorm/entities/Client';
+
+// Os campos extras (CPF, nascimento, endereço) conferidos pelas regras da
+// barbearia antes de gravar qualquer coisa
+async function checkedExtras(
+  context: ProfileContext,
+  body: Request['body'],
+  except?: string,
+) {
+  const values = await container
+    .resolve(ProfileFieldsService)
+    .check(context, body);
+
+  await container
+    .resolve(SaveClientExtrasService)
+    .ensureAvailable(values, except);
+
+  return values;
+}
+
+function contact(client: Client) {
+  return {
+    id: client.id,
+    name: client.name,
+    email: client.email,
+    phone: client.phone,
+    cpf: client.cpf ?? null,
+    birth_date: client.birth_date ?? null,
+    address: client.address ?? null,
+    created_at: client.created_at,
+    updated_at: client.updated_at,
+  };
+}
 
 export default class ClientsController {
   // Cadastro rápido pelo barbeiro, na hora de marcar pela agenda
@@ -14,11 +51,14 @@ export default class ClientsController {
     request: Request,
     response: Response,
   ): Promise<Response> {
-    const { name, phone, email } = request.body;
+    const { name, phone } = request.body;
+    const values = await checkedExtras('client_counter', request.body);
 
-    const createClient = container.resolve(CreateClientByProviderService);
+    const client = await container
+      .resolve(CreateClientByProviderService)
+      .execute({ name, phone, email: values.email });
 
-    const client = await createClient.execute({ name, phone, email });
+    await container.resolve(SaveClientExtrasService).execute(client, values);
 
     return response.json({
       id: client.id,
@@ -62,66 +102,74 @@ export default class ClientsController {
   }
 
   public async update(request: Request, response: Response): Promise<Response> {
-    const { name, phone, email, notes } = request.body;
+    const { name, phone, notes } = request.body;
+    const values = await checkedExtras(
+      'client_counter',
+      request.body,
+      request.params.id,
+    );
 
-    const updateClient = container.resolve(UpdateClientService);
-    const showClient = container.resolve(ShowClientService);
-
-    const client = await updateClient.execute({
+    const client = await container.resolve(UpdateClientService).execute({
       client_id: request.params.id,
       name,
       phone,
-      email,
+      // E-mail escondido: fica o que já estava
+      email: 'email' in values ? values.email : undefined,
       notes,
     });
 
+    await container.resolve(SaveClientExtrasService).execute(client, values);
+
     // Devolve a ficha atualizada
-    return response.json(await showClient.execute(client.id));
+    return response.json(
+      await container.resolve(ShowClientService).execute(client.id),
+    );
   }
 
-  // O cliente logado atualiza o próprio nome e telefone
+  // O cliente logado atualiza o próprio cadastro
   public async updateMe(
     request: Request,
     response: Response,
   ): Promise<Response> {
+    const values = await checkedExtras(
+      'client_site',
+      request.body,
+      request.user.id,
+    );
+
     const client = await container.resolve(UpdateOwnClientService).execute({
       client_id: request.user.id,
       name: request.body.name,
       phone: request.body.phone,
     });
 
-    return response.json({
-      id: client.id,
-      name: client.name,
-      email: client.email,
-      phone: client.phone,
-      created_at: client.created_at,
-      updated_at: client.updated_at,
-    });
+    return response.json(
+      contact(
+        await container
+          .resolve(SaveClientExtrasService)
+          .execute(client, values),
+      ),
+    );
   }
 
+  // Cadastro feito pelo próprio cliente no site
   public async create(request: Request, response: Response): Promise<Response> {
     const { name, email, password, phone } = request.body;
+    const values = await checkedExtras('client_site', request.body);
 
-    const createClient = container.resolve(CreateClientService);
-
-    const client = await createClient.execute({
+    const client = await container.resolve(CreateClientService).execute({
       name,
       email,
       password,
       phone,
     });
 
-    // Removemos a password do retorno por segurança
-    const clientWithoutPassword = {
-      id: client.id,
-      name: client.name,
-      email: client.email,
-      phone: client.phone,
-      created_at: client.created_at,
-      updated_at: client.updated_at,
-    };
-
-    return response.json(clientWithoutPassword);
+    return response.json(
+      contact(
+        await container
+          .resolve(SaveClientExtrasService)
+          .execute(client, values),
+      ),
+    );
   }
 }
