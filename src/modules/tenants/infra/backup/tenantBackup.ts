@@ -46,8 +46,9 @@ interface IManifest {
   version: number;
   created_at: string;
   app_secret?: string;
-  tenant: { slug: string; name: string; custom_domain: string | null };
-  tables: string[];
+  // Só na versão 2
+  tenant?: { slug: string; name: string; custom_domain: string | null };
+  tables?: string[];
 }
 
 function quote(name: string): string {
@@ -238,7 +239,115 @@ function resealSettings(
   });
 }
 
-// Cria uma barbearia nova com os dados do backup
+// Linhas de cada tabela, como vieram do backup
+type TableRows = Map<string, Record<string, unknown>[]>;
+
+// Versão 2: um arquivo por tabela
+async function rowsV2(work: string, tables: string[]): Promise<TableRows> {
+  const result: TableRows = new Map();
+
+  for (const table of tables) {
+    result.set(
+      table,
+      await readLines(path.join(work, 'tables', `${table}.ndjson`)),
+    );
+  }
+
+  return result;
+}
+
+const COPY_ESCAPES: Record<string, string> = {
+  b: '\b',
+  f: '\f',
+  n: '\n',
+  r: '\r',
+  t: '\t',
+  v: '\v',
+};
+
+// Texto do COPY do pg_dump: \N é nulo e a barra invertida escapa o resto
+function copyValue(raw: string): string | null {
+  if (raw === '\\N') return null;
+
+  return raw.replace(
+    /\\(x[0-9a-fA-F]{1,2}|[0-7]{1,3}|.)/g,
+    (_, code: string) => {
+      if (code[0] === 'x')
+        return String.fromCharCode(parseInt(code.slice(1), 16));
+      if (/^[0-7]/.test(code)) return String.fromCharCode(parseInt(code, 8));
+
+      return COPY_ESCAPES[code] ?? code;
+    },
+  );
+}
+
+// Versão 1: o pg_dump inteiro de uma instalação de uma barbearia só. Lê os
+// blocos "COPY tabela (colunas) FROM stdin;" das tabelas da barbearia
+async function rowsV1(work: string, tables: string[]): Promise<TableRows> {
+  const file = path.join(work, 'postgres.sql');
+
+  if (!fs.existsSync(file)) throw new AppError('Backup sem o postgres.sql.');
+
+  const result: TableRows = new Map(tables.map(table => [table, []]));
+  const lines = (await fs.promises.readFile(file, 'utf8')).split('\n');
+  let current: { rows: Record<string, unknown>[]; columns: string[] } | null =
+    null;
+
+  for (const line of lines) {
+    if (current) {
+      if (line === '\\.') {
+        current = null;
+      } else {
+        const values = line.split('\t').map(copyValue);
+        const { columns } = current;
+
+        current.rows.push(
+          Object.fromEntries(
+            columns.map((column, index) => [column, values[index]]),
+          ),
+        );
+      }
+    } else {
+      const copy = /^COPY (?:public\.)?"?(\w+)"? \((.*)\) FROM stdin;$/.exec(
+        line,
+      );
+
+      if (copy) {
+        // Tabela que não é da barbearia (ex.: migrations): lê e descarta
+        current = {
+          rows: result.get(copy[1]) || [],
+          columns: copy[2]
+            .split(', ')
+            .map(column => column.replace(/^"|"$/g, '')),
+        };
+      }
+    }
+  }
+
+  // No COPY, json vem como texto: vira objeto para entrar como json
+  for (const table of tables) {
+    const jsonColumns: Array<{ name: string }> = await dataSource.query(
+      `SELECT column_name AS name FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = $1
+          AND data_type IN ('json', 'jsonb')`,
+      [table],
+    );
+
+    (result.get(table) || []).forEach(row => {
+      jsonColumns.forEach(({ name }) => {
+        if (typeof row[name] === 'string') {
+          // eslint-disable-next-line no-param-reassign
+          row[name] = JSON.parse(row[name] as string);
+        }
+      });
+    });
+  }
+
+  return result;
+}
+
+// Cria uma barbearia nova com os dados do backup (versão 2, ou a 1 das
+// instalações de uma barbearia só)
 export async function importTenant(
   archive: string,
   options: { slug?: string; name?: string },
@@ -260,22 +369,42 @@ export async function importTenant(
       throw new AppError('Backup sem o manifest.json.');
     }
 
-    if (manifest.format !== FORMAT || manifest.version !== VERSION) {
-      throw new AppError(
-        manifest.version === 1
-          ? 'Backup de uma instalação antiga (versão 1): importe pelo painel.'
-          : 'Formato de backup desconhecido.',
-      );
+    if (
+      manifest.format !== FORMAT ||
+      ![1, VERSION].includes(manifest.version)
+    ) {
+      throw new AppError('Formato de backup desconhecido.');
+    }
+
+    const tables = await tenantTables();
+    const rows =
+      manifest.version === 1
+        ? await rowsV1(work, tables)
+        : await rowsV2(work, tables);
+
+    // A versão 1 não diz qual barbearia é: o nome vem das configurações
+    const shopName = (rows.get('settings') || []).find(
+      row => row.key === 'shop_name',
+    )?.value as string | undefined;
+    const slug = options.slug || manifest.tenant?.slug;
+
+    if (!slug) {
+      throw new AppError('Informe o identificador da barbearia.');
     }
 
     const tenant = await container.resolve(TenantsService).register({
-      slug: options.slug || manifest.tenant.slug,
-      name: options.name || manifest.tenant.name,
-      custom_domain: manifest.tenant.custom_domain,
+      slug,
+      name: options.name || manifest.tenant?.name || shopName || slug,
+      custom_domain: manifest.tenant?.custom_domain,
     });
 
     try {
-      await copyRows(tenant, work, manifest);
+      rows.set(
+        'settings',
+        resealSettings(rows.get('settings') || [], manifest.app_secret),
+      );
+
+      await copyRows(tenant, tables, rows);
     } catch (err) {
       await container
         .resolve<ITenantsRepository>('TenantsRepository')
@@ -299,14 +428,14 @@ export async function importTenant(
   }
 }
 
-// Tudo numa transação: ou entra a barbearia inteira, ou nada
+// Tudo numa transação: ou entra a barbearia inteira, ou nada. Só as colunas
+// que vieram no backup: as que faltarem (backup de uma versão mais antiga)
+// ficam com o valor padrão
 async function copyRows(
   tenant: Tenant,
-  work: string,
-  manifest: IManifest,
+  tables: string[],
+  rows: TableRows,
 ): Promise<void> {
-  const tables = await tenantTables();
-
   await runWithTenant(tenant, async () => {
     const queryRunner = dataSource.createQueryRunner();
 
@@ -315,25 +444,26 @@ async function copyRows(
 
     try {
       for (const table of tables) {
-        let rows = await readLines(
-          path.join(work, 'tables', `${table}.ndjson`),
+        const tableRows = rows.get(table) || [];
+        const existing: Array<{ name: string }> = await queryRunner.query(
+          `SELECT column_name AS name FROM information_schema.columns
+            WHERE table_schema = 'public' AND table_name = $1`,
+          [table],
         );
+        const known = new Set(existing.map(column => column.name));
+        const columns = Array.from(
+          new Set(tableRows.flatMap(row => Object.keys(row))),
+        ).filter(column => known.has(column) && column !== 'tenant_id');
+        const list = columns.map(quote).join(', ');
 
-        if (table === 'settings') {
-          rows = resealSettings(rows, manifest.app_secret);
-        }
-
-        for (let start = 0; start < rows.length; start += BATCH) {
-          const batch = rows
-            .slice(start, start + BATCH)
-            .map(row => ({ ...row, tenant_id: tenant.id }));
-
+        for (let start = 0; start < tableRows.length; start += BATCH) {
           await queryRunner.query(
-            `INSERT INTO ${quote(table)}
-               SELECT * FROM jsonb_populate_recordset(NULL::${quote(
-                 table,
-               )}, $1::jsonb)`,
-            [JSON.stringify(batch)],
+            `INSERT INTO ${quote(table)} (${list}, "tenant_id")
+               SELECT ${list}, $2::uuid
+                 FROM jsonb_populate_recordset(NULL::${quote(
+                   table,
+                 )}, $1::jsonb)`,
+            [JSON.stringify(tableRows.slice(start, start + BATCH)), tenant.id],
           );
         }
       }

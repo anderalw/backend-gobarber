@@ -83,7 +83,14 @@ internalRouter.get(
       .resolve(TenantsService)
       .show(request.params.id);
 
-    return response.json(present(tenant));
+    // Administrador principal (o primeiro cadastrado)
+    const [admin] = await runWithTenant(tenant, () =>
+      dataSource.query(
+        'SELECT name, email FROM users WHERE is_admin ORDER BY created_at LIMIT 1',
+      ),
+    );
+
+    return response.json({ ...present(tenant), admin: admin ?? null });
   },
 );
 
