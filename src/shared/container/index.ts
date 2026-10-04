@@ -55,6 +55,8 @@ import IGoogleTokenProvider from '@modules/clients/providers/GoogleTokenProvider
 import GoogleAuthTokenProvider from '@modules/clients/providers/GoogleTokenProvider/implementations/GoogleAuthTokenProvider';
 import IClientsRepository from '@modules/clients/repositories/IClientsRepository';
 import ClientsRepository from '@modules/clients/infra/typeorm/repositories/ClientsRepository';
+import IClientTokensRepository from '@modules/clients/repositories/IClientTokensRepository';
+import ClientTokensRepository from '@modules/clients/infra/typeorm/repositories/ClientTokensRepository';
 
 import IProviderSchedulesRepository from '@modules/users/repositories/IProviderSchedulesRepository';
 import ProviderSchedulesRepository from '@modules/users/infra/typeorm/repositories/ProviderSchedulesRepository';
@@ -163,6 +165,11 @@ container.registerSingleton(
 container.registerSingleton<IGoogleTokenProvider>(
   'GoogleTokenProvider',
   GoogleAuthTokenProvider,
+);
+
+container.registerSingleton<IClientTokensRepository>(
+  'ClientTokensRepository',
+  ClientTokensRepository,
 );
 
 container.registerSingleton<IClientsRepository>(

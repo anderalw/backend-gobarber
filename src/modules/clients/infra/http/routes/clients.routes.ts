@@ -72,6 +72,27 @@ clientsRouter.put(
   clientsController.updateMe,
 );
 
+// Esqueci minha senha (cliente, sem login)
+clientsRouter.post(
+  '/password/forgot',
+  celebrate({
+    [Segments.BODY]: { email: Joi.string().trim().email().required() },
+  }),
+  clientsController.forgotPassword,
+);
+
+clientsRouter.post(
+  '/password/reset',
+  celebrate({
+    [Segments.BODY]: {
+      token: Joi.string().uuid().required(),
+      password: Joi.string().min(6).max(100).required(),
+      password_confirmation: Joi.string().required().valid(Joi.ref('password')),
+    },
+  }),
+  clientsController.resetPassword,
+);
+
 // Busca, recorte e ordem da lista de clientes
 const listQuery = {
   search: Joi.string().trim().max(100).allow(''),

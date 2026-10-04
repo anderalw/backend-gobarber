@@ -4,6 +4,7 @@ import CreateClientService from '@modules/clients/services/CreateClientService';
 import SearchClientsService from '@modules/clients/services/SearchClientsService';
 import CreateClientByProviderService from '@modules/clients/services/CreateClientByProviderService';
 import ListClientsService from '@modules/clients/services/ListClientsService';
+import ClientPasswordRecoveryService from '@modules/clients/services/ClientPasswordRecoveryService';
 import {
   ClientFilter,
   ClientSort,
@@ -68,6 +69,29 @@ function listOptions(request: Request) {
 }
 
 export default class ClientsController {
+  // Esqueci minha senha: manda o link (sempre responde igual)
+  public async forgotPassword(
+    request: Request,
+    response: Response,
+  ): Promise<Response> {
+    await container
+      .resolve(ClientPasswordRecoveryService)
+      .sendLink(request.body.email);
+
+    return response.status(204).send();
+  }
+
+  public async resetPassword(
+    request: Request,
+    response: Response,
+  ): Promise<Response> {
+    await container
+      .resolve(ClientPasswordRecoveryService)
+      .reset(request.body.token, request.body.password);
+
+    return response.status(204).send();
+  }
+
   // Cadastro rápido pelo barbeiro, na hora de marcar pela agenda
   public async createByProvider(
     request: Request,
