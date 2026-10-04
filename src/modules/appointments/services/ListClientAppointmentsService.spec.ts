@@ -41,4 +41,27 @@ describe('ListClientAppointments', () => {
     expect(appointments[0].can_change).toBe(false);
     expect(appointments[1].can_change).toBe(true);
   });
+
+  it('should list the past appointments, newest first, without canceled', async () => {
+    const make = async (date: Date) =>
+      fakeAppointmentsRepository.create(
+        makeAppointmentData({
+          provider_id: 'joao',
+          client_id: 'cliente',
+          date,
+        }),
+      );
+
+    const older = await make(new Date(2020, 0, 10, 10));
+    const newer = await make(new Date(2020, 0, 20, 10));
+    const canceled = await make(new Date(2020, 0, 15, 10));
+    canceled.canceled_at = new Date(2020, 0, 14);
+    newer.attendance = 'completed';
+    await make(new Date(2099, 0, 10, 10));
+
+    const history = await listClientAppointments.history('cliente');
+
+    expect(history.map(item => item.id)).toEqual([newer.id, older.id]);
+    expect(history[0].attendance).toBe('completed');
+  });
 });

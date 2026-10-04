@@ -89,6 +89,11 @@ appointmentsRouter.get(
   ensureRole('client'),
   appointmentsController.mine,
 );
+appointmentsRouter.get(
+  '/mine/history',
+  ensureRole('client'),
+  appointmentsController.history,
+);
 
 // Barbeiros alteram os próprios agendamentos (os dos outros, com a
 // permissão agenda.manage); clientes só os próprios, com antecedência

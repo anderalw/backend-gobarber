@@ -134,6 +134,18 @@ export default class AppointmentsController {
     return response.json(await listClientAppointments.execute(request.user.id));
   }
 
+  // Horários anteriores do cliente logado
+  public async history(
+    request: Request,
+    response: Response,
+  ): Promise<Response> {
+    const listClientAppointments = container.resolve(
+      ListClientAppointmentsService,
+    );
+
+    return response.json(await listClientAppointments.history(request.user.id));
+  }
+
   public async attendance(
     request: Request,
     response: Response,
