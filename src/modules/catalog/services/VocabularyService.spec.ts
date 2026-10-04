@@ -1,6 +1,5 @@
 import 'reflect-metadata';
 import { runWithTenant } from '@shared/tenancy/TenantContext';
-import FakeSettingsRepository from '../repositories/fakes/FakeSettingsRepository';
 import VocabularyService from './VocabularyService';
 
 const tenant = (segment: string) => ({
@@ -14,10 +13,8 @@ const tenant = (segment: string) => ({
 
 describe('Vocabulário', () => {
   it('should use the terms of the segment', async () => {
-    const vocabulary = new VocabularyService(new FakeSettingsRepository());
-
     const result = await runWithTenant(tenant('physio'), () =>
-      vocabulary.get(),
+      new VocabularyService().get(),
     );
 
     expect(result.segment).toBe('physio');
@@ -28,27 +25,8 @@ describe('Vocabulário', () => {
     });
   });
 
-  it('should keep only the adjusted terms and go back to the default', async () => {
-    const vocabulary = new VocabularyService(new FakeSettingsRepository());
-
-    await runWithTenant(tenant('clinic'), async () => {
-      const adjusted = await vocabulary.update({
-        professional: 'Dr(a).',
-        client: 'Paciente',
-      });
-
-      expect(adjusted.vocabulary.professional).toBe('Dr(a).');
-
-      const reset = await vocabulary.update({ professional: '' });
-
-      expect(reset.vocabulary.professional).toBe('Profissional');
-    });
-  });
-
   it('should treat tenants without segment as barbershops', async () => {
-    const vocabulary = new VocabularyService(new FakeSettingsRepository());
-
-    const result = await vocabulary.get();
+    const result = await new VocabularyService().get();
 
     expect(result.vocabulary.professional).toBe('Barbeiro');
   });

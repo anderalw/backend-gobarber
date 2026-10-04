@@ -1,7 +1,6 @@
 // Segmentos (ramos de negócio) que usam o sistema. Cada um traz o
 // vocabulário das telas e o que o negócio novo já recebe pronto. O
-// segmento é escolhido ao criar o negócio e não muda depois; os termos
-// podem ser ajustados nas configurações
+// segmento é escolhido ao criar o negócio e não muda depois, nem os termos
 
 export type SegmentKey =
   | 'barbershop'
@@ -22,16 +21,6 @@ export interface IVocabulary {
   // Assinatura mensal com serviços inclusos
   club: string;
 }
-
-export const VOCABULARY_FIELDS: Array<keyof IVocabulary> = [
-  'professional',
-  'professionals',
-  'client',
-  'clients',
-  'place',
-  'place_gender',
-  'club',
-];
 
 interface ISegment {
   key: SegmentKey;

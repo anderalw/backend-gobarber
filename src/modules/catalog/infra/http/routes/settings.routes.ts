@@ -40,26 +40,6 @@ settingsRouter.put(
   brandingController.update,
 );
 
-// Termos das telas (o padrão vem do ramo de negócio)
-const term = Joi.string().trim().max(40).allow('', null);
-
-settingsRouter.put(
-  '/vocabulary',
-  ...onlyAdmin,
-  celebrate({
-    [Segments.BODY]: {
-      professional: term,
-      professionals: term,
-      client: term,
-      clients: term,
-      place: term,
-      place_gender: Joi.string().valid('f', 'm', '').allow(null),
-      club: term,
-    },
-  }),
-  brandingController.updateVocabulary,
-);
-
 settingsRouter.patch(
   '/branding/logo',
   ...onlyAdmin,

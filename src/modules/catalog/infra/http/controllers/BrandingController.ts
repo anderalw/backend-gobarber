@@ -16,15 +16,6 @@ export default class BrandingController {
     return response.json({ ...branding, ...vocabulary });
   }
 
-  public async updateVocabulary(
-    request: Request,
-    response: Response,
-  ): Promise<Response> {
-    return response.json(
-      await container.resolve(VocabularyService).update(request.body),
-    );
-  }
-
   public async update(request: Request, response: Response): Promise<Response> {
     const { name, primary_color } = request.body;
 
