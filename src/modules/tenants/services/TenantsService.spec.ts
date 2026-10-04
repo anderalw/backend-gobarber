@@ -110,6 +110,20 @@ describe('Cadastro das barbearias', () => {
     );
   });
 
+  it('should accept the admin password already hashed (signup account)', async () => {
+    const hashed = `$2a$08$${'a'.repeat(53)}`;
+
+    await tenants.create({
+      slug: 'conta',
+      name: 'Conta',
+      admin: { name: 'Ana', email: 'ana@conta.com.br', password_hash: hashed },
+    });
+
+    expect(
+      (await usersRepository.findByEmail('ana@conta.com.br'))?.password,
+    ).toBe(hashed);
+  });
+
   it('should reject invalid, reserved and repeated identifiers', async () => {
     await expect(
       tenants.create({ slug: 'com espaço', name: 'X', admin }),

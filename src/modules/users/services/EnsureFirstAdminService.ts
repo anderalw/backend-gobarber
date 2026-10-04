@@ -9,6 +9,8 @@ interface IRequest {
   name?: string;
   email?: string;
   password?: string;
+  // Senha já cifrada (bcrypt): usada como está
+  password_hash?: string;
 }
 
 // Ambiente novo (ex.: um cliente recém-contratado no SaaS): sem nenhum
@@ -33,21 +35,24 @@ class EnsureFirstAdminService {
     name,
     email,
     password,
+    password_hash,
   }: IRequest): Promise<string | null> {
-    if (!email || !password) return null;
+    if (!email || (!password && !password_hash)) return null;
 
     const existing = await this.usersRepository.findAllStaff();
 
     if (existing.length > 0) return null;
 
-    if (password.length < 8) {
+    if (!password_hash && (password || '').length < 8) {
       throw new Error('ADMIN_PASSWORD precisa de pelo menos 8 caracteres.');
     }
 
     const user = await this.usersRepository.create({
       name: name || 'Administrador',
       email: email.trim().toLowerCase(),
-      password: await this.hashProvider.generateHash(password),
+      password:
+        password_hash ||
+        (await this.hashProvider.generateHash(password as string)),
     });
 
     // Perfil Administrador (criado aqui se a barbearia ainda não tiver) e,

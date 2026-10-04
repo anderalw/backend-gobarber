@@ -23,7 +23,13 @@ interface ICreate {
   custom_domain?: string | null;
   // Ramo de negócio (segments.ts); sem ele, barbearia
   segment?: string;
-  admin: { name?: string; email: string; password: string };
+  // password_hash: senha já cifrada (conta da página de divulgação)
+  admin: {
+    name?: string;
+    email: string;
+    password?: string;
+    password_hash?: string;
+  };
 }
 
 // Segmento conhecido (sem ele, barbearia)
@@ -85,7 +91,7 @@ class TenantsService {
     const segmentKey = validSegment(segment);
     const domain = await this.validDomain(custom_domain);
 
-    if (admin.password.length < 8) {
+    if (!admin.password_hash && (admin.password || '').length < 8) {
       throw new AppError('A senha do administrador precisa de 8 caracteres.');
     }
 

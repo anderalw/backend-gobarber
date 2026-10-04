@@ -79,8 +79,15 @@ internalRouter.post(
       admin: Joi.object({
         name: Joi.string().trim().max(80).allow(''),
         email: Joi.string().email().required(),
-        password: Joi.string().min(8).max(72).required(),
-      }).required(),
+        password: Joi.string().min(8).max(72),
+        // Conta criada na página de divulgação: a senha já vem cifrada
+        // (bcrypt), a mesma da conta da pessoa
+        password_hash: Joi.string().pattern(
+          /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/,
+        ),
+      })
+        .xor('password', 'password_hash')
+        .required(),
     },
   }),
   async (request: Request, response: Response) => {
