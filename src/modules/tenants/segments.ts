@@ -22,6 +22,41 @@ export interface IVocabulary {
   club: string;
 }
 
+// Recursos que cada ramo traz ligados ou desligados (o admin do negócio
+// pode mudar nas configurações)
+export type FeatureKey =
+  | 'club'
+  | 'any_provider'
+  | 'walk_in'
+  | 'series'
+  | 'waitlist';
+
+export const FEATURE_KEYS: FeatureKey[] = [
+  'club',
+  'any_provider',
+  'walk_in',
+  'series',
+  'waitlist',
+];
+
+type Rule = { show: boolean; required: boolean };
+
+// O que o negócio novo recebe pronto (só na criação)
+interface ISegmentDefaults {
+  // Intervalo entre atendimentos (minutos)
+  buffer_minutes: number;
+  // Campos do cadastro de clientes (o resto fica no padrão do sistema)
+  profile_fields?: {
+    client_site?: Partial<Record<'cpf' | 'birth_date' | 'address', Rule>>;
+    client_counter?: Partial<
+      Record<'email' | 'cpf' | 'birth_date' | 'address', Rule>
+    >;
+  };
+}
+
+const ON = { show: true, required: true };
+const SHOW = { show: true, required: false };
+
 interface ISegment {
   key: SegmentKey;
   name: string;
@@ -30,6 +65,8 @@ interface ISegment {
   tagline: string;
   // Motivos para bloquear um horário na agenda
   block_reasons: string[];
+  features: Record<FeatureKey, boolean>;
+  defaults: ISegmentDefaults;
 }
 
 export const SEGMENTS: Record<SegmentKey, ISegment> = {
@@ -47,6 +84,14 @@ export const SEGMENTS: Record<SegmentKey, ISegment> = {
       club: 'Clube',
     },
     block_reasons: ['Almoço', 'Consulta', 'Folga', 'Férias'],
+    features: {
+      club: true,
+      any_provider: true,
+      walk_in: true,
+      series: true,
+      waitlist: true,
+    },
+    defaults: { buffer_minutes: 0 },
   },
   beauty: {
     key: 'beauty',
@@ -62,6 +107,14 @@ export const SEGMENTS: Record<SegmentKey, ISegment> = {
       club: 'Clube',
     },
     block_reasons: ['Almoço', 'Curso', 'Folga', 'Férias'],
+    features: {
+      club: true,
+      any_provider: true,
+      walk_in: true,
+      series: true,
+      waitlist: true,
+    },
+    defaults: { buffer_minutes: 0 },
   },
   tattoo: {
     key: 'tattoo',
@@ -77,6 +130,21 @@ export const SEGMENTS: Record<SegmentKey, ISegment> = {
       club: 'Clube',
     },
     block_reasons: ['Almoço', 'Convenção', 'Folga', 'Férias'],
+    features: {
+      club: false,
+      any_provider: false,
+      walk_in: false,
+      series: true,
+      waitlist: true,
+    },
+    // Maior de idade: CPF e nascimento no cadastro pelo site
+    defaults: {
+      buffer_minutes: 15,
+      profile_fields: {
+        client_site: { cpf: ON, birth_date: ON },
+        client_counter: { cpf: SHOW, birth_date: SHOW },
+      },
+    },
   },
   physio: {
     key: 'physio',
@@ -92,6 +160,20 @@ export const SEGMENTS: Record<SegmentKey, ISegment> = {
       club: 'Planos',
     },
     block_reasons: ['Almoço', 'Reunião', 'Folga', 'Férias'],
+    features: {
+      club: true,
+      any_provider: false,
+      walk_in: false,
+      series: true,
+      waitlist: true,
+    },
+    defaults: {
+      buffer_minutes: 10,
+      profile_fields: {
+        client_site: { cpf: ON, birth_date: ON },
+        client_counter: { cpf: SHOW, birth_date: SHOW },
+      },
+    },
   },
   clinic: {
     key: 'clinic',
@@ -107,6 +189,20 @@ export const SEGMENTS: Record<SegmentKey, ISegment> = {
       club: 'Planos',
     },
     block_reasons: ['Almoço', 'Reunião', 'Folga', 'Férias'],
+    features: {
+      club: true,
+      any_provider: false,
+      walk_in: false,
+      series: true,
+      waitlist: true,
+    },
+    defaults: {
+      buffer_minutes: 10,
+      profile_fields: {
+        client_site: { cpf: ON, birth_date: ON },
+        client_counter: { cpf: SHOW, birth_date: SHOW },
+      },
+    },
   },
 };
 

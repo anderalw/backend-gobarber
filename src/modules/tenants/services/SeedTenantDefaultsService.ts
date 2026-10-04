@@ -30,6 +30,27 @@ class SeedTenantDefaultsService {
     const segment = segmentOf(segmentKey);
 
     await this.settingsRepository.set('shop_name', name);
+
+    // Intervalo e campos do cadastro do ramo (só se ainda não há nada)
+    if (
+      segment.defaults.buffer_minutes > 0 &&
+      !(await this.settingsRepository.get('appointment_buffer_minutes'))
+    ) {
+      await this.settingsRepository.set(
+        'appointment_buffer_minutes',
+        String(segment.defaults.buffer_minutes),
+      );
+    }
+
+    if (
+      segment.defaults.profile_fields &&
+      !(await this.settingsRepository.get('profile_fields'))
+    ) {
+      await this.settingsRepository.set(
+        'profile_fields',
+        JSON.stringify(segment.defaults.profile_fields),
+      );
+    }
     await this.seedRoles(segment.vocabulary.professional);
 
     const reasons = await this.blockReasonsRepository.findAll();

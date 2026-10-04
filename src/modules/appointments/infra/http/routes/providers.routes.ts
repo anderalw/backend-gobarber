@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import ensureFeature from '@shared/infra/http/middlewares/ensureFeature';
 import { celebrate, Segments, Joi } from 'celebrate';
 
 import ensureAuthenticated from '@modules/users/infra/http/middlewares/ensureAuthenticated';
@@ -26,6 +27,7 @@ providersRouter.get('/', providersController.index);
 // "Qualquer barbeiro": horários em que pelo menos um barbeiro está livre
 providersRouter.get(
   '/any/day-availability',
+  ensureFeature('any_provider'),
   celebrate({
     [Segments.QUERY]: {
       day: Joi.number().integer().min(1).max(31).required(),

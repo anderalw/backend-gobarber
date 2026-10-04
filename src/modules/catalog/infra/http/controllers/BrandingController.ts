@@ -4,16 +4,27 @@ import { container } from 'tsyringe';
 import AppError from '@shared/errors/AppError';
 import BrandingService from '@modules/catalog/services/BrandingService';
 import VocabularyService from '@modules/catalog/services/VocabularyService';
+import FeaturesService from '@modules/catalog/services/FeaturesService';
 
 export default class BrandingController {
   // Identidade e vocabulário: as telas carregam juntos ao abrir
   public async show(request: Request, response: Response): Promise<Response> {
-    const [branding, vocabulary] = await Promise.all([
+    const [branding, vocabulary, features] = await Promise.all([
       container.resolve(BrandingService).get(),
       container.resolve(VocabularyService).get(),
+      container.resolve(FeaturesService).get(),
     ]);
 
-    return response.json({ ...branding, ...vocabulary });
+    return response.json({ ...branding, ...vocabulary, ...features });
+  }
+
+  public async updateFeatures(
+    request: Request,
+    response: Response,
+  ): Promise<Response> {
+    return response.json(
+      await container.resolve(FeaturesService).update(request.body),
+    );
   }
 
   public async update(request: Request, response: Response): Promise<Response> {

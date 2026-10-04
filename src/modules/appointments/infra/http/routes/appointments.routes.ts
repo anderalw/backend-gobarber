@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { celebrate, Segments, Joi } from 'celebrate';
+import ensureFeature from '@shared/infra/http/middlewares/ensureFeature';
 
 import ensureAuthenticated from '@modules/users/infra/http/middlewares/ensureAuthenticated';
 import ensureRole from '@shared/infra/http/middlewares/ensureRole';
@@ -36,6 +37,7 @@ appointmentsRouter.post(
 // Cliente sem preferência de barbeiro: o sistema escolhe quem está livre
 appointmentsRouter.post(
   '/any',
+  ensureFeature('any_provider'),
   ensureRole('client'),
   celebrate({
     [Segments.BODY]: {
@@ -64,6 +66,7 @@ appointmentsRouter.post(
 // Cliente fixo: o mesmo horário a cada N semanas
 appointmentsRouter.post(
   '/series',
+  ensureFeature('series'),
   ensureRole('provider'),
   celebrate({
     [Segments.BODY]: {

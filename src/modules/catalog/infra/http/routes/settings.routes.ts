@@ -40,6 +40,22 @@ settingsRouter.put(
   brandingController.update,
 );
 
+// Recursos ligados no negócio (o padrão vem do ramo)
+settingsRouter.put(
+  '/features',
+  ...onlyAdmin,
+  celebrate({
+    [Segments.BODY]: {
+      club: Joi.boolean(),
+      any_provider: Joi.boolean(),
+      walk_in: Joi.boolean(),
+      series: Joi.boolean(),
+      waitlist: Joi.boolean(),
+    },
+  }),
+  brandingController.updateFeatures,
+);
+
 settingsRouter.patch(
   '/branding/logo',
   ...onlyAdmin,
