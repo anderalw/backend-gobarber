@@ -29,6 +29,18 @@ servicesRouter.post(
   servicesController.create,
 );
 
+// Ordem em que os serviços aparecem para os clientes
+servicesRouter.put(
+  '/order',
+  ...onlyAdmin,
+  celebrate({
+    [Segments.BODY]: {
+      ids: Joi.array().items(Joi.string().uuid()).min(1).max(500).required(),
+    },
+  }),
+  servicesController.reorder,
+);
+
 servicesRouter.put(
   '/:id',
   ...onlyAdmin,

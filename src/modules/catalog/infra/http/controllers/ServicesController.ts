@@ -4,6 +4,7 @@ import { container } from 'tsyringe';
 import CreateServiceService from '@modules/catalog/services/CreateServiceService';
 import UpdateServiceService from '@modules/catalog/services/UpdateServiceService';
 import ListServicesService from '@modules/catalog/services/ListServicesService';
+import ReorderServicesService from '@modules/catalog/services/ReorderServicesService';
 
 export default class ServicesController {
   // Serviços ativos, para os clientes escolherem
@@ -20,6 +21,18 @@ export default class ServicesController {
     const listServices = container.resolve(ListServicesService);
 
     const services = await listServices.execute({ include_inactive: true });
+
+    return response.json(services);
+  }
+
+  // Nova ordem dos serviços
+  public async reorder(
+    request: Request,
+    response: Response,
+  ): Promise<Response> {
+    const services = await container
+      .resolve(ReorderServicesService)
+      .execute(request.body.ids);
 
     return response.json(services);
   }

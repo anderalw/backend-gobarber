@@ -23,6 +23,10 @@ class Service {
   @Column('int')
   price_cents: number;
 
+  // Ordem em que aparece para os clientes (menor primeiro)
+  @Column('int', { default: 0 })
+  position: number;
+
   // Serviços desativados somem para os clientes, mas continuam no histórico
   @Column()
   active: boolean;

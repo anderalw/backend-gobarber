@@ -36,7 +36,18 @@ class FakeServicesRepository implements IServicesRepository {
   }): Promise<Service[]> {
     return this.services
       .filter(service => !only_active || service.active)
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .sort(
+        (a, b) =>
+          (a.position || 0) - (b.position || 0) || a.name.localeCompare(b.name),
+      );
+  }
+
+  public async savePositions(ids: string[]): Promise<void> {
+    ids.forEach((id, index) => {
+      const service = this.services.find(item => item.id === id);
+
+      if (service) service.position = index + 1;
+    });
   }
 }
 

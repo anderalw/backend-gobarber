@@ -28,7 +28,14 @@ class CreateServiceService {
       throw new AppError('Já existe um serviço com esse nome.');
     }
 
-    return this.servicesRepository.create(serviceData);
+    // Serviço novo entra no fim da lista
+    const position =
+      services.reduce(
+        (max, service) => Math.max(max, service.position || 0),
+        0,
+      ) + 1;
+
+    return this.servicesRepository.create({ ...serviceData, position });
   }
 }
 

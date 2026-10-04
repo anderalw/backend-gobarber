@@ -38,7 +38,17 @@ class ServicesRepository implements IServicesRepository {
   }): Promise<Service[]> {
     return this.ormRepository.find({
       where: only_active ? { active: true } : {},
-      order: { name: 'ASC' },
+      order: { position: 'ASC', name: 'ASC' },
+    });
+  }
+
+  public async savePositions(ids: string[]): Promise<void> {
+    await this.ormRepository.manager.transaction(async manager => {
+      await Promise.all(
+        ids.map((id, index) =>
+          manager.update(Service, { id }, { position: index + 1 }),
+        ),
+      );
     });
   }
 }
