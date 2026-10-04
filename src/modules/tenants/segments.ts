@@ -37,6 +37,8 @@ interface ISegment {
   key: SegmentKey;
   name: string;
   vocabulary: IVocabulary;
+  // Frase da capa do site enquanto o negócio não escreve a dele
+  tagline: string;
   // Motivos para bloquear um horário na agenda
   block_reasons: string[];
 }
@@ -44,6 +46,7 @@ interface ISegment {
 export const SEGMENTS: Record<SegmentKey, ISegment> = {
   barbershop: {
     key: 'barbershop',
+    tagline: 'Cortes, barbas e tratamentos com hora marcada.',
     name: 'Barbearia',
     vocabulary: {
       professional: 'Barbeiro',
@@ -58,6 +61,7 @@ export const SEGMENTS: Record<SegmentKey, ISegment> = {
   },
   beauty: {
     key: 'beauty',
+    tagline: 'Cabelo, unhas e estética com hora marcada.',
     name: 'Salão de beleza / estética',
     vocabulary: {
       professional: 'Profissional',
@@ -72,6 +76,7 @@ export const SEGMENTS: Record<SegmentKey, ISegment> = {
   },
   tattoo: {
     key: 'tattoo',
+    tagline: 'Tatuagens e piercings com hora marcada.',
     name: 'Estúdio de tatuagem',
     vocabulary: {
       professional: 'Tatuador',
@@ -86,6 +91,7 @@ export const SEGMENTS: Record<SegmentKey, ISegment> = {
   },
   physio: {
     key: 'physio',
+    tagline: 'Fisioterapia e reabilitação com hora marcada.',
     name: 'Fisioterapia',
     vocabulary: {
       professional: 'Fisioterapeuta',
@@ -100,6 +106,7 @@ export const SEGMENTS: Record<SegmentKey, ISegment> = {
   },
   clinic: {
     key: 'clinic',
+    tagline: 'Consultas com hora marcada, sem espera.',
     name: 'Consultório',
     vocabulary: {
       professional: 'Profissional',

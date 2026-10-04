@@ -3,6 +3,8 @@ import 'reflect-metadata';
 import { injectable, inject } from 'tsyringe';
 
 import AppError from '@shared/errors/AppError';
+import { currentTenant } from '@shared/tenancy/TenantContext';
+import { segmentOf } from '@modules/tenants/segments';
 import uploadConfig from '@config/upload';
 import IStorageProvider from '@shared/container/providers/StorageProvider/models/IStorageProvider';
 import IUsersRepository from '@modules/users/repositories/IUsersRepository';
@@ -20,6 +22,7 @@ const KEYS = {
   cover: 'site_cover',
 };
 
+// Sem frase escrita, vale a do ramo do negócio (segments.ts)
 export const DEFAULT_TAGLINE = 'Cortes, barbas e tratamentos com hora marcada.';
 
 export interface ISiteContent {
@@ -100,7 +103,7 @@ class SiteService {
       );
 
     return {
-      tagline: tagline || DEFAULT_TAGLINE,
+      tagline: tagline || segmentOf(currentTenant()?.segment).tagline,
       about: about || '',
       address: address || '',
       whatsapp: whatsapp || '',

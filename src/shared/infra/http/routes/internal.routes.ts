@@ -99,7 +99,10 @@ internalRouter.get(
     // Administrador principal (o primeiro cadastrado)
     const [admin] = await runWithTenant(tenant, () =>
       dataSource.query(
-        'SELECT name, email FROM users WHERE is_admin ORDER BY created_at LIMIT 1',
+        `SELECT u.name, u.email FROM users u
+          JOIN roles r ON r.id = u.role_id
+         WHERE r.system_key = 'admin'
+         ORDER BY u.created_at LIMIT 1`,
       ),
     );
 
