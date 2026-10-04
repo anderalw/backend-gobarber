@@ -2,6 +2,7 @@ import {
   And,
   Repository,
   Between,
+  In,
   IsNull,
   LessThan,
   MoreThan,
@@ -186,6 +187,26 @@ class AppointmentsRepository implements IAppointmentsRepository {
     return this.ormRepository.find({
       where: { date: Between(start, end) },
       relations: ['client', 'provider', 'service'],
+      order: { date: 'ASC' },
+    });
+  }
+
+  public async findDepositsPaidInPeriod(
+    start: Date,
+    end: Date,
+  ): Promise<Appointment[]> {
+    return this.ormRepository.find({
+      where: { deposit_paid_at: Between(start, end) },
+      relations: ['client', 'provider', 'service'],
+      order: { deposit_paid_at: 'ASC' },
+    });
+  }
+
+  public async findByPackages(package_ids: string[]): Promise<Appointment[]> {
+    if (package_ids.length === 0) return [];
+
+    return this.ormRepository.find({
+      where: { ...ACTIVE, package_id: In(package_ids) },
       order: { date: 'ASC' },
     });
   }
@@ -396,6 +417,14 @@ class AppointmentsRepository implements IAppointmentsRepository {
       confirmation_requested_at,
       confirmed_at,
       confirmed_by,
+      price_cents,
+      membership_id,
+      list_price_cents,
+      package_id,
+      deposit_cents,
+      deposit_paid_at,
+      deposit_method,
+      deposit_received_by,
     } = appointment;
 
     try {
@@ -411,6 +440,15 @@ class AppointmentsRepository implements IAppointmentsRepository {
         confirmation_requested_at,
         confirmed_at,
         confirmed_by,
+        // Benefício do clube/pacote (remarcar, cobrar fora do plano) e sinal
+        price_cents,
+        membership_id,
+        list_price_cents,
+        package_id,
+        deposit_cents,
+        deposit_paid_at,
+        deposit_method,
+        deposit_received_by,
       });
     } catch (err) {
       if (isOverlapError(err)) {

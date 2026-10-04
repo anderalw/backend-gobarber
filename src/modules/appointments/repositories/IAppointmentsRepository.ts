@@ -81,6 +81,11 @@ export default interface IAppointmentsRepository {
     start: Date,
     end: Date,
   ): Promise<Appointment[]>;
+  // Sinais recebidos no período (inclusive de cancelados), com cliente,
+  // profissional e serviço
+  findDepositsPaidInPeriod(start: Date, end: Date): Promise<Appointment[]>;
+  // Ativos cobertos pelos pacotes, em ordem
+  findByPackages(package_ids: string[]): Promise<Appointment[]>;
   // Agendamentos do barbeiro que ainda não terminaram, em ordem
   findUpcomingFromProvider(
     provider_id: string,

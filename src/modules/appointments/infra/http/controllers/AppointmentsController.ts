@@ -12,14 +12,33 @@ import ListClientAppointmentsService from '@modules/appointments/services/ListCl
 import NoShowPolicyService from '@modules/appointments/services/NoShowPolicyService';
 import CreateAppointmentSeriesService from '@modules/appointments/services/CreateAppointmentSeriesService';
 import CancelSeriesService from '@modules/appointments/services/CancelSeriesService';
+import ConsentService from '@modules/clients/services/ConsentService';
+import DepositService from '@modules/appointments/services/DepositService';
 
 export default class AppointmentsController {
+  public async deposit(
+    request: Request,
+    response: Response,
+  ): Promise<Response> {
+    const { payment_method, amount_cents } = request.body;
+
+    return response.json(
+      await container.resolve(DepositService).receive({
+        appointment_id: request.params.id,
+        payment_method,
+        amount_cents,
+        user_id: request.user.id,
+      }),
+    );
+  }
+
   public async create(request: Request, response: Response): Promise<Response> {
     // O cliente vem sempre do token, nunca do body
     const client_id = request.user.id;
     const { provider_id, service_id, date } = request.body;
 
     await container.resolve(NoShowPolicyService).ensureCanBookOnline(client_id);
+    await container.resolve(ConsentService).ensureAccepted(client_id);
 
     const createAppointmets = container.resolve(CreateAppointmentsService);
 
@@ -43,6 +62,7 @@ export default class AppointmentsController {
     await container
       .resolve(NoShowPolicyService)
       .ensureCanBookOnline(request.user.id);
+    await container.resolve(ConsentService).ensureAccepted(request.user.id);
 
     const createAppointment = container.resolve(
       CreateAnyProviderAppointmentService,

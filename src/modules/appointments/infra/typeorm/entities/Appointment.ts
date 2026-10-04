@@ -61,6 +61,24 @@ class Appointment {
   @Column({ type: 'int', nullable: true })
   list_price_cents: number | null;
 
+  // Pacote de sessões que cobre este agendamento (preço 0)
+  @Column({ type: 'uuid', nullable: true })
+  package_id: string | null;
+
+  // Sinal pedido para garantir o horário (null = sem sinal)
+  @Column({ type: 'int', nullable: true })
+  deposit_cents: number | null;
+
+  // Preenchido quando o sinal é recebido (entra no caixa desse dia)
+  @Column({ type: 'timestamp with time zone', nullable: true })
+  deposit_paid_at: Date | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  deposit_method: PaymentMethod | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  deposit_received_by: string | null;
+
   // Início do atendimento
   @Column('timestamp with time zone')
   date: Date;

@@ -12,6 +12,8 @@ import AppError from '@shared/errors/AppError';
 import IUsersRepository from '@modules/users/repositories/IUsersRepository';
 import IMembershipPaymentsRepository from '@modules/memberships/repositories/IMembershipPaymentsRepository';
 import MembershipPayment from '@modules/memberships/infra/typeorm/entities/MembershipPayment';
+import ISessionPackagesRepository from '@modules/packages/repositories/ISessionPackagesRepository';
+import SessionPackage from '@modules/packages/infra/typeorm/entities/SessionPackage';
 import Appointment, {
   PaymentMethod,
 } from '../infra/typeorm/entities/Appointment';
@@ -20,6 +22,8 @@ import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
 import ICashClosingsRepository from '../repositories/ICashClosingsRepository';
 import {
   MAX_PAID_CENTS,
+  isIncluded,
+  paidDepositCents,
   receivedCents,
   totalsByMethod,
   validatePayment,
@@ -35,6 +39,10 @@ interface ICashItem {
   paid_cents: number | null;
   received_cents: number;
   payment_method: PaymentMethod | null;
+  // Sinal recebido antes (já contado no dia em que foi pago)
+  deposit_cents: number;
+  // Incluso num pacote de sessões
+  package: boolean;
 }
 
 // Já começou e ninguém registrou se o cliente foi atendido ou faltou
@@ -69,6 +77,17 @@ interface IMembershipItem {
   payment_method: PaymentMethod;
 }
 
+// Outros recebimentos do dia: sinais e pacotes de sessões vendidos
+interface IOtherItem {
+  id: string;
+  kind: 'deposit' | 'package';
+  paid_at: Date;
+  client_name: string;
+  description: string;
+  amount_cents: number;
+  payment_method: PaymentMethod;
+}
+
 interface IClosingView {
   opening_cents: number;
   counted_cents: number;
@@ -91,6 +110,8 @@ interface IResponse {
   items: ICashItem[];
   // Mensalidades do clube recebidas no dia (entram nos totais)
   memberships: IMembershipItem[];
+  // Sinais e pacotes recebidos no dia (entram nos totais)
+  others: IOtherItem[];
   // Já começaram e ninguém registrou se foi atendido
   pending: number;
   pending_items: IPendingItem[];
@@ -127,13 +148,15 @@ class CashRegisterService {
     // Opcional só para os testes que não envolvem o clube
     @inject('MembershipPaymentsRepository')
     private membershipPaymentsRepository?: IMembershipPaymentsRepository,
+
+    @inject('SessionPackagesRepository')
+    private packagesRepository?: ISessionPackagesRepository,
   ) {}
 
   public async show(date: string): Promise<IResponse> {
-    const { completed, pending, noShow, payments } = await this.dayAppointments(
-      date,
-    );
-    const { totals, received } = this.sum(completed, payments);
+    const { completed, pending, noShow, payments, others } =
+      await this.dayAppointments(date);
+    const { totals, received } = this.sum(completed, payments, others);
 
     const closing = await this.cashClosingsRepository.findByDate(date);
     let closingView: IClosingView | null = null;
@@ -173,7 +196,10 @@ class CashRegisterService {
         paid_cents: item.paid_cents,
         received_cents: receivedCents(item),
         payment_method: item.payment_method,
+        deposit_cents: paidDepositCents(item),
+        package: !!item.package_id,
       })),
+      others,
       memberships: payments.map(payment => ({
         id: payment.id,
         paid_at: payment.paid_at,
@@ -212,8 +238,8 @@ class CashRegisterService {
       );
     }
 
-    const { completed, payments } = await this.dayAppointments(date);
-    const { totals, received } = this.sum(completed, payments);
+    const { completed, payments, others } = await this.dayAppointments(date);
+    const { totals, received } = this.sum(completed, payments, others);
 
     await this.cashClosingsRepository.save({
       date,
@@ -230,6 +256,35 @@ class CashRegisterService {
     return this.show(date);
   }
 
+  private depositItem(item: Appointment): IOtherItem {
+    return {
+      id: item.id,
+      kind: 'deposit',
+      paid_at: item.deposit_paid_at as Date,
+      client_name: item.client?.name || 'Cliente removido',
+      description: `Sinal · ${item.service?.name || 'serviço'} em ${format(
+        item.date,
+        'dd/MM',
+      )}${item.canceled_at ? ' (cancelado)' : ''}`,
+      amount_cents: item.deposit_cents || 0,
+      payment_method: item.deposit_method as PaymentMethod,
+    };
+  }
+
+  private packageItem(item: SessionPackage): IOtherItem {
+    return {
+      id: item.id,
+      kind: 'package',
+      paid_at: item.paid_at,
+      client_name: item.client?.name || 'Cliente removido',
+      description: `Pacote · ${item.sessions} sessões de ${
+        item.service?.name || 'serviço'
+      }`,
+      amount_cents: item.price_cents,
+      payment_method: item.payment_method,
+    };
+  }
+
   private pendingItem(item: Appointment): IPendingItem {
     return {
       id: item.id,
@@ -239,7 +294,7 @@ class CashRegisterService {
       provider_name: item.provider?.name || 'Profissional removido',
       service_name: item.service?.name || 'Serviço não informado',
       price_cents: item.price_cents,
-      included: !!item.membership_id,
+      included: isIncluded(item),
     };
   }
 
@@ -269,6 +324,7 @@ class CashRegisterService {
   private sum(
     completed: Appointment[],
     payments: MembershipPayment[],
+    others: IOtherItem[],
   ): { totals: PaymentTotals; received: number } {
     const totals = totalsByMethod(completed);
     let received = completed.reduce(
@@ -276,7 +332,7 @@ class CashRegisterService {
       0,
     );
 
-    payments.forEach(payment => {
+    [...payments, ...others].forEach(payment => {
       totals[payment.payment_method].count += 1;
       totals[payment.payment_method].cents += payment.amount_cents;
       received += payment.amount_cents;
@@ -290,6 +346,7 @@ class CashRegisterService {
     pending: Appointment[];
     noShow: Appointment[];
     payments: MembershipPayment[];
+    others: IOtherItem[];
   }> {
     const day = parseISO(date);
 
@@ -311,8 +368,24 @@ class CashRegisterService {
         )
       : [];
 
+    const deposits = await this.appointmentsRepository.findDepositsPaidInPeriod(
+      startOfDay(day),
+      endOfDay(day),
+    );
+    const packages = this.packagesRepository
+      ? await this.packagesRepository.findPaidInPeriod(
+          startOfDay(day),
+          endOfDay(day),
+        )
+      : [];
+    const others: IOtherItem[] = [
+      ...deposits.map(item => this.depositItem(item)),
+      ...packages.map(item => this.packageItem(item)),
+    ].sort((a, b) => a.paid_at.getTime() - b.paid_at.getTime());
+
     return {
       payments,
+      others,
       completed: appointments
         .filter(item => item.attendance === 'completed')
         .sort((a, b) => a.date.getTime() - b.date.getTime()),

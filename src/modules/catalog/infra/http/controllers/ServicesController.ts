@@ -38,7 +38,7 @@ export default class ServicesController {
   }
 
   public async create(request: Request, response: Response): Promise<Response> {
-    const { name, duration_minutes, price_cents } = request.body;
+    const { name, duration_minutes, price_cents, deposit_cents } = request.body;
 
     const createService = container.resolve(CreateServiceService);
 
@@ -46,6 +46,7 @@ export default class ServicesController {
       name,
       duration_minutes,
       price_cents,
+      deposit_cents,
     });
 
     return response.status(201).json(service);
@@ -53,7 +54,8 @@ export default class ServicesController {
 
   public async update(request: Request, response: Response): Promise<Response> {
     const { id } = request.params;
-    const { name, duration_minutes, price_cents, active } = request.body;
+    const { name, duration_minutes, price_cents, deposit_cents, active } =
+      request.body;
 
     const updateService = container.resolve(UpdateServiceService);
 
@@ -62,6 +64,7 @@ export default class ServicesController {
       name,
       duration_minutes,
       price_cents,
+      deposit_cents,
       active,
     });
 

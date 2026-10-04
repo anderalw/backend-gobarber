@@ -11,4 +11,8 @@ export default interface ICreateAppointmentDTO {
   // Clube: incluso no plano / preço normal quando houve benefício
   membership_id?: string | null;
   list_price_cents?: number | null;
+  // Pacote de sessões que cobre o horário
+  package_id?: string | null;
+  // Sinal pedido para garantir o horário
+  deposit_cents?: number | null;
 }

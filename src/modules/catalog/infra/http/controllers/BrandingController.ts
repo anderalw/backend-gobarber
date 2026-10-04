@@ -5,17 +5,25 @@ import AppError from '@shared/errors/AppError';
 import BrandingService from '@modules/catalog/services/BrandingService';
 import VocabularyService from '@modules/catalog/services/VocabularyService';
 import FeaturesService from '@modules/catalog/services/FeaturesService';
+import DepositService from '@modules/appointments/services/DepositService';
 
 export default class BrandingController {
   // Identidade e vocabulário: as telas carregam juntos ao abrir
   public async show(request: Request, response: Response): Promise<Response> {
-    const [branding, vocabulary, features] = await Promise.all([
-      container.resolve(BrandingService).get(),
-      container.resolve(VocabularyService).get(),
-      container.resolve(FeaturesService).get(),
-    ]);
+    const [branding, vocabulary, features, depositInstructions] =
+      await Promise.all([
+        container.resolve(BrandingService).get(),
+        container.resolve(VocabularyService).get(),
+        container.resolve(FeaturesService).get(),
+        container.resolve(DepositService).instructions(),
+      ]);
 
-    return response.json({ ...branding, ...vocabulary, ...features });
+    return response.json({
+      ...branding,
+      ...vocabulary,
+      ...features,
+      deposit_instructions: depositInstructions,
+    });
   }
 
   public async updateFeatures(
@@ -25,6 +33,17 @@ export default class BrandingController {
     return response.json(
       await container.resolve(FeaturesService).update(request.body),
     );
+  }
+
+  public async updateDeposit(
+    request: Request,
+    response: Response,
+  ): Promise<Response> {
+    return response.json({
+      deposit_instructions: await container
+        .resolve(DepositService)
+        .setInstructions(request.body.instructions),
+    });
   }
 
   public async update(request: Request, response: Response): Promise<Response> {

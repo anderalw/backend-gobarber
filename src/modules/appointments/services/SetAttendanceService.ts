@@ -7,7 +7,11 @@ import Appointment, {
   PaymentMethod,
 } from '../infra/typeorm/entities/Appointment';
 import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
-import { applyMembershipChoice, validatePayment } from '../utils/payment';
+import {
+  applyMembershipChoice,
+  isIncluded,
+  validatePayment,
+} from '../utils/payment';
 
 interface IRequest {
   appointment_id: string;
@@ -57,12 +61,12 @@ class SetAttendanceService {
     }
 
     if (attendance === 'completed' && payment_method) {
-      const wasIncluded = !!appointment.membership_id;
+      const wasIncluded = isIncluded(appointment);
 
       applyMembershipChoice(appointment, payment_method);
 
-      // Cobrou normalmente: sai do plano (o uso volta ao saldo)
-      if (wasIncluded && !appointment.membership_id) {
+      // Cobrou normalmente: sai do plano ou pacote (o uso volta ao saldo)
+      if (wasIncluded && !isIncluded(appointment)) {
         await this.appointmentsRepository.save(appointment);
       }
     }

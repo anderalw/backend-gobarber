@@ -50,6 +50,17 @@ class Client {
   @Column({ type: 'text', nullable: true })
   notes: string | null;
 
+  // Termo de consentimento: versão (do texto) aceita e quando
+  @Column({ type: 'varchar', nullable: true })
+  consent_version: string | null;
+
+  @Column({ type: 'timestamp with time zone', nullable: true })
+  consent_accepted_at: Date | null;
+
+  // Quem registrou o aceite na recepção (null = o cliente, pelo site)
+  @Column({ type: 'uuid', nullable: true })
+  consent_by: string | null;
+
   @CreateDateColumn({ type: 'timestamp with time zone' })
   created_at: Date;
 

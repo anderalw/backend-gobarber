@@ -29,7 +29,13 @@ export type FeatureKey =
   | 'any_provider'
   | 'walk_in'
   | 'series'
-  | 'waitlist';
+  | 'waitlist'
+  // Sinal para garantir o horário (valor definido em cada serviço)
+  | 'deposit'
+  // Pacotes de sessões vendidos ao cliente
+  | 'packages'
+  // Termo de consentimento aceito antes de agendar
+  | 'consent';
 
 export const FEATURE_KEYS: FeatureKey[] = [
   'club',
@@ -37,6 +43,9 @@ export const FEATURE_KEYS: FeatureKey[] = [
   'walk_in',
   'series',
   'waitlist',
+  'deposit',
+  'packages',
+  'consent',
 ];
 
 type Rule = { show: boolean; required: boolean };
@@ -67,11 +76,39 @@ interface ISegment {
   block_reasons: string[];
   features: Record<FeatureKey, boolean>;
   defaults: ISegmentDefaults;
+  // Texto inicial do termo de consentimento (o negócio pode reescrever)
+  consent_text: string;
 }
+
+// Termos de consentimento iniciais (modelos: o negócio revisa e ajusta)
+const CONSENT_GENERIC = `Declaro que as informações que forneci são verdadeiras e que fui informado(a) sobre o atendimento, seus cuidados e possíveis riscos.
+
+Autorizo o uso dos meus dados pessoais apenas para o agendamento, o atendimento e o contato sobre ele, conforme a Lei Geral de Proteção de Dados (LGPD).`;
+
+const CONSENT_TATTOO = `Declaro ser maior de 18 anos e que as informações que forneci são verdadeiras.
+
+Informei ao estúdio sobre alergias, uso de medicamentos, doenças de pele, diabetes, problemas de cicatrização ou de coagulação, gravidez ou amamentação.
+
+Fui orientado(a) sobre os riscos do procedimento (como reações alérgicas, inflamação e infecção) e sobre os cuidados após a sessão, e me comprometo a segui-los. Sei que o resultado final depende também da cicatrização e dos meus cuidados.
+
+Autorizo o uso dos meus dados pessoais apenas para o agendamento, o atendimento e o contato sobre ele, conforme a LGPD.`;
+
+const CONSENT_PHYSIO = `Declaro que as informações que forneci sobre minha saúde são verdadeiras e que avisarei sobre qualquer mudança, como dores novas, cirurgias, uso de medicamentos ou gravidez.
+
+Fui informado(a) sobre o tratamento proposto, seus objetivos e possíveis desconfortos, e sei que posso interromper a sessão a qualquer momento.
+
+Autorizo o registro das informações do meu tratamento em prontuário e o uso dos meus dados pessoais apenas para o atendimento e o contato sobre ele, conforme a LGPD.`;
+
+const CONSENT_CLINIC = `Declaro que as informações que forneci sobre minha saúde são verdadeiras e completas, incluindo alergias, medicamentos em uso e condições anteriores.
+
+Fui informado(a) de que posso tirar dúvidas sobre os exames e procedimentos antes de realizá-los e de que posso recusá-los.
+
+Autorizo o registro das informações do atendimento em prontuário e o uso dos meus dados pessoais apenas para o atendimento e o contato sobre ele, conforme a LGPD.`;
 
 export const SEGMENTS: Record<SegmentKey, ISegment> = {
   barbershop: {
     key: 'barbershop',
+    consent_text: CONSENT_GENERIC,
     tagline: 'Cortes, barbas e tratamentos com hora marcada.',
     name: 'Barbearia',
     vocabulary: {
@@ -90,11 +127,15 @@ export const SEGMENTS: Record<SegmentKey, ISegment> = {
       walk_in: true,
       series: true,
       waitlist: true,
+      deposit: false,
+      packages: false,
+      consent: false,
     },
     defaults: { buffer_minutes: 0 },
   },
   beauty: {
     key: 'beauty',
+    consent_text: CONSENT_GENERIC,
     tagline: 'Cabelo, unhas e estética com hora marcada.',
     name: 'Salão de beleza / estética',
     vocabulary: {
@@ -113,11 +154,15 @@ export const SEGMENTS: Record<SegmentKey, ISegment> = {
       walk_in: true,
       series: true,
       waitlist: true,
+      deposit: false,
+      packages: true,
+      consent: false,
     },
     defaults: { buffer_minutes: 0 },
   },
   tattoo: {
     key: 'tattoo',
+    consent_text: CONSENT_TATTOO,
     tagline: 'Tatuagens e piercings com hora marcada.',
     name: 'Estúdio de tatuagem',
     vocabulary: {
@@ -136,6 +181,9 @@ export const SEGMENTS: Record<SegmentKey, ISegment> = {
       walk_in: false,
       series: true,
       waitlist: true,
+      deposit: true,
+      packages: false,
+      consent: true,
     },
     // Maior de idade: CPF e nascimento no cadastro pelo site
     defaults: {
@@ -148,6 +196,7 @@ export const SEGMENTS: Record<SegmentKey, ISegment> = {
   },
   physio: {
     key: 'physio',
+    consent_text: CONSENT_PHYSIO,
     tagline: 'Fisioterapia e reabilitação com hora marcada.',
     name: 'Fisioterapia',
     vocabulary: {
@@ -166,6 +215,9 @@ export const SEGMENTS: Record<SegmentKey, ISegment> = {
       walk_in: false,
       series: true,
       waitlist: true,
+      deposit: false,
+      packages: true,
+      consent: true,
     },
     defaults: {
       buffer_minutes: 10,
@@ -177,6 +229,7 @@ export const SEGMENTS: Record<SegmentKey, ISegment> = {
   },
   clinic: {
     key: 'clinic',
+    consent_text: CONSENT_CLINIC,
     tagline: 'Consultas com hora marcada, sem espera.',
     name: 'Consultório',
     vocabulary: {
@@ -195,6 +248,9 @@ export const SEGMENTS: Record<SegmentKey, ISegment> = {
       walk_in: false,
       series: true,
       waitlist: true,
+      deposit: false,
+      packages: false,
+      consent: true,
     },
     defaults: {
       buffer_minutes: 10,

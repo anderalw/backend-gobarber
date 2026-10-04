@@ -7,6 +7,7 @@ import {
   PaymentMethod,
 } from '../infra/typeorm/entities/Appointment';
 import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
+import { isIncluded } from '../utils/payment';
 import SetAttendanceService from './SetAttendanceService';
 
 interface IItem {
@@ -61,14 +62,11 @@ class RegisterAttendancesService {
           );
         }
 
-        if (
-          item.payment_method === 'membership' &&
-          !appointment.membership_id
-        ) {
+        if (item.payment_method === 'membership' && !isIncluded(appointment)) {
           throw new AppError(
             `O atendimento de ${
               appointment.client?.name || 'um cliente'
-            } não está incluso em um plano.`,
+            } não está incluso em um plano ou pacote.`,
           );
         }
       }),

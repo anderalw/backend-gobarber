@@ -11,6 +11,8 @@ import IUsersRepository from '@modules/users/repositories/IUsersRepository';
 import IServicesRepository from '@modules/catalog/repositories/IServicesRepository';
 import AgendaSettingsService from '@modules/catalog/services/AgendaSettingsService';
 import MembershipBenefitService from '@modules/memberships/services/MembershipBenefitService';
+import FeaturesService from '@modules/catalog/services/FeaturesService';
+import PackagesService from '@modules/packages/services/PackagesService';
 import Appointment from '../infra/typeorm/entities/Appointment';
 import IAppointmentsRepaository from '../repositories/IAppointmentsRepository';
 import ITimeBlocksRepository from '../repositories/ITimeBlocksRepository';
@@ -61,6 +63,13 @@ class CreateAppointmentsServices {
     // envolvem o clube)
     @inject(MembershipBenefitService)
     private membershipBenefit?: MembershipBenefitService,
+
+    // Recursos do ramo (pacotes e sinal); opcionais nos testes antigos
+    @inject(FeaturesService)
+    private features?: FeaturesService,
+
+    @inject(PackagesService)
+    private packages?: PackagesService,
   ) {}
 
   public async execute({
@@ -99,23 +108,47 @@ class CreateAppointmentsServices {
       },
     );
 
-    const benefit = this.membershipBenefit
-      ? await this.membershipBenefit.evaluate({
-          client_id,
-          service_id: service.id,
-          price_cents: service.price_cents,
-          date: appointmentDate,
-        })
-      : null;
+    // Pacote de sessões do serviço: incluso, sem passar pelo clube
+    const sessionPackage =
+      this.features && this.packages && (await this.features.isOn('packages'))
+        ? await this.packages.coverFor(client_id, service.id)
+        : null;
+
+    const benefit =
+      this.membershipBenefit && !sessionPackage
+        ? await this.membershipBenefit.evaluate({
+            client_id,
+            service_id: service.id,
+            price_cents: service.price_cents,
+            date: appointmentDate,
+          })
+        : null;
+
+    let price = benefit ? benefit.price_cents : service.price_cents;
+
+    if (sessionPackage) price = 0;
+
+    // Sinal do serviço (só quando há algo a pagar)
+    const deposit =
+      this.features &&
+      service.deposit_cents &&
+      price > 0 &&
+      (await this.features.isOn('deposit'))
+        ? Math.min(service.deposit_cents, price)
+        : null;
 
     const appointment = await this.appointmentsRepository.create({
       provider_id,
       client_id,
       service_id: service.id,
       // Guarda o valor do momento: mudar o preço depois não altera o histórico
-      price_cents: benefit ? benefit.price_cents : service.price_cents,
+      price_cents: price,
       membership_id: benefit?.membership_id ?? null,
-      list_price_cents: benefit?.list_price_cents ?? null,
+      list_price_cents: sessionPackage
+        ? service.price_cents
+        : benefit?.list_price_cents ?? null,
+      package_id: sessionPackage?.id ?? null,
+      deposit_cents: deposit,
       date: appointmentDate,
       end_date: end,
       blocked_until: blockedUntil,

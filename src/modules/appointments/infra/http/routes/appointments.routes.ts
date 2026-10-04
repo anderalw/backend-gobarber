@@ -162,4 +162,24 @@ appointmentsRouter.patch(
   appointmentsController.attendance,
 );
 
+// Sinal recebido (ou desfeito, com payment_method null)
+appointmentsRouter.patch(
+  '/:id/deposit',
+  ensureFeature('deposit'),
+  ensureRole('provider'),
+  celebrate({
+    ...appointmentId,
+    [Segments.BODY]: {
+      payment_method: Joi.string()
+        .valid('pix', 'credit', 'debit', 'cash')
+        .allow(null)
+        .required(),
+      amount_cents: Joi.number().integer().min(1).max(1000000).allow(null),
+    },
+  }),
+  forAppointment,
+  forPayment,
+  appointmentsController.deposit,
+);
+
 export default appointmentsRouter;

@@ -15,6 +15,7 @@ const serviceBody = {
   name: Joi.string().required(),
   duration_minutes: Joi.number().integer().required(),
   price_cents: Joi.number().integer().required(),
+  deposit_cents: Joi.number().integer().min(0).allow(null),
 };
 
 servicesRouter.use(ensureAuthenticated);

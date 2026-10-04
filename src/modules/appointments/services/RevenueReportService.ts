@@ -13,7 +13,7 @@ import AppError from '@shared/errors/AppError';
 import Appointment from '../infra/typeorm/entities/Appointment';
 import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
 import { PaymentTotals } from '../infra/typeorm/entities/CashClosing';
-import { receivedCents, totalsByMethod } from '../utils/payment';
+import { revenueCents, totalsByMethod } from '../utils/payment';
 
 interface IRequest {
   // 'yyyy-MM-dd', inclusive
@@ -143,7 +143,7 @@ class RevenueReportService {
       // Atendido: o que foi recebido; nos outros casos, o preço marcado
       const price =
         situation === 'completed'
-          ? receivedCents(appointment)
+          ? revenueCents(appointment)
           : appointment.price_cents || 0;
 
       const provider = providers.get(appointment.provider_id) || {

@@ -9,10 +9,13 @@ import {
   CLIENT_SORTS,
 } from '@modules/clients/dtos/IListClientsDTO';
 import profileExtras from '@shared/infra/http/profileExtrasSchema';
+import ensureFeature from '@shared/infra/http/middlewares/ensureFeature';
 import ClientsController from '../controllers/ClientsController';
+import ConsentController from '../controllers/ConsentController';
 
 const clientsRouter = Router();
 const clientsController = new ClientsController();
+const consentController = new ConsentController();
 
 // Cadastro feito pelo próprio cliente no site
 clientsRouter.post(
@@ -70,6 +73,26 @@ clientsRouter.put(
     },
   }),
   clientsController.updateMe,
+);
+
+// Termo de consentimento: o cliente lê e aceita antes de agendar
+const consentBody = {
+  [Segments.BODY]: { version: Joi.string().max(40).allow(null) },
+};
+
+clientsRouter.get(
+  '/me/consent',
+  ensureAuthenticated,
+  ensureRole('client'),
+  consentController.mine,
+);
+clientsRouter.post(
+  '/me/consent',
+  ensureAuthenticated,
+  ensureRole('client'),
+  ensureFeature('consent'),
+  celebrate(consentBody),
+  consentController.acceptMine,
 );
 
 // Esqueci minha senha (cliente, sem login)
@@ -139,6 +162,25 @@ clientsRouter.get(
   ensurePermission('clients'),
   celebrate(clientId),
   clientsController.show,
+);
+
+// Aceite do termo registrado na recepção (assinado no papel, por exemplo)
+clientsRouter.get(
+  '/:id/consent',
+  ensureAuthenticated,
+  ensureRole('provider'),
+  ensurePermission('clients'),
+  celebrate(clientId),
+  consentController.show,
+);
+clientsRouter.post(
+  '/:id/consent',
+  ensureAuthenticated,
+  ensureRole('provider'),
+  ensurePermission('clients'),
+  ensureFeature('consent'),
+  celebrate({ ...clientId, ...consentBody }),
+  consentController.accept,
 );
 
 clientsRouter.put(

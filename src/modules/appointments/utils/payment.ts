@@ -15,9 +15,28 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
 // Valor máximo de um atendimento (R$ 10.000,00): evita erros de digitação
 export const MAX_PAID_CENTS = 1000000;
 
-// O que entrou no caixa: o valor informado ou, sem ele, o preço marcado
+// Sinal já recebido (entrou no caixa do dia em que foi pago)
+export function paidDepositCents(appointment: Appointment): number {
+  return appointment.deposit_paid_at ? appointment.deposit_cents || 0 : 0;
+}
+
+// O que entrou no caixa ao concluir: o valor informado ou, sem ele, o preço
+// marcado menos o sinal já pago
 export function receivedCents(appointment: Appointment): number {
-  return appointment.paid_cents ?? appointment.price_cents ?? 0;
+  return (
+    appointment.paid_cents ??
+    Math.max(0, (appointment.price_cents ?? 0) - paidDepositCents(appointment))
+  );
+}
+
+// Faturamento do atendimento: o recebido ao concluir mais o sinal
+export function revenueCents(appointment: Appointment): number {
+  return receivedCents(appointment) + paidDepositCents(appointment);
+}
+
+// Incluso no plano do clube ou num pacote de sessões (nada a receber)
+export function isIncluded(appointment: Appointment): boolean {
+  return !!appointment.membership_id || !!appointment.package_id;
 }
 
 export function emptyTotals(): PaymentTotals {
@@ -53,16 +72,19 @@ export function applyMembershipChoice(
   payment_method: PaymentMethod | null,
 ): void {
   if (payment_method === 'membership') {
-    if (!appointment.membership_id) {
-      throw new AppError('Este atendimento não está incluso em um plano.');
+    if (!isIncluded(appointment)) {
+      throw new AppError(
+        'Este atendimento não está incluso em um plano ou pacote.',
+      );
     }
 
     return;
   }
 
-  if (appointment.membership_id && payment_method) {
+  if (isIncluded(appointment) && payment_method) {
     Object.assign(appointment, {
       membership_id: null,
+      package_id: null,
       price_cents: appointment.list_price_cents,
       list_price_cents: null,
     });

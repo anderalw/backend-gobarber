@@ -6,6 +6,7 @@ export default function validateServiceData({
   name,
   duration_minutes,
   price_cents,
+  deposit_cents,
 }: ICreateServiceDTO): ICreateServiceDTO {
   const trimmedName = name.trim();
 
@@ -28,5 +29,23 @@ export default function validateServiceData({
     throw new AppError('Informe um valor válido para o serviço.');
   }
 
-  return { name: trimmedName, duration_minutes, price_cents };
+  if (
+    deposit_cents !== undefined &&
+    deposit_cents !== null &&
+    (!Number.isInteger(deposit_cents) ||
+      deposit_cents < 0 ||
+      deposit_cents > price_cents)
+  ) {
+    throw new AppError('O sinal deve ficar entre zero e o valor do serviço.');
+  }
+
+  return {
+    name: trimmedName,
+    duration_minutes,
+    price_cents,
+    // Sinal zero é o mesmo que sem sinal
+    ...(deposit_cents !== undefined && {
+      deposit_cents: deposit_cents || null,
+    }),
+  };
 }

@@ -47,6 +47,8 @@ import IMembershipPlansRepository from '@modules/memberships/repositories/IMembe
 import MembershipPlansRepository from '@modules/memberships/infra/typeorm/repositories/MembershipPlansRepository';
 import IMembershipsRepository from '@modules/memberships/repositories/IMembershipsRepository';
 import MembershipsRepository from '@modules/memberships/infra/typeorm/repositories/MembershipsRepository';
+import ISessionPackagesRepository from '@modules/packages/repositories/ISessionPackagesRepository';
+import SessionPackagesRepository from '@modules/packages/infra/typeorm/repositories/SessionPackagesRepository';
 import IMembershipPaymentsRepository from '@modules/memberships/repositories/IMembershipPaymentsRepository';
 import MembershipPaymentsRepository from '@modules/memberships/infra/typeorm/repositories/MembershipPaymentsRepository';
 import TerminalDevicesRepository from '@modules/payments/infra/typeorm/repositories/TerminalDevicesRepository';
@@ -131,6 +133,11 @@ container.registerSingleton<IMembershipPlansRepository>(
 container.registerSingleton<IMembershipsRepository>(
   'MembershipsRepository',
   MembershipsRepository,
+);
+
+container.registerSingleton<ISessionPackagesRepository>(
+  'SessionPackagesRepository',
+  SessionPackagesRepository,
 );
 
 container.registerSingleton<IMembershipPaymentsRepository>(

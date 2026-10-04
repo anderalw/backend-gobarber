@@ -318,6 +318,11 @@ class AppointmentsRepository implements IAppointmentsRepository {
       series_id: data.series_id ?? null,
       membership_id: data.membership_id ?? null,
       list_price_cents: data.list_price_cents ?? null,
+      package_id: data.package_id ?? null,
+      deposit_cents: data.deposit_cents ?? null,
+      deposit_paid_at: null,
+      deposit_method: null,
+      deposit_received_by: null,
       canceled_at: null,
       canceled_by: null,
       attendance: null,
@@ -336,6 +341,24 @@ class AppointmentsRepository implements IAppointmentsRepository {
     this.appointments.push(appointment);
 
     return appointment;
+  }
+
+  public async findDepositsPaidInPeriod(
+    start: Date,
+    end: Date,
+  ): Promise<Appointment[]> {
+    return this.appointments.filter(
+      item =>
+        item.deposit_paid_at &&
+        !isBefore(item.deposit_paid_at, start) &&
+        !isAfter(item.deposit_paid_at, end),
+    );
+  }
+
+  public async findByPackages(package_ids: string[]): Promise<Appointment[]> {
+    return this.active.filter(
+      item => item.package_id && package_ids.includes(item.package_id),
+    );
   }
 
   public async save(appointment: Appointment): Promise<Appointment> {

@@ -47,6 +47,12 @@ interface IAgendaAppointment {
   // Clube: incluso no plano / preço normal quando houve benefício
   membership_id: string | null;
   list_price_cents: number | null;
+  // Pacote de sessões que cobre o horário
+  package_id: string | null;
+  // Sinal pedido e o recebimento (null = ainda não)
+  deposit_cents: number | null;
+  deposit_paid_at: Date | null;
+  deposit_method: PaymentMethod | null;
   // Concluído ou falta; null = ainda não registrado
   attendance: Attendance | null;
   // Pagamento do atendimento concluído (null = não informado)
@@ -248,6 +254,10 @@ class ListDayAgendaService {
         price_cents: appointment.price_cents,
         membership_id: appointment.membership_id,
         list_price_cents: appointment.list_price_cents,
+        package_id: appointment.package_id,
+        deposit_cents: appointment.deposit_cents,
+        deposit_paid_at: appointment.deposit_paid_at,
+        deposit_method: appointment.deposit_method,
         attendance: appointment.attendance,
         payment_method: appointment.payment_method,
         paid_cents: appointment.paid_cents,

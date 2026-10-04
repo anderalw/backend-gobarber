@@ -136,6 +136,7 @@ class RescheduleAppointmentService {
 
     if (
       this.membershipBenefit &&
+      !appointment.package_id &&
       appointment.client_id &&
       appointment.service_id
     ) {

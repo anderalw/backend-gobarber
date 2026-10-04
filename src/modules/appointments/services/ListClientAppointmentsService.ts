@@ -2,6 +2,7 @@ import { injectable, inject } from 'tsyringe';
 
 import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
 import { clientCanChange } from '../utils/ensureCanChangeAppointment';
+import { isIncluded } from '../utils/payment';
 
 interface IClientAppointment {
   id: string;
@@ -13,6 +14,11 @@ interface IClientAppointment {
   // Clube: incluso no plano / preço normal quando houve benefício
   included: boolean;
   list_price_cents: number | null;
+  // Incluso num pacote de sessões
+  package: boolean;
+  // Sinal pedido e quando foi recebido (null = ainda não)
+  deposit_cents: number | null;
+  deposit_paid_at: Date | null;
   // Ainda dá tempo de o cliente cancelar ou remarcar sozinho
   can_change: boolean;
 }
@@ -59,8 +65,11 @@ class ListClientAppointmentsService {
         ? { id: appointment.service.id, name: appointment.service.name }
         : null,
       price_cents: appointment.price_cents,
-      included: !!appointment.membership_id,
+      included: isIncluded(appointment),
       list_price_cents: appointment.list_price_cents,
+      package: !!appointment.package_id,
+      deposit_cents: appointment.deposit_cents,
+      deposit_paid_at: appointment.deposit_paid_at,
       can_change: clientCanChange(appointment, now),
     }));
   }
@@ -88,7 +97,7 @@ class ListClientAppointmentsService {
         ? { id: appointment.service.id, name: appointment.service.name }
         : null,
       price_cents: appointment.price_cents,
-      included: !!appointment.membership_id,
+      included: isIncluded(appointment),
       attendance: appointment.attendance,
     }));
   }

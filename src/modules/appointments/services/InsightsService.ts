@@ -22,7 +22,7 @@ import IAppointmentsRepository from '../repositories/IAppointmentsRepository';
 import ITimeBlocksRepository from '../repositories/ITimeBlocksRepository';
 import IBlockPeriod from '../dtos/IBlockPeriod';
 import workWindow from '../utils/workWindow';
-import { receivedCents } from '../utils/payment';
+import { revenueCents } from '../utils/payment';
 import { MAX_REPORT_DAYS } from './RevenueReportService';
 
 interface IRange {
@@ -205,7 +205,7 @@ class InsightsService {
       ).length;
       const canceled = list.filter(item => item.canceled_at).length;
       const revenue = completed.reduce(
-        (sum, item) => sum + receivedCents(item),
+        (sum, item) => sum + revenueCents(item),
         0,
       );
       const active = new Set(
@@ -421,7 +421,7 @@ class InsightsService {
 
         service.count += 1;
         if (item.attendance === 'completed') {
-          service.revenue_cents += receivedCents(item);
+          service.revenue_cents += revenueCents(item);
         }
 
         services.set(key, service);

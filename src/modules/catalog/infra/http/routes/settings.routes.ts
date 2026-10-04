@@ -5,6 +5,7 @@ import ensureAuthenticated from '@modules/users/infra/http/middlewares/ensureAut
 import ensurePermission from '@shared/infra/http/middlewares/ensurePermission';
 import ensureRole from '@shared/infra/http/middlewares/ensureRole';
 import receiveImage from '@shared/infra/http/middlewares/receiveImage';
+import ConsentController from '@modules/clients/infra/http/controllers/ConsentController';
 import AgendaSettingsController from '../controllers/AgendaSettingsController';
 import NoShowPolicyController from '../controllers/NoShowPolicyController';
 import BrandingController from '../controllers/BrandingController';
@@ -15,12 +16,16 @@ const agendaSettingsController = new AgendaSettingsController();
 const noShowPolicyController = new NoShowPolicyController();
 const brandingController = new BrandingController();
 const profileFieldsController = new ProfileFieldsController();
+const consentController = new ConsentController();
 
 // Identidade da barbearia: pública (o site e o login usam antes de entrar)
 settingsRouter.get('/branding', brandingController.show);
 
 // Campos dos cadastros: públicos também (o cadastro do site usa)
 settingsRouter.get('/profile-fields', profileFieldsController.show);
+
+// Termo de consentimento: público (o cliente lê antes de agendar)
+settingsRouter.get('/consent', consentController.term);
 
 settingsRouter.use(ensureAuthenticated);
 
@@ -51,9 +56,33 @@ settingsRouter.put(
       walk_in: Joi.boolean(),
       series: Joi.boolean(),
       waitlist: Joi.boolean(),
+      deposit: Joi.boolean(),
+      packages: Joi.boolean(),
+      consent: Joi.boolean(),
     },
   }),
   brandingController.updateFeatures,
+);
+
+settingsRouter.put(
+  '/consent',
+  ...onlyAdmin,
+  celebrate({
+    [Segments.BODY]: { text: Joi.string().allow('').max(5000).required() },
+  }),
+  consentController.update,
+);
+
+// Orientação de como pagar o sinal (chave Pix, prazo...)
+settingsRouter.put(
+  '/deposit',
+  ...onlyAdmin,
+  celebrate({
+    [Segments.BODY]: {
+      instructions: Joi.string().trim().allow('').max(500).required(),
+    },
+  }),
+  brandingController.updateDeposit,
 );
 
 settingsRouter.patch(

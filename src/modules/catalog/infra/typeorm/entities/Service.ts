@@ -23,6 +23,10 @@ class Service {
   @Column('int')
   price_cents: number;
 
+  // Sinal para garantir o horário, em centavos (null = sem sinal)
+  @Column({ type: 'int', nullable: true })
+  deposit_cents: number | null;
+
   // Ordem em que aparece para os clientes (menor primeiro)
   @Column('int', { default: 0 })
   position: number;
