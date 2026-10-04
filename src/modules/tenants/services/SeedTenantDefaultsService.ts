@@ -3,6 +3,7 @@ import { injectable, inject } from 'tsyringe';
 import ISettingsRepository from '@modules/catalog/repositories/ISettingsRepository';
 import IBlockReasonsRepository from '@modules/appointments/repositories/IBlockReasonsRepository';
 import IRolesRepository from '@modules/users/repositories/IRolesRepository';
+import IServicesRepository from '@modules/catalog/repositories/IServicesRepository';
 import { DEFAULT_ROLES } from '@modules/users/permissions';
 import { segmentOf } from '../segments';
 
@@ -24,6 +25,9 @@ class SeedTenantDefaultsService {
 
     @inject('RolesRepository')
     private rolesRepository: IRolesRepository,
+
+    @inject('ServicesRepository')
+    private servicesRepository: IServicesRepository,
   ) {}
 
   public async execute(name: string, segmentKey?: string): Promise<void> {
@@ -52,6 +56,12 @@ class SeedTenantDefaultsService {
       );
     }
     await this.seedRoles(segment.vocabulary.professional);
+    await this.seedServices(segment.sample_services);
+
+    // Texto "sobre" do site (o admin reescreve em Configurações → Site)
+    if (!(await this.settingsRepository.get('site_about'))) {
+      await this.settingsRepository.set('site_about', segment.about);
+    }
 
     const reasons = await this.blockReasonsRepository.findAll();
 
@@ -62,6 +72,34 @@ class SeedTenantDefaultsService {
         Promise.resolve() as Promise<unknown>,
       );
     }
+  }
+
+  // Serviços de exemplo do ramo, só num negócio sem serviços
+  private async seedServices(
+    samples: Array<{
+      name: string;
+      duration_minutes: number;
+      price_cents: number;
+      deposit_cents?: number;
+    }>,
+  ): Promise<void> {
+    const existing = await this.servicesRepository.findAll({
+      only_active: false,
+    });
+
+    if (existing.length > 0) return;
+
+    await samples.reduce(
+      (previous, sample, index) =>
+        previous.then(() =>
+          this.servicesRepository.create({
+            ...sample,
+            deposit_cents: sample.deposit_cents ?? null,
+            position: index + 1,
+          }),
+        ),
+      Promise.resolve() as Promise<unknown>,
+    );
   }
 
   // Perfis de acesso: Administrador, Recepção e o do profissional (com o

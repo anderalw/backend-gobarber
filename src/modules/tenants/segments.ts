@@ -66,6 +66,13 @@ interface ISegmentDefaults {
 const ON = { show: true, required: true };
 const SHOW = { show: true, required: false };
 
+interface ISampleService {
+  name: string;
+  duration_minutes: number;
+  price_cents: number;
+  deposit_cents?: number;
+}
+
 interface ISegment {
   key: SegmentKey;
   name: string;
@@ -78,6 +85,10 @@ interface ISegment {
   defaults: ISegmentDefaults;
   // Texto inicial do termo de consentimento (o negócio pode reescrever)
   consent_text: string;
+  // Serviços de exemplo do negócio novo (o admin ajusta preços e nomes)
+  sample_services: ISampleService[];
+  // Texto "sobre" do site do negócio novo
+  about: string;
 }
 
 // Termos de consentimento iniciais (modelos: o negócio revisa e ajusta)
@@ -121,6 +132,30 @@ export const SEGMENTS: Record<SegmentKey, ISegment> = {
       club: 'Clube',
     },
     block_reasons: ['Almoço', 'Consulta', 'Folga', 'Férias'],
+    sample_services: [
+      {
+        name: 'Corte',
+        duration_minutes: 30,
+        price_cents: 4500,
+      },
+      {
+        name: 'Barba',
+        duration_minutes: 30,
+        price_cents: 3500,
+      },
+      {
+        name: 'Corte e barba',
+        duration_minutes: 60,
+        price_cents: 7000,
+      },
+      {
+        name: 'Sobrancelha',
+        duration_minutes: 15,
+        price_cents: 1500,
+      },
+    ],
+    about:
+      'Agende online e venha na hora marcada, sem fila. Cortes clássicos e modernos, barba feita com cuidado e um ambiente para você ficar à vontade.',
     features: {
       club: true,
       any_provider: true,
@@ -148,6 +183,35 @@ export const SEGMENTS: Record<SegmentKey, ISegment> = {
       club: 'Clube',
     },
     block_reasons: ['Almoço', 'Curso', 'Folga', 'Férias'],
+    sample_services: [
+      {
+        name: 'Corte feminino',
+        duration_minutes: 60,
+        price_cents: 9000,
+      },
+      {
+        name: 'Escova',
+        duration_minutes: 45,
+        price_cents: 6000,
+      },
+      {
+        name: 'Manicure',
+        duration_minutes: 45,
+        price_cents: 3500,
+      },
+      {
+        name: 'Pedicure',
+        duration_minutes: 45,
+        price_cents: 4000,
+      },
+      {
+        name: 'Design de sobrancelha',
+        duration_minutes: 30,
+        price_cents: 4000,
+      },
+    ],
+    about:
+      'Agende online e venha na hora marcada. Cabelo, unhas e estética com profissionais atenciosos e produtos de qualidade.',
     features: {
       club: true,
       any_provider: true,
@@ -175,6 +239,38 @@ export const SEGMENTS: Record<SegmentKey, ISegment> = {
       club: 'Clube',
     },
     block_reasons: ['Almoço', 'Convenção', 'Folga', 'Férias'],
+    sample_services: [
+      {
+        name: 'Orçamento',
+        duration_minutes: 30,
+        price_cents: 0,
+      },
+      {
+        name: 'Tatuagem pequena (até 10 cm)',
+        duration_minutes: 60,
+        price_cents: 25000,
+        deposit_cents: 8000,
+      },
+      {
+        name: 'Tatuagem média',
+        duration_minutes: 180,
+        price_cents: 70000,
+        deposit_cents: 20000,
+      },
+      {
+        name: 'Sessão de fechamento',
+        duration_minutes: 360,
+        price_cents: 150000,
+        deposit_cents: 40000,
+      },
+      {
+        name: 'Piercing',
+        duration_minutes: 30,
+        price_cents: 12000,
+      },
+    ],
+    about:
+      'Cada projeto é feito com você: conversamos sobre a ideia, o tamanho e o lugar antes da sessão. Material descartável, biossegurança e cuidado do começo ao fim.',
     features: {
       club: false,
       any_provider: false,
@@ -209,6 +305,30 @@ export const SEGMENTS: Record<SegmentKey, ISegment> = {
       club: 'Planos',
     },
     block_reasons: ['Almoço', 'Reunião', 'Folga', 'Férias'],
+    sample_services: [
+      {
+        name: 'Avaliação fisioterapêutica',
+        duration_minutes: 60,
+        price_cents: 15000,
+      },
+      {
+        name: 'Sessão de fisioterapia',
+        duration_minutes: 50,
+        price_cents: 12000,
+      },
+      {
+        name: 'Pilates clínico',
+        duration_minutes: 50,
+        price_cents: 10000,
+      },
+      {
+        name: 'RPG',
+        duration_minutes: 50,
+        price_cents: 13000,
+      },
+    ],
+    about:
+      'O tratamento começa com uma avaliação completa e segue com sessões individuais, acompanhando a sua evolução. Agende online e venha no horário marcado.',
     features: {
       club: true,
       any_provider: false,
@@ -242,6 +362,30 @@ export const SEGMENTS: Record<SegmentKey, ISegment> = {
       club: 'Planos',
     },
     block_reasons: ['Almoço', 'Reunião', 'Folga', 'Férias'],
+    sample_services: [
+      {
+        name: 'Primeira consulta',
+        duration_minutes: 45,
+        price_cents: 30000,
+      },
+      {
+        name: 'Consulta',
+        duration_minutes: 30,
+        price_cents: 25000,
+      },
+      {
+        name: 'Retorno',
+        duration_minutes: 20,
+        price_cents: 0,
+      },
+      {
+        name: 'Teleconsulta',
+        duration_minutes: 30,
+        price_cents: 20000,
+      },
+    ],
+    about:
+      'Consultas com hora marcada e tempo para ouvir você com atenção. Agende online, sem espera e sem precisar ligar.',
     features: {
       club: true,
       any_provider: false,

@@ -56,6 +56,8 @@ internalRouter.get('/segments', (request: Request, response: Response) =>
       key,
       name: SEGMENTS[key].name,
       vocabulary: SEGMENTS[key].vocabulary,
+      // Serviços de exemplo com que o negócio começa
+      samples: SEGMENTS[key].sample_services.map(item => item.name),
     })),
   ),
 );

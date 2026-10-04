@@ -7,6 +7,7 @@ import FakeHashProvider from '@modules/users/providers/HashProvider/fakes/FakeHa
 import EnsureFirstAdminService from '@modules/users/services/EnsureFirstAdminService';
 import FakeBlockReasonsRepository from '@modules/appointments/repositories/fakes/FakeBlockReasonsRepository';
 import FakeRolesRepository from '@modules/users/repositories/fakes/FakeRolesRepository';
+import FakeServicesRepository from '@modules/catalog/repositories/fakes/FakeServicesRepository';
 import FakeTenantsRepository from '../repositories/fakes/FakeTenantsRepository';
 import SeedTenantDefaultsService from './SeedTenantDefaultsService';
 import TenantsService from './TenantsService';
@@ -16,6 +17,7 @@ let tenantsRepository: FakeTenantsRepository;
 let settingsRepository: FakeSettingsRepository;
 let blockReasonsRepository: FakeBlockReasonsRepository;
 let rolesRepository: FakeRolesRepository;
+let servicesRepository: FakeServicesRepository;
 let usersRepository: FakeUsersRepository;
 let ensureFirstAdmin: EnsureFirstAdminService;
 let tenants: TenantsService;
@@ -32,6 +34,7 @@ describe('Cadastro das barbearias', () => {
     settingsRepository = new FakeSettingsRepository();
     blockReasonsRepository = new FakeBlockReasonsRepository();
     rolesRepository = new FakeRolesRepository();
+    servicesRepository = new FakeServicesRepository();
     usersRepository = new FakeUsersRepository();
     ensureFirstAdmin = new EnsureFirstAdminService(
       usersRepository,
@@ -44,6 +47,7 @@ describe('Cadastro das barbearias', () => {
         settingsRepository,
         blockReasonsRepository,
         rolesRepository,
+        servicesRepository,
       ),
       new FakeNotificationsRepository(),
       ensureFirstAdmin,
@@ -85,6 +89,25 @@ describe('Cadastro das barbearias', () => {
       'Barbeiro',
       'Recepção',
     ]);
+  });
+
+  it('should start with the sample services and site text of the segment', async () => {
+    await tenants.create({
+      slug: 'estudio',
+      name: 'Estúdio Tinta',
+      admin,
+      segment: 'tattoo',
+    });
+
+    const services = await servicesRepository.findAll({ only_active: false });
+
+    expect(services.map(service => service.name)).toContain('Tatuagem média');
+    expect(
+      services.find(service => service.name === 'Tatuagem média'),
+    ).toMatchObject({ price_cents: 70000, deposit_cents: 20000, position: 3 });
+    expect(await settingsRepository.get('site_about')).toContain(
+      'biossegurança',
+    );
   });
 
   it('should reject invalid, reserved and repeated identifiers', async () => {
