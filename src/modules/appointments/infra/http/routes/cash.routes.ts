@@ -64,6 +64,14 @@ cashRouter.post(
   cashController.attendances,
 );
 
+// Desfazer um "atendido" ou "faltou" registrado errado
+cashRouter.delete(
+  '/attendances/:id',
+  ensurePermission('cash'),
+  celebrate({ [Segments.PARAMS]: { id: Joi.string().uuid().required() } }),
+  cashController.undo,
+);
+
 // Completar ou corrigir a forma de pagamento de um atendimento
 cashRouter.patch(
   '/payments/:id',

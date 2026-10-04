@@ -94,6 +94,8 @@ interface IResponse {
   // Já começaram e ninguém registrou se foi atendido
   pending: number;
   pending_items: IPendingItem[];
+  // Faltas registradas no dia (dá para desfazer pelo caixa)
+  no_show_items: IPendingItem[];
   // Outros dias (antes deste) com atendimentos sem registro
   pending_days: IPendingDay[];
   no_show: number;
@@ -181,18 +183,10 @@ class CashRegisterService {
         payment_method: payment.payment_method,
       })),
       pending: pending.length,
-      pending_items: pending.map(item => ({
-        id: item.id,
-        date: item.date,
-        client_name: item.client?.name || 'Cliente removido',
-        provider_id: item.provider_id,
-        provider_name: item.provider?.name || 'Barbeiro removido',
-        service_name: item.service?.name || 'Serviço não informado',
-        price_cents: item.price_cents,
-        included: !!item.membership_id,
-      })),
+      pending_items: pending.map(item => this.pendingItem(item)),
+      no_show_items: noShow.map(item => this.pendingItem(item)),
       pending_days: await this.pendingDays(date),
-      no_show: noShow,
+      no_show: noShow.length,
       closing: closingView,
     };
   }
@@ -234,6 +228,19 @@ class CashRegisterService {
     });
 
     return this.show(date);
+  }
+
+  private pendingItem(item: Appointment): IPendingItem {
+    return {
+      id: item.id,
+      date: item.date,
+      client_name: item.client?.name || 'Cliente removido',
+      provider_id: item.provider_id,
+      provider_name: item.provider?.name || 'Barbeiro removido',
+      service_name: item.service?.name || 'Serviço não informado',
+      price_cents: item.price_cents,
+      included: !!item.membership_id,
+    };
   }
 
   // Dias anteriores (até PENDING_LOOKBACK_DAYS) com atendimentos sem registro
@@ -281,7 +288,7 @@ class CashRegisterService {
   private async dayAppointments(date: string): Promise<{
     completed: Appointment[];
     pending: Appointment[];
-    noShow: number;
+    noShow: Appointment[];
     payments: MembershipPayment[];
   }> {
     const day = parseISO(date);
@@ -312,7 +319,7 @@ class CashRegisterService {
       pending: appointments.filter(
         item => !item.attendance && !isBefore(now, item.date),
       ),
-      noShow: appointments.filter(item => item.attendance === 'no_show').length,
+      noShow: appointments.filter(item => item.attendance === 'no_show'),
     };
   }
 }

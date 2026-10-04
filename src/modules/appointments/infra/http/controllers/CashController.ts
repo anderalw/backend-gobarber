@@ -3,6 +3,7 @@ import { container } from 'tsyringe';
 
 import CashRegisterService from '@modules/appointments/services/CashRegisterService';
 import SetPaymentService from '@modules/appointments/services/SetPaymentService';
+import SetAttendanceService from '@modules/appointments/services/SetAttendanceService';
 import RegisterAttendancesService from '@modules/appointments/services/RegisterAttendancesService';
 
 export default class CashController {
@@ -40,6 +41,19 @@ export default class CashController {
     });
 
     return response.json({ count });
+  }
+
+  // Registro errado: volta para "a registrar"
+  public async undo(request: Request, response: Response): Promise<Response> {
+    const setAttendance = container.resolve(SetAttendanceService);
+
+    await setAttendance.execute({
+      appointment_id: request.params.id,
+      attendance: null,
+      requester_id: request.user.id,
+    });
+
+    return response.status(204).send();
   }
 
   public async payment(
