@@ -209,9 +209,7 @@ class StaffUsersService {
     );
 
     if (others.length === 0) {
-      throw new AppError(
-        'A barbearia precisa de pelo menos um administrador ativo.',
-      );
+      throw new AppError('É preciso ter pelo menos um administrador ativo.');
     }
   }
 

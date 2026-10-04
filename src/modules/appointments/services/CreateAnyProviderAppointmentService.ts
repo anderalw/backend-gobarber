@@ -75,7 +75,7 @@ class CreateAnyProviderAppointmentService {
     const tryFrom = async (index: number): Promise<Appointment> => {
       if (index >= candidates.length) {
         throw new AppError(
-          'Nenhum barbeiro está livre neste horário. Escolha outro horário.',
+          'Nenhum profissional está livre neste horário. Escolha outro horário.',
         );
       }
 

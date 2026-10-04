@@ -141,7 +141,7 @@ export function membershipDueText(
       parseISO(dueDay),
       'dd/MM',
     )}.`,
-    'É só pagar na barbearia para continuar com os benefícios do clube.',
+    'É só pagar no próximo atendimento para continuar com os benefícios do plano.',
   ].join('\n\n');
 }
 
@@ -154,6 +154,6 @@ export function membershipOverdueText(
   return [
     `Olá, ${firstName(clientName)}! Aqui é da ${shop}.`,
     `A mensalidade do seu plano ${planName} (${price}) está em atraso. Enquanto isso, os serviços são cobrados no preço normal.`,
-    'Assim que você pagar na barbearia, os benefícios voltam na hora.',
+    'Assim que você pagar, os benefícios voltam na hora.',
   ].join('\n\n');
 }

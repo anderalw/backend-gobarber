@@ -89,7 +89,7 @@ class WaitlistService {
     }
 
     if (provider_id && !(await this.usersRepository.findById(provider_id))) {
-      throw new AppError('Barbeiro não encontrado.');
+      throw new AppError('Profissional não encontrado.');
     }
 
     if (service_id) {
@@ -111,8 +111,8 @@ class WaitlistService {
     if (working.length === 0) {
       throw new AppError(
         provider_id
-          ? 'Este barbeiro não atende neste dia.'
-          : 'A barbearia não atende neste dia.',
+          ? 'Este profissional não atende neste dia.'
+          : 'Não há atendimento neste dia.',
       );
     }
 

@@ -5,12 +5,12 @@ export const PERMISSIONS = [
   {
     key: 'agenda.all',
     group: 'Agenda',
-    label: 'Ver a agenda de todos os barbeiros',
+    label: 'Ver a agenda de todos os profissionais',
   },
   {
     key: 'agenda.manage',
     group: 'Agenda',
-    label: 'Marcar, remarcar, cancelar e bloquear para qualquer barbeiro',
+    label: 'Marcar, remarcar, cancelar e bloquear para qualquer profissional',
   },
   { key: 'clients', group: 'Clientes', label: 'Ver e editar os clientes' },
   {
@@ -43,7 +43,7 @@ export const PERMISSIONS = [
   {
     key: 'team',
     group: 'Gestão',
-    label: 'Usuários, perfis, barbeiros e horários',
+    label: 'Usuários, perfis, profissionais e horários',
   },
 ] as const;
 

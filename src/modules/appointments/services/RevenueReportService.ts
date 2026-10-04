@@ -149,7 +149,7 @@ class RevenueReportService {
       const provider = providers.get(appointment.provider_id) || {
         ...emptyCounts(),
         id: appointment.provider_id,
-        name: appointment.provider?.name || 'Barbeiro removido',
+        name: appointment.provider?.name || 'Profissional removido',
       };
       providers.set(appointment.provider_id, provider);
 

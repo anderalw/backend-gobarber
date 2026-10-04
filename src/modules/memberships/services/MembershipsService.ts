@@ -339,7 +339,7 @@ class MembershipsService {
     if (current) {
       throw new AppError(
         current.status === 'pending'
-          ? 'Já existe um pedido de assinatura aguardando a barbearia.'
+          ? 'Já existe um pedido de assinatura aguardando confirmação.'
           : 'Este cliente já tem uma assinatura ativa.',
       );
     }

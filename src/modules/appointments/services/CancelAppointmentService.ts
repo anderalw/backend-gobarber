@@ -53,7 +53,7 @@ class CancelAppointmentService {
     const canceled = await this.appointmentsRepository.save(appointment);
 
     const serviceName = appointment.service?.name || 'serviço';
-    const who = requester.role === 'client' ? 'pelo cliente' : 'pela barbearia';
+    const who = requester.role === 'client' ? 'pelo cliente' : 'pela equipe';
 
     await this.notificationsRepository.create({
       recipient_id: appointment.provider_id,

@@ -10,6 +10,8 @@ export interface ITenant {
   name: string;
   custom_domain: string | null;
   status: 'active' | 'suspended';
+  // Ramo de negócio (vocabulário e padrões)
+  segment?: string;
 }
 
 interface IContext {
@@ -44,7 +46,7 @@ export function requireTenant(): ITenant {
   const tenant = currentTenant();
 
   if (!tenant) {
-    throw new AppError('Barbearia não identificada.', 400);
+    throw new AppError('Negócio não identificado.', 400);
   }
 
   return tenant;

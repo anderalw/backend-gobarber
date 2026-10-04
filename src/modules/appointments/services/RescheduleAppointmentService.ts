@@ -96,7 +96,7 @@ class RescheduleAppointmentService {
     const provider = await this.usersRepository.findById(provider_id);
 
     if (!provider) {
-      throw new AppError('Barbeiro não encontrado.');
+      throw new AppError('Profissional não encontrado.');
     }
 
     // Mantém a duração da marcação, mesmo que o serviço tenha mudado depois

@@ -46,7 +46,7 @@ class UpdateProviderSchedulesService {
     const providerExists = await this.usersRepository.findById(provider_id);
 
     if (!providerExists) {
-      throw new AppError('Barbeiro não encontrado.');
+      throw new AppError('Profissional não encontrado.');
     }
 
     const seenDays = new Set<number>();

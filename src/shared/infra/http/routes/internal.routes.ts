@@ -11,6 +11,7 @@ import dataSource from '@shared/infra/typeorm/dataSource';
 import { runWithTenant } from '@shared/tenancy/TenantContext';
 import { tenantHost } from '@shared/tenancy/hosts';
 import TenantsService from '@modules/tenants/services/TenantsService';
+import { SEGMENTS, SEGMENT_KEYS } from '@modules/tenants/segments';
 import ResolveTenantService from '@modules/tenants/services/ResolveTenantService';
 import Tenant from '@modules/tenants/infra/typeorm/entities/Tenant';
 import {
@@ -48,6 +49,17 @@ const idParam = celebrate({
   [Segments.PARAMS]: { id: Joi.string().uuid().required() },
 });
 
+// Ramos de negócio para escolher ao criar
+internalRouter.get('/segments', (request: Request, response: Response) =>
+  response.json(
+    SEGMENT_KEYS.map(key => ({
+      key,
+      name: SEGMENTS[key].name,
+      vocabulary: SEGMENTS[key].vocabulary,
+    })),
+  ),
+);
+
 internalRouter.get('/tenants', async (request: Request, response: Response) => {
   const tenants = await container.resolve(TenantsService).list();
 
@@ -61,6 +73,7 @@ internalRouter.post(
       slug: Joi.string().max(40).required(),
       name: Joi.string().trim().max(80).required(),
       custom_domain: Joi.string().max(253).allow(null, ''),
+      segment: Joi.string().valid(...SEGMENT_KEYS),
       admin: Joi.object({
         name: Joi.string().trim().max(80).allow(''),
         email: Joi.string().email().required(),
@@ -217,6 +230,7 @@ internalRouter.post(
     [Segments.QUERY]: {
       slug: Joi.string().max(40).allow(''),
       name: Joi.string().trim().max(80).allow(''),
+      segment: Joi.string().valid(...SEGMENT_KEYS),
     },
   }),
   async (request: Request, response: Response) => {
@@ -231,6 +245,7 @@ internalRouter.post(
       const tenant = await importTenant(archive, {
         slug: request.query.slug as string | undefined,
         name: request.query.name as string | undefined,
+        segment: request.query.segment as string | undefined,
       });
 
       return response.status(201).json(present(tenant));

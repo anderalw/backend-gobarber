@@ -184,7 +184,7 @@ describe('Lista de espera', () => {
         date: '2020-08-16',
         created_by: 'client',
       }),
-    ).rejects.toMatchObject({ message: 'A barbearia não atende neste dia.' });
+    ).rejects.toMatchObject({ message: 'Não há atendimento neste dia.' });
 
     // 13/08 é quinta: Luis não atende
     await expect(
@@ -194,7 +194,9 @@ describe('Lista de espera', () => {
         provider_id: luis.id,
         created_by: 'client',
       }),
-    ).rejects.toMatchObject({ message: 'Este barbeiro não atende neste dia.' });
+    ).rejects.toMatchObject({
+      message: 'Este profissional não atende neste dia.',
+    });
 
     await book(maria, carlos, 10);
 

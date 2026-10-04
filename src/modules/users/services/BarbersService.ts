@@ -25,11 +25,11 @@ class BarbersService {
     const user = await this.find(user_id);
 
     if (!user.active) {
-      throw new AppError('Ative o usuário antes de torná-lo barbeiro.');
+      throw new AppError('Ative o usuário antes de colocá-lo na agenda.');
     }
 
     if (user.is_barber) {
-      throw new AppError(`${user.name} já é barbeiro.`);
+      throw new AppError(`${user.name} já está na agenda.`);
     }
 
     user.is_barber = true;
@@ -43,7 +43,7 @@ class BarbersService {
     const user = await this.find(user_id);
 
     if (!user.is_barber) {
-      throw new AppError(`${user.name} não é barbeiro.`);
+      throw new AppError(`${user.name} não está na agenda.`);
     }
 
     const upcoming =

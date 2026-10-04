@@ -11,7 +11,7 @@ export async function findBlockProviders(
   const ids = Array.from(new Set(provider_ids));
 
   if (ids.length === 0) {
-    throw new AppError('Escolha pelo menos um barbeiro.');
+    throw new AppError('Escolha pelo menos um profissional.');
   }
 
   const providers = await Promise.all(
@@ -19,7 +19,7 @@ export async function findBlockProviders(
   );
 
   if (providers.some(provider => !provider)) {
-    throw new AppError('Barbeiro não encontrado.');
+    throw new AppError('Profissional não encontrado.');
   }
 
   return providers as User[];

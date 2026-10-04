@@ -177,7 +177,7 @@ export default class EmailClientNotifier implements IClientNotifier {
           variables: {
             name: client.name.split(' ')[0],
             service: appointment.service?.name || 'Atendimento',
-            provider: appointment.provider?.name || 'a barbearia',
+            provider: appointment.provider?.name || 'a equipe',
             when: when(appointment.date),
             myAppointmentsLink: `${webUrl()}/meus-agendamentos`,
             shopName: brand.name,

@@ -92,7 +92,7 @@ class NoShowPolicyService {
 
     if (summary && hasNoShowAlert(summary.recent_no_shows, policy)) {
       throw new AppError(
-        'Não é possível agendar pelo site. Entre em contato com a barbearia para marcar o seu horário.',
+        'Não é possível agendar pelo site. Entre em contato com a equipe para marcar o seu horário.',
         403,
       );
     }

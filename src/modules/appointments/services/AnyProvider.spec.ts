@@ -177,7 +177,7 @@ describe('Qualquer barbeiro', () => {
       }),
     ).rejects.toMatchObject({
       message:
-        'Nenhum barbeiro está livre neste horário. Escolha outro horário.',
+        'Nenhum profissional está livre neste horário. Escolha outro horário.',
     });
   });
 

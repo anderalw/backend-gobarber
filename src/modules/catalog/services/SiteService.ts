@@ -186,7 +186,7 @@ class SiteService {
     }
 
     if (instagram && !/^[A-Za-z0-9._]{1,30}$/.test(instagram)) {
-      throw new AppError('Informe o usuário do Instagram. Ex: @barbearia');
+      throw new AppError('Informe o usuário do Instagram. Ex: @seunegocio');
     }
 
     await Promise.all([

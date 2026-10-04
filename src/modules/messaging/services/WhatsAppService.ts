@@ -183,7 +183,7 @@ class WhatsAppService {
     Object.assign(message, {
       status: 'skipped',
       handled_by: user_id,
-      error: 'Pulada pela barbearia.',
+      error: 'Pulada pela equipe.',
     });
 
     return view(await this.messagesRepository.save(message));

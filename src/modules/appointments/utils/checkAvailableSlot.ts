@@ -55,11 +55,11 @@ export default async function checkAvailableSlot(
   const provider = await usersRepository.findById(provider_id);
 
   if (!provider) {
-    throw new AppError('Barbeiro não encontrado.');
+    throw new AppError('Profissional não encontrado.');
   }
 
   if (!provider.active) {
-    throw new AppError('Este barbeiro não está atendendo no momento.');
+    throw new AppError('Este profissional não está atendendo no momento.');
   }
 
   const schedules = await providerSchedulesRepository.findByProviderId(
@@ -71,7 +71,7 @@ export default async function checkAvailableSlot(
   );
 
   if (!scheduleForDay) {
-    throw new AppError('O barbeiro não atende neste dia.');
+    throw new AppError('O profissional não atende neste dia.');
   }
 
   const end = addMinutes(start, durationMinutes);
@@ -79,7 +79,7 @@ export default async function checkAvailableSlot(
 
   if (isBefore(start, workStart) || isAfter(end, workEnd)) {
     throw new AppError(
-      `Este barbeiro só atende entre ${scheduleForDay.start_time} e ${scheduleForDay.end_time}.`,
+      `Este profissional só atende entre ${scheduleForDay.start_time} e ${scheduleForDay.end_time}.`,
     );
   }
 
@@ -92,7 +92,7 @@ export default async function checkAvailableSlot(
   });
 
   if (blocks.length > 0) {
-    throw new AppError('O barbeiro não está atendendo neste horário.');
+    throw new AppError('O profissional não está atendendo neste horário.');
   }
 
   const { buffer_minutes } = await agendaSettings.get();

@@ -53,7 +53,7 @@ class SetProviderActiveService {
 
         if (others.length === 0) {
           throw new AppError(
-            'A barbearia precisa de pelo menos um administrador ativo.',
+            'É preciso ter pelo menos um administrador ativo.',
           );
         }
       }

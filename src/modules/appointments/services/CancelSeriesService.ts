@@ -93,7 +93,7 @@ class CancelSeriesService {
         .map(provider_id =>
           this.notificationsRepository.create({
             recipient_id: provider_id,
-            content: `Cliente fixo cancelado pela barbearia: ${
+            content: `Cliente fixo cancelado pela equipe: ${
               canceled.length
             } agendamentos de ${serviceName} a partir de ${format(
               appointment.date,

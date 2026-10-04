@@ -268,7 +268,7 @@ describe('CreateAppointment', () => {
         service_id: haircut.id,
       }),
     ).rejects.toMatchObject({
-      message: 'Este barbeiro não está atendendo no momento.',
+      message: 'Este profissional não está atendendo no momento.',
     });
   });
 });

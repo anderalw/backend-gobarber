@@ -49,7 +49,12 @@ interface IManifest {
   created_at: string;
   app_secret?: string;
   // Só na versão 2
-  tenant?: { slug: string; name: string; custom_domain: string | null };
+  tenant?: {
+    slug: string;
+    name: string;
+    custom_domain: string | null;
+    segment?: string;
+  };
   tables?: string[];
 }
 
@@ -187,6 +192,7 @@ export async function exportTenant(tenant: Tenant): Promise<string> {
         slug: tenant.slug,
         name: tenant.name,
         custom_domain: tenant.custom_domain,
+        segment: tenant.segment,
       },
       tables,
     };
@@ -352,7 +358,7 @@ async function rowsV1(work: string, tables: string[]): Promise<TableRows> {
 // instalações de uma barbearia só)
 export async function importTenant(
   archive: string,
-  options: { slug?: string; name?: string },
+  options: { slug?: string; name?: string; segment?: string },
 ): Promise<Tenant> {
   const work = await temporaryFolder('pontual-import-');
 
@@ -391,13 +397,14 @@ export async function importTenant(
     const slug = options.slug || manifest.tenant?.slug;
 
     if (!slug) {
-      throw new AppError('Informe o identificador da barbearia.');
+      throw new AppError('Informe o identificador do negócio.');
     }
 
     const tenant = await container.resolve(TenantsService).register({
       slug,
       name: options.name || manifest.tenant?.name || shopName || slug,
       custom_domain: manifest.tenant?.custom_domain,
+      segment: options.segment || manifest.tenant?.segment,
     });
 
     try {
@@ -414,7 +421,7 @@ export async function importTenant(
 
       if ((err as { code?: string }).code === '23505') {
         throw new AppError(
-          'Esses dados já existem nesta instalação: a barbearia de origem ainda está aqui?',
+          'Esses dados já existem nesta instalação: o negócio de origem ainda está aqui?',
         );
       }
 

@@ -306,7 +306,7 @@ describe('Clube de assinatura', () => {
     // Pedido pendente: ainda sem benefício, e sem pedir de novo
     expect((await book(haircut.id, at(6))).price_cents).toBe(5000);
     await expect(memberships.request(clientId, plan.id)).rejects.toMatchObject({
-      message: 'Já existe um pedido de assinatura aguardando a barbearia.',
+      message: 'Já existe um pedido de assinatura aguardando confirmação.',
     });
 
     const active = await memberships.confirm(pending.id, {

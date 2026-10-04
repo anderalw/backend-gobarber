@@ -11,6 +11,7 @@ import {
 import { runWithTenant } from '@shared/tenancy/TenantContext';
 import EnsureFirstAdminService from '@modules/users/services/EnsureFirstAdminService';
 import INotificationsRepository from '@modules/notifications/repositories/INotificationsRepository';
+import { DEFAULT_SEGMENT, SEGMENT_KEYS, SegmentKey } from '../segments';
 import ITenantsRepository from '../repositories/ITenantsRepository';
 import Tenant, { TenantStatus } from '../infra/typeorm/entities/Tenant';
 import ResolveTenantService from './ResolveTenantService';
@@ -20,7 +21,20 @@ interface ICreate {
   slug: string;
   name: string;
   custom_domain?: string | null;
+  // Ramo de negócio (segments.ts); sem ele, barbearia
+  segment?: string;
   admin: { name?: string; email: string; password: string };
+}
+
+// Segmento conhecido (sem ele, barbearia)
+function validSegment(segment?: string): SegmentKey {
+  if (!segment) return DEFAULT_SEGMENT;
+
+  if (!SEGMENT_KEYS.includes(segment as SegmentKey)) {
+    throw new AppError('Ramo de negócio desconhecido.');
+  }
+
+  return segment as SegmentKey;
 }
 
 interface IUpdate {
@@ -53,7 +67,7 @@ class TenantsService {
   public async show(id: string): Promise<Tenant> {
     const tenant = await this.tenantsRepository.findById(id);
 
-    if (!tenant) throw new AppError('Barbearia não encontrada.', 404);
+    if (!tenant) throw new AppError('Negócio não encontrado.', 404);
 
     return tenant;
   }
@@ -65,8 +79,10 @@ class TenantsService {
     name,
     custom_domain,
     admin,
+    segment,
   }: ICreate): Promise<Tenant> {
     const cleanSlug = await this.validSlug(slug);
+    const segmentKey = validSegment(segment);
     const domain = await this.validDomain(custom_domain);
 
     if (admin.password.length < 8) {
@@ -77,11 +93,12 @@ class TenantsService {
       slug: cleanSlug,
       name: name.trim(),
       custom_domain: domain,
+      segment: segmentKey,
     });
 
     try {
       await runWithTenant(tenant, async () => {
-        await this.seedDefaults.execute(tenant.name);
+        await this.seedDefaults.execute(tenant.name, segmentKey);
         await this.ensureFirstAdmin.execute(admin);
       });
     } catch (err) {
@@ -101,6 +118,7 @@ class TenantsService {
     slug,
     name,
     custom_domain,
+    segment,
   }: Omit<ICreate, 'admin'>): Promise<Tenant> {
     const cleanSlug = await this.validSlug(slug);
     const domain = await this.validDomain(custom_domain).catch(() => null);
@@ -109,6 +127,7 @@ class TenantsService {
       slug: cleanSlug,
       name: name.trim(),
       custom_domain: domain,
+      segment: validSegment(segment),
     });
 
     ResolveTenantService.forget();
@@ -154,7 +173,7 @@ class TenantsService {
     }
 
     if (await this.tenantsRepository.findBySlug(value)) {
-      throw new AppError('Já existe uma barbearia com esse identificador.');
+      throw new AppError('Já existe um negócio com esse identificador.');
     }
 
     return value;
@@ -190,7 +209,7 @@ class TenantsService {
     ]);
 
     if (owner && owner.id !== except) {
-      throw new AppError('Esse domínio já está em outra barbearia.');
+      throw new AppError('Esse domínio já está em outro negócio.');
     }
 
     return value;

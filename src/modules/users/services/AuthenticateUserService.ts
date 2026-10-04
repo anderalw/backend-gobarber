@@ -53,7 +53,7 @@ class AuthenticateUserService {
     // Conferido depois da senha, para não revelar quais contas existem
     if (!user.active) {
       throw new AppError(
-        'Esta conta está desativada. Fale com o administrador da barbearia.',
+        'Esta conta está desativada. Fale com o administrador.',
         401,
       );
     }

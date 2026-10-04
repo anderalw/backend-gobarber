@@ -184,7 +184,7 @@ export default class MembershipsController {
 
     if (!current || current.status !== 'pending') {
       throw new AppError(
-        'Não há pedido aguardando. Para cancelar a assinatura, fale com a barbearia.',
+        'Não há pedido aguardando. Para cancelar a assinatura, fale com a equipe.',
       );
     }
 

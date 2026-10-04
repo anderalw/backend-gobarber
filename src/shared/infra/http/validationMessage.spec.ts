@@ -59,7 +59,7 @@ describe('validationMessage', () => {
 
   it('should fall back to a generic message with the field name', () => {
     expect(validationMessage(detail('string.guid', ['provider_id']))).toBe(
-      'O campo Barbeiro é inválido.',
+      'O campo Profissional é inválido.',
     );
   });
 });

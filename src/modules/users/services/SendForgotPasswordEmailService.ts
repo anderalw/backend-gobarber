@@ -61,7 +61,7 @@ class SendForgotPasswordEmailService {
         variables: {
           shopName: brand.name,
           name: user.name,
-          link: `${webUrl()}/barbeiro/redefinir-senha?token=${token}`,
+          link: `${webUrl()}/equipe/redefinir-senha?token=${token}`,
         },
       },
     });

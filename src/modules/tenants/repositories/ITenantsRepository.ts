@@ -4,6 +4,7 @@ export interface ICreateTenantDTO {
   slug: string;
   name: string;
   custom_domain?: string | null;
+  segment?: string;
 }
 
 export default interface ITenantsRepository {

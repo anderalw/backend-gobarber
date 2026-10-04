@@ -319,7 +319,7 @@ describe('Bloqueios de horário', () => {
         date: at(10, 30),
       }),
     ).rejects.toMatchObject({
-      message: 'O barbeiro não está atendendo neste horário.',
+      message: 'O profissional não está atendendo neste horário.',
     });
 
     await expect(
@@ -463,7 +463,7 @@ describe('Bloqueios de horário', () => {
           date: at(11, 0, 22),
         }),
       ).rejects.toMatchObject({
-        message: 'O barbeiro não está atendendo neste horário.',
+        message: 'O profissional não está atendendo neste horário.',
       });
     });
 

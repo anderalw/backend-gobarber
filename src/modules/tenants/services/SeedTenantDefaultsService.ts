@@ -4,6 +4,7 @@ import ISettingsRepository from '@modules/catalog/repositories/ISettingsReposito
 import IBlockReasonsRepository from '@modules/appointments/repositories/IBlockReasonsRepository';
 import IRolesRepository from '@modules/users/repositories/IRolesRepository';
 import { DEFAULT_ROLES } from '@modules/users/permissions';
+import { segmentOf } from '../segments';
 
 // Motivos de bloqueio que toda barbearia começa tendo (antes vinham da
 // migration, quando cada instalação era de uma barbearia só)
@@ -25,14 +26,16 @@ class SeedTenantDefaultsService {
     private rolesRepository: IRolesRepository,
   ) {}
 
-  public async execute(name: string): Promise<void> {
+  public async execute(name: string, segmentKey?: string): Promise<void> {
+    const segment = segmentOf(segmentKey);
+
     await this.settingsRepository.set('shop_name', name);
-    await this.seedRoles();
+    await this.seedRoles(segment.vocabulary.professional);
 
     const reasons = await this.blockReasonsRepository.findAll();
 
     if (reasons.length === 0) {
-      await DEFAULT_BLOCK_REASONS.reduce(
+      await segment.block_reasons.reduce(
         (previous, reason) =>
           previous.then(() => this.blockReasonsRepository.create(reason)),
         Promise.resolve() as Promise<unknown>,
@@ -40,13 +43,20 @@ class SeedTenantDefaultsService {
     }
   }
 
-  // Perfis de acesso: Administrador, Recepção e Barbeiro
-  public async seedRoles(): Promise<void> {
+  // Perfis de acesso: Administrador, Recepção e o do profissional (com o
+  // nome do segmento: Barbeiro, Tatuador...)
+  public async seedRoles(professional = 'Barbeiro'): Promise<void> {
     if ((await this.rolesRepository.findAll()).length > 0) return;
 
     await DEFAULT_ROLES.reduce(
       (previous, role) =>
-        previous.then(() => this.rolesRepository.create(role)),
+        previous.then(() =>
+          this.rolesRepository.create(
+            role.system_key === 'barber'
+              ? { ...role, name: professional }
+              : role,
+          ),
+        ),
       Promise.resolve() as Promise<unknown>,
     );
   }

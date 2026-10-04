@@ -39,7 +39,7 @@ export default class SimulatorTerminalProvider implements ITerminalProvider {
       label: 'Chave de acesso',
       secret: true,
       required: true,
-      placeholder: 'sim_minha_barbearia',
+      placeholder: 'sim_meu_negocio',
       help: 'No simulador, qualquer chave que comece com "sim_".',
     },
   ];

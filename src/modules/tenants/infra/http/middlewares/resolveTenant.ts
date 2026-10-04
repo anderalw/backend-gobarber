@@ -28,7 +28,7 @@ export default async function resolveTenant(
     response.status(404).json({
       status: 'error',
       code: 'TENANT_NOT_FOUND',
-      message: 'Barbearia não encontrada neste endereço.',
+      message: 'Nada encontrado neste endereço.',
     });
     return;
   }

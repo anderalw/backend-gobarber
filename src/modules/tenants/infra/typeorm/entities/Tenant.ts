@@ -28,6 +28,10 @@ class Tenant {
   @Column({ type: 'varchar', default: 'active' })
   status: TenantStatus;
 
+  // Ramo de negócio (modules/tenants/segments): definido na criação
+  @Column({ type: 'varchar', default: 'barbershop' })
+  segment: string;
+
   @CreateDateColumn({ type: 'timestamp with time zone' })
   created_at: Date;
 

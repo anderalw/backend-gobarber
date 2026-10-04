@@ -43,7 +43,7 @@ export default function ensureCanChangeAppointment(
 
   if (requester.role === 'client' && !clientCanChange(appointment, now)) {
     throw new AppError(
-      `Alterações pelo cliente só com ${CLIENT_CHANGE_NOTICE_HOURS} horas de antecedência. Entre em contato com a barbearia.`,
+      `Alterações pelo cliente só com ${CLIENT_CHANGE_NOTICE_HOURS} horas de antecedência. Entre em contato com a equipe.`,
     );
   }
 
