@@ -23,6 +23,10 @@ class FakeUserTokensRepository implements IUserTokensRepository {
     return userToken;
   }
 
+  public async deleteFromUser(user_id: string): Promise<void> {
+    this.userTokens = this.userTokens.filter(item => item.user_id !== user_id);
+  }
+
   public async findByToken(token: string): Promise<UserToken | undefined> {
     const userToken = this.userTokens.find(
       findToken => findToken.token === token,

@@ -2,7 +2,6 @@ import { injectable, inject } from 'tsyringe';
 
 import path from 'path';
 import mailConfig from '@config/mail';
-import AppError from '@shared/errors/AppError';
 import IMailProvider from '@shared/container/providers/MailProvider/models/IMailProvider';
 import BrandingService from '@modules/catalog/services/BrandingService';
 import { webUrl } from '@shared/tenancy/hosts';
@@ -33,9 +32,8 @@ class SendForgotPasswordEmailService {
   public async execute({ email }: IRequest): Promise<void> {
     const user = await this.usersRepository.findByEmail(email);
 
-    if (!user) {
-      throw new AppError('Usuário não encontrado.');
-    }
+    // Não conta se o e-mail existe: a resposta é sempre a mesma
+    if (!user) return;
 
     const { token } = await this.userTokensRepository.generate(user.id);
 

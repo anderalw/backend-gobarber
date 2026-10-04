@@ -1,5 +1,3 @@
-import AppError from '@shared/errors/AppError';
-
 import FakeMailProvider from '@shared/container/providers/MailProvider/fakes/FakeMailProvider';
 import FakeStorageProvider from '@shared/container/providers/StorageProvider/fakes/FakeStorageProvider';
 import FakeSettingsRepository from '@modules/catalog/repositories/fakes/FakeSettingsRepository';
@@ -46,12 +44,15 @@ describe('SendForgotPasswordEmail', () => {
     expect(sendMail).toHaveBeenCalled();
   });
 
-  it('Should not be able to recover a non-existing user password', async () => {
+  it('Should not tell whether the e-mail exists', async () => {
+    const sendMail = jest.spyOn(fakeMailProvider, 'sendMail');
+
     await expect(
       sendForgotPasswordEmail.execute({
         email: 'jhondoe@email.com',
       }),
-    ).rejects.toBeInstanceOf(AppError);
+    ).resolves.toBeUndefined();
+    expect(sendMail).not.toHaveBeenCalled();
   });
 
   it('Should generate a forgot password token', async () => {

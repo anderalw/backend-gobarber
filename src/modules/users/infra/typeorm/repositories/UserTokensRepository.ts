@@ -19,6 +19,10 @@ class UserTokensRepository implements IUserTokensRepository {
     return userToken ?? undefined;
   }
 
+  public async deleteFromUser(user_id: string): Promise<void> {
+    await this.ormRepository.delete({ user_id });
+  }
+
   public async generate(user_id: string): Promise<UserToken> {
     const userToken = this.ormRepository.create({
       user_id,

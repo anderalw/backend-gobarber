@@ -41,6 +41,11 @@ describe('ResetPasswordService', () => {
 
     expect(generateHash).toHaveBeenCalledWith('123123');
     expect(updatedUser?.password).toBe('123123');
+
+    // O mesmo link não serve de novo
+    await expect(
+      resetPassword.execute({ password: '999999', token }),
+    ).rejects.toBeInstanceOf(AppError);
   });
 
   it('Should no be able to reset the password with non-existing token', async () => {

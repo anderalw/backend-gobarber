@@ -47,6 +47,8 @@ class ResetPasswordService {
     user.password = await this.hashProvider.generateHash(password);
 
     await this.usersRepository.save(user);
+    // O link só vale uma vez
+    await this.userTokensRepository.deleteFromUser(user.id);
   }
 }
 
