@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { celebrate, Segments, Joi } from 'celebrate';
 
 import ensureRole from '@shared/infra/http/middlewares/ensureRole';
+import profileExtras from '@shared/infra/http/profileExtrasSchema';
 import ProfileController from '../controllers/ProfileController';
 
 import ensureAuthencicated from '../middlewares/ensureAuthenticated';
@@ -22,6 +23,8 @@ profileRouter.put(
       old_password: Joi.string(),
       password: Joi.string(),
       password_confirmation: Joi.string().valid(Joi.ref('password')),
+      phone: Joi.string().trim().max(30).allow('', null),
+      ...profileExtras,
     },
   }),
   profileController.update,

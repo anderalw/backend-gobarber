@@ -5,6 +5,7 @@ import { instanceToInstance } from 'class-transformer';
 import UpdateProfileService from '@modules/users/services/UpdateProfileService';
 import ShowProfileService from '@modules/users/services/ShowProfileService';
 import ChangeFirstPasswordService from '@modules/users/services/ChangeFirstPasswordService';
+import ProfileFieldsService from '@modules/catalog/services/ProfileFieldsService';
 
 export default class ProfileControler {
   public async show(request: Request, response: Response): Promise<Response> {
@@ -22,6 +23,9 @@ export default class ProfileControler {
     const { name, email, old_password, password } = request.body;
 
     const updateProfile = container.resolve(UpdateProfileService);
+    const extras = await container
+      .resolve(ProfileFieldsService)
+      .check('staff', request.body);
 
     const user = await updateProfile.execute({
       user_id,
@@ -29,6 +33,7 @@ export default class ProfileControler {
       email,
       old_password,
       password,
+      extras,
     });
 
     return response.json(instanceToInstance(user));
